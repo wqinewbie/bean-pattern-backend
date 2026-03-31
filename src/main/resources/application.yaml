@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: bean-pattern-backend
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+server:
+  # 后端端口，小程序里 API_BASE_URL 要和这里一致
+  port: 8081
+
+app:
+  # 本地上传目录（相对项目根目录）
+  upload-dir: ./uploads
+  # 文件外链拼接基础地址（例如上传后返回的图片 URL）
+  base-url: http://localhost:8080
+  wechat:
+    # 微信小程序真实配置：建议通过环境变量注入
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+  ai:
+    # AI 图片处理接口地址与密钥（未配置时走降级：返回原图 URL）
+    api-url: ${AI_API_URL:}
+    api-key: ${AI_API_KEY:}

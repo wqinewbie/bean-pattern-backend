@@ -1,0 +1,64 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bean-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: bean_pattern
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7
+    container_name: bean-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # MinIO 以 S3 兼容方式提供对象存储，满足你“使用 S3 + 公开读”的需求。
+  # 生产环境可把 endpoint/accessKey/secretKey 改成 AWS S3 即可（业务代码无需改）。
+  minio:
+    image: minio/minio:latest
+    container_name: bean-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_DEFAULT_BUCKETS: bean-pattern-images
+      TZ: Asia/Shanghai
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  # 初始化：创建 bucket 并开启匿名下载（public read）
+  minio-init:
+    image: minio/mc:latest
+    container_name: bean-minio-init
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      S3_BUCKET: bean-pattern-images
+    entrypoint: /bin/sh
+    # 注意：docker compose 会把 `$VAR` 当成“宿主机环境变量”替换，这里用 `$$VAR` 让它传到容器里再展开
+    command: -c "sleep 5 && mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD && mc mb -p local/$$S3_BUCKET || true && mc anonymous set download local/$$S3_BUCKET && echo MinIO bucket ready"
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+
