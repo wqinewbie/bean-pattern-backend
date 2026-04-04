@@ -107,7 +107,9 @@ public class SmsCodeService {
             if (!code.equals(saved)) return false;
             stringRedisTemplate.delete(key);
             return true;
-        } catch (RedisConnectionFailureException | DataAccessException ex) {
+        } catch (RedisConnectionFailureException ex) {
+            return false;
+        } catch (DataAccessException ex) {
             return false;
         }
     }
@@ -117,7 +119,9 @@ public class SmsCodeService {
         try {
             stringRedisTemplate.opsForValue().set(key, code, Duration.ofSeconds(ttlSeconds));
             localCodeStore.remove(key);
-        } catch (RedisConnectionFailureException | DataAccessException ex) {
+        } catch (RedisConnectionFailureException ex) {
+            localCodeStore.put(key, new CodeRecord(code, Instant.now().plusSeconds(ttlSeconds)));
+        } catch (DataAccessException ex) {
             localCodeStore.put(key, new CodeRecord(code, Instant.now().plusSeconds(ttlSeconds)));
         }
     }
