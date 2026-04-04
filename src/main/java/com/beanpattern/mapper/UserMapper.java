@@ -28,7 +28,7 @@ public interface UserMapper {
             "FROM bp_user WHERE id = #{id}")
     UserEntity findById(@Param("id") Long id);
 
-    @Insert("INSERT INTO bp_user(open_id) VALUES(#{openId})")
+    @Insert("INSERT INTO bp_user(open_id, nick_name, avatar_url) VALUES(#{openId}, #{nickName}, #{avatarUrl})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserEntity user);
 

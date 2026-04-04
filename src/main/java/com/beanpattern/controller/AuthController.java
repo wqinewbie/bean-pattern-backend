@@ -20,13 +20,11 @@ public class AuthController {
         this.wechatAuthService = wechatAuthService;
     }
 
-    /** 标准路径：/api/auth/wx-login */
     @PostMapping("/wx-login")
     public ApiResponse<WxLoginResponse> wxLogin(@Valid @RequestBody WxLoginRequest request) {
         return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode()));
     }
 
-    /** 别名：/api/auth/login，供小程序端 home.js 调用 */
     @PostMapping("/login")
     public ApiResponse<WxLoginResponse> login(@Valid @RequestBody WxLoginRequest request) {
         return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode()));

@@ -33,7 +33,7 @@ public class FeedbackController {
         if (!StringUtils.hasText(content)) {
             return ApiResponse.fail("反馈内容不能为空");
         }
-        var user = sessionHelper.resolveUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         FeedbackEntity fb = new FeedbackEntity();
         fb.setUserId(user != null ? user.getId() : null);
         fb.setContent(content);

@@ -20,6 +20,16 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/admin")
 public class AdminController {
 
+    private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+    private static final String ROLE_ADMIN = "ADMIN";
+
+    private static final String MSG_ADMIN_NOT_FOUND = "管理员不存在";
+    private static final String MSG_ONLY_SUPER_ADMIN_CREATE = "仅超级管理员可新增管理员";
+    private static final String MSG_ONLY_SUPER_ADMIN_DELETE = "仅超级管理员可删除管理员";
+    private static final String MSG_CANNOT_DELETE_CURRENT = "不能删除当前登录账号";
+    private static final String MSG_ONLY_DELETE_ADMIN = "仅可删除普通管理员";
+    private static final String MSG_DEFAULT_ADMIN_PROTECTED = "默认管理员不可删除";
+
     private final AdminMapper adminMapper;
     private final UserMapper userMapper;
     private final BannerMapper bannerMapper;
@@ -191,6 +201,62 @@ public class AdminController {
         return ApiResponse.ok("ok");
     }
 
+    @GetMapping("/user-patterns")
+    public ApiResponse<Map<String, Object>> userPatterns(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "") String taskType,
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "") String isSaved) {
+        var all = imageTaskMapper.listAll(0, 10000);
+        var filtered = all.stream().filter(t -> {
+            if (StringUtils.hasText(taskType) && !taskType.equals(t.getTaskType())) return false;
+            if (StringUtils.hasText(status) && !status.equals(t.getStatus())) return false;
+            if (StringUtils.hasText(isSaved)) {
+                int saved = "1".equals(isSaved) ? 1 : 0;
+                if ((t.getIsSaved() != null ? t.getIsSaved() : 0) != saved) return false;
+            }
+            if (StringUtils.hasText(q)) {
+                String taskIdText = String.valueOf(t.getId());
+                String userIdText = String.valueOf(t.getUserId());
+                String userName = "";
+                if (t.getUserId() != null) {
+                    var u = userMapper.findById(t.getUserId());
+                    if (u != null && u.getNickName() != null) userName = u.getNickName();
+                }
+                if (!taskIdText.contains(q) && !userIdText.contains(q) && !userName.contains(q)) return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        int total = filtered.size();
+        int from = (page - 1) * pageSize;
+        var paged = filtered.stream().skip(from).limit(pageSize).map(t -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("userId", t.getUserId());
+            m.put("taskType", t.getTaskType() != null ? t.getTaskType() : "");
+            m.put("status", t.getStatus() != null ? t.getStatus() : "");
+            m.put("isSaved", t.getIsSaved() != null && t.getIsSaved() == 1);
+            m.put("sourceUrl", t.getSourceUrl() != null ? t.getSourceUrl() : "");
+            m.put("resultUrl", t.getResultUrl() != null ? t.getResultUrl() : "");
+            m.put("patternUrl", t.getPatternUrl() != null ? t.getPatternUrl() : "");
+            m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : "");
+            m.put("updatedAt", t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : "");
+            String userName = "";
+            if (t.getUserId() != null) {
+                var u = userMapper.findById(t.getUserId());
+                if (u != null && u.getNickName() != null) userName = u.getNickName();
+                else if (u != null) userName = "用户#" + t.getUserId();
+            }
+            m.put("userName", userName);
+            return m;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.ok(Map.of("list", paged, "total", total));
+    }
+
     // ─── Banner管理 ──────────────────────────────────────
 
     @GetMapping("/banners")
@@ -342,6 +408,39 @@ public class AdminController {
         return ApiResponse.ok("ok");
     }
 
+    @PostMapping("/bead/palettes/{id}/batch-add-colors")
+    public ApiResponse<Map<String, Object>> batchAddPaletteColors(@PathVariable Long id,
+                                                                   @RequestBody Map<String, Object> body) {
+        if (beadAdminMapper.countPaletteById(id) <= 0) return ApiResponse.fail("色盘不存在");
+
+        Object raw = body.get("codes");
+        if (!(raw instanceof List<?> rawList) || rawList.isEmpty()) return ApiResponse.fail("codes 不能为空");
+
+        List<String> codes = rawList.stream()
+                .map(v -> v == null ? "" : String.valueOf(v).trim())
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+        if (codes.isEmpty()) return ApiResponse.fail("codes 不能为空");
+
+        List<Long> colorIds = beadAdminMapper.listColorIdsByCodes(codes);
+        int added = 0;
+        if (!colorIds.isEmpty()) {
+            added = beadAdminMapper.insertPaletteColorsBatch(id, colorIds);
+        }
+
+        int found = colorIds.size();
+        int missing = Math.max(codes.size() - found, 0);
+        int ignored = Math.max(found - added, 0);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("inputCount", codes.size());
+        result.put("foundCount", found);
+        result.put("addedCount", added);
+        result.put("ignoredCount", ignored);
+        result.put("missingCount", missing);
+        return ApiResponse.ok(result);
+    }
     // ─── 反馈管理 ────────────────────────────────────────
 
     @GetMapping("/feedback")
@@ -367,33 +466,67 @@ public class AdminController {
     // ─── 管理员管理 ──────────────────────────────────────
 
     @GetMapping("/admins")
-    public ApiResponse<List<Map<String, Object>>> listAdmins() {
-        return ApiResponse.ok(adminMapper.listAll().stream().map(a -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", a.getId());
-            m.put("username", a.getUsername());
-            m.put("nickName", a.getNickName() != null ? a.getNickName() : "");
-            m.put("role", a.getRole());
-            m.put("status", a.getStatus());
-            m.put("lastLoginAt", a.getLastLoginAt() != null ? a.getLastLoginAt().toString() : "");
-            return m;
-        }).collect(Collectors.toList()));
+    public ApiResponse<List<Map<String, Object>>> listAdmins(jakarta.servlet.http.HttpServletRequest request) {
+        Long currentAdminId = (Long) request.getAttribute("adminId");
+        return ApiResponse.ok(adminMapper.listAll().stream().map(a -> toAdminVO(a, currentAdminId)).collect(Collectors.toList()));
     }
 
     @PostMapping("/admins")
-    public ApiResponse<String> createAdmin(@RequestBody Map<String, String> body) {
+    public ApiResponse<String> createAdmin(@RequestBody Map<String, String> body,
+                                           jakarta.servlet.http.HttpServletRequest request) {
         String username = body.getOrDefault("username", "").trim();
         String password = body.getOrDefault("password", "").trim();
         if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) return ApiResponse.fail("账号和密码不能为空");
+
+        if (!isSuperAdmin(request)) return ApiResponse.fail(MSG_ONLY_SUPER_ADMIN_CREATE);
         if (adminMapper.findByUsername(username) != null) return ApiResponse.fail("账号已存在");
+
         AdminEntity a = new AdminEntity();
         a.setUsername(username);
         a.setPassword(passwordEncoder.encode(password));
         a.setNickName(body.getOrDefault("nickName", username));
+        a.setRole(ROLE_ADMIN);
+        a.setStatus(1);
         adminMapper.insert(a);
         return ApiResponse.ok("ok");
     }
 
+    @DeleteMapping("/admins/{id}")
+    public ApiResponse<String> deleteAdmin(@PathVariable Long id,
+                                           jakarta.servlet.http.HttpServletRequest request) {
+        var admin = adminMapper.findById(id);
+        if (admin == null) return ApiResponse.fail(MSG_ADMIN_NOT_FOUND);
+
+        Long currentAdminId = (Long) request.getAttribute("adminId");
+        if (currentAdminId != null && currentAdminId.equals(id)) {
+            return ApiResponse.fail(MSG_CANNOT_DELETE_CURRENT);
+        }
+        if (!isSuperAdmin(request)) return ApiResponse.fail(MSG_ONLY_SUPER_ADMIN_DELETE);
+        if (!ROLE_ADMIN.equalsIgnoreCase(admin.getRole())) {
+            return ApiResponse.fail(MSG_ONLY_DELETE_ADMIN);
+        }
+        if ("admin".equalsIgnoreCase(admin.getUsername())) return ApiResponse.fail(MSG_DEFAULT_ADMIN_PROTECTED);
+
+        adminMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
+    private boolean isSuperAdmin(jakarta.servlet.http.HttpServletRequest request) {
+        String currentRole = String.valueOf(request.getAttribute("adminRole"));
+        return ROLE_SUPER_ADMIN.equalsIgnoreCase(currentRole);
+    }
+
+    private Map<String, Object> toAdminVO(AdminEntity a, Long currentAdminId) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", a.getId());
+        m.put("username", a.getUsername());
+        m.put("nickName", a.getNickName() != null ? a.getNickName() : "");
+        m.put("role", a.getRole());
+        m.put("status", a.getStatus());
+        m.put("lastLoginAt", a.getLastLoginAt() != null ? a.getLastLoginAt().toString() : "");
+        m.put("isCurrent", currentAdminId != null && currentAdminId.equals(a.getId()));
+        return m;
+    }
     // ─── 订单管理 ────────────────────────────────────────
 
     @GetMapping("/orders")

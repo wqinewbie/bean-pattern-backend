@@ -25,6 +25,13 @@ public class ApiResponse<T> {
         return r;
     }
 
+    public static <T> ApiResponse<T> fail(int code, String message) {
+        ApiResponse<T> r = new ApiResponse<>();
+        r.code = code;
+        r.message = message;
+        return r;
+    }
+
     public boolean isSuccess() { return code == 0; }
     public int getCode() { return code; }
     public void setCode(int code) { this.code = code; }

@@ -91,6 +91,9 @@ public interface ImageTaskMapper {
     @Select("SELECT COUNT(*) FROM bp_image_task WHERE user_id = #{userId} AND task_type = 'BEAD_AI'")
     int countAiByUser(@Param("userId") Long userId);
 
+    @Select("SELECT COUNT(*) FROM bp_image_task WHERE user_id = #{userId} AND is_saved = 1")
+    int countSavedByUser(@Param("userId") Long userId);
+
     @Update("UPDATE bp_image_task SET is_saved = #{isSaved}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateIsSaved(@Param("id") Long id, @Param("isSaved") int isSaved);
 

@@ -29,6 +29,9 @@ public interface BeadAdminMapper {
     @Select("SELECT COUNT(*) FROM bead_palette WHERE name = #{name}")
     int countPaletteByName(@Param("name") String name);
 
+    @Select("SELECT COUNT(*) FROM bead_palette WHERE id = #{id}")
+    int countPaletteById(@Param("id") Long id);
+
     @Insert("INSERT INTO bead_palette(name, remark) VALUES(#{name}, #{remark})")
     int insertPalette(@Param("name") String name, @Param("remark") String remark);
 
@@ -66,4 +69,27 @@ public interface BeadAdminMapper {
 
     @Delete("DELETE FROM bead_color WHERE id = #{id}")
     int deleteColor(@Param("id") Long id);
+
+    @Select("SELECT k.id, k.brand_id AS brandId, b.name AS brandName, k.color_count AS colorCount, k.palette_ids AS paletteIds FROM bead_brand_kit k LEFT JOIN bead_brand b ON b.id = k.brand_id ORDER BY k.brand_id, k.color_count")
+    List<Map<String, Object>> listBrandKits();
+
+    @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
+    List<Map<String, Object>> listColorsByPaletteId(@Param("paletteId") Integer paletteId);
+
+    @Select({"<script>",
+            "SELECT id FROM bead_color WHERE code IN",
+            "<foreach collection='codes' item='code' open='(' separator=',' close=')'>",
+            "#{code}",
+            "</foreach>",
+            "</script>"})
+    List<Long> listColorIdsByCodes(@Param("codes") List<String> codes);
+
+    @Insert({"<script>",
+            "INSERT IGNORE INTO bead_palette_color(palette_id, color_id) VALUES",
+            "<foreach collection='colorIds' item='colorId' separator=','>",
+            "(#{paletteId}, #{colorId})",
+            "</foreach>",
+            "</script>"})
+    int insertPaletteColorsBatch(@Param("paletteId") Long paletteId,
+                                 @Param("colorIds") List<Long> colorIds);
 }

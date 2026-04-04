@@ -83,6 +83,9 @@ public class SchemaUpgrader implements ApplicationRunner {
         // 初始数据（幂等）
         seedData();
 
+        // 用户资料完整性约束：昵称与头像不能为空
+        enforceUserProfileRequired();
+
         log.info("[SchemaUpgrader] 字段兼容性检查完成");
     }
 
@@ -215,6 +218,18 @@ public class SchemaUpgrader implements ApplicationRunner {
             }
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 添加字段 {}.{} 失败: {}", table, column, e.getMessage());
+        }
+    }
+
+    private void enforceUserProfileRequired() {
+        try {
+            jdbc.execute("UPDATE bp_user SET nick_name = '魔法师小豆' WHERE nick_name IS NULL OR TRIM(nick_name) = ''");
+            jdbc.execute("UPDATE bp_user SET avatar_url = 'https://dummyimage.com/200x200/ffe9c2/8b5e3c.png&text=%E8%B1%86' WHERE avatar_url IS NULL OR TRIM(avatar_url) = ''");
+            jdbc.execute("ALTER TABLE bp_user MODIFY COLUMN nick_name VARCHAR(64) NOT NULL");
+            jdbc.execute("ALTER TABLE bp_user MODIFY COLUMN avatar_url VARCHAR(1024) NOT NULL");
+            log.info("[SchemaUpgrader] 已完成 bp_user 昵称头像非空约束");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 设置 bp_user 昵称头像非空约束失败: {}", e.getMessage());
         }
     }
 }

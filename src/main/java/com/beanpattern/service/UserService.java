@@ -12,6 +12,9 @@ import org.springframework.util.StringUtils;
 @Service
 public class UserService {
 
+    public static final String DEFAULT_NICK_NAME = "魔法师小豆";
+    public static final String DEFAULT_AVATAR_URL = "https://dummyimage.com/200x200/ffe9c2/8b5e3c.png&text=%E8%B1%86";
+
     private final UserMapper userMapper;
 
     public UserService(UserMapper userMapper) {
@@ -30,10 +33,17 @@ public class UserService {
         UserEntity existing = userMapper.findByOpenId(openId);
         if (existing != null) {
             userMapper.touch(existing.getId());
+            if (!StringUtils.hasText(existing.getNickName()) || !StringUtils.hasText(existing.getAvatarUrl())) {
+                String nick = StringUtils.hasText(existing.getNickName()) ? existing.getNickName() : DEFAULT_NICK_NAME;
+                String avatar = StringUtils.hasText(existing.getAvatarUrl()) ? existing.getAvatarUrl() : DEFAULT_AVATAR_URL;
+                userMapper.updateProfile(existing.getId(), nick, avatar);
+            }
             return existing;
         }
         UserEntity user = new UserEntity();
         user.setOpenId(openId);
+        user.setNickName(DEFAULT_NICK_NAME);
+        user.setAvatarUrl(DEFAULT_AVATAR_URL);
         userMapper.insert(user);
         return user;
     }

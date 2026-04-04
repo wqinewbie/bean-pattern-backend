@@ -5,7 +5,9 @@ import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.ImageTaskMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.vo.UserVO;
+import com.beanpattern.service.SmsCodeService;
 import com.beanpattern.service.UserService;
+import com.beanpattern.service.WechatAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,13 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * 用户相关接口
- * GET  /api/user/profile    - 获取用户信息（需登录，401）
- * GET  /api/user/stats      - 获取用户统计（需登录，401）
- * POST /api/user/update     - 更新昵称和头像（需登录，401）
- * POST /api/user/bind-phone - 绑定手机号（需登录，401）
- */
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -30,13 +25,19 @@ public class UserController {
     private final SessionHelper sessionHelper;
     private final UserService userService;
     private final ImageTaskMapper imageTaskMapper;
+    private final WechatAuthService wechatAuthService;
+    private final SmsCodeService smsCodeService;
 
     public UserController(SessionHelper sessionHelper,
                           UserService userService,
-                          ImageTaskMapper imageTaskMapper) {
+                          ImageTaskMapper imageTaskMapper,
+                          WechatAuthService wechatAuthService,
+                          SmsCodeService smsCodeService) {
         this.sessionHelper = sessionHelper;
         this.userService = userService;
         this.imageTaskMapper = imageTaskMapper;
+        this.wechatAuthService = wechatAuthService;
+        this.smsCodeService = smsCodeService;
     }
 
     @GetMapping("/profile")
@@ -49,9 +50,10 @@ public class UserController {
     public ApiResponse<Map<String, Object>> stats(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("total",   imageTaskMapper.countByUser(user.getId()));
+        data.put("total", imageTaskMapper.countByUser(user.getId()));
         data.put("success", imageTaskMapper.countSuccessByUser(user.getId()));
-        data.put("ai",      imageTaskMapper.countAiByUser(user.getId()));
+        data.put("saved", imageTaskMapper.countSavedByUser(user.getId()));
+        data.put("ai", imageTaskMapper.countAiByUser(user.getId()));
         return ApiResponse.ok(data);
     }
 
@@ -63,13 +65,50 @@ public class UserController {
         return ApiResponse.ok("ok");
     }
 
+    @PostMapping("/send-phone-code")
+    public ApiResponse<String> sendPhoneCode(@RequestBody Map<String, String> body,
+                                             HttpServletRequest request) {
+        sessionHelper.requireUser(request);
+        String phone = body.getOrDefault("phone", "").trim();
+        if (phone.isEmpty()) return ApiResponse.fail("手机号不能为空");
+        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("手机号格式不正确");
+        smsCodeService.sendCode(phone);
+        return ApiResponse.ok("ok");
+    }
+
+    @PostMapping("/bind-phone-by-code")
+    public ApiResponse<String> bindPhoneByCode(@RequestBody Map<String, String> body,
+                                               HttpServletRequest request) {
+        UserEntity user = sessionHelper.requireUser(request);
+        String phone = body.getOrDefault("phone", "").trim();
+        String code = body.getOrDefault("code", "").trim();
+        if (phone.isEmpty()) return ApiResponse.fail("手机号不能为空");
+        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("手机号格式不正确");
+        if (!smsCodeService.verifyCode(phone, code)) return ApiResponse.fail("验证码错误或已过期");
+        userService.bindPhone(user.getId(), phone);
+        return ApiResponse.ok("ok");
+    }
+
     @PostMapping("/bind-phone")
     public ApiResponse<String> bindPhone(@RequestBody Map<String, String> body,
                                          HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         String phone = body.getOrDefault("phone", "").trim();
         if (phone.isEmpty()) return ApiResponse.fail("手机号不能为空");
+        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("手机号格式不正确");
         userService.bindPhone(user.getId(), phone);
         return ApiResponse.ok("ok");
+    }
+
+    @PostMapping("/bind-phone-wx")
+    public ApiResponse<String> bindPhoneWx(@RequestBody Map<String, String> body,
+                                           HttpServletRequest request) {
+        UserEntity user = sessionHelper.requireUser(request);
+        String phoneCode = body.getOrDefault("code", "").trim();
+        if (phoneCode.isEmpty()) return ApiResponse.fail("code不能为空");
+        String phone = wechatAuthService.fetchPhoneNumberByCode(phoneCode);
+        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("微信返回手机号格式异常");
+        userService.bindPhone(user.getId(), phone);
+        return ApiResponse.ok(phone);
     }
 }

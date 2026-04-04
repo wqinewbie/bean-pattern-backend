@@ -1,6 +1,8 @@
 package com.beanpattern.config;
 
 import com.beanpattern.entity.UserEntity;
+import com.beanpattern.model.PhoneUnboundException;
+import com.beanpattern.model.ProfileIncompleteException;
 import com.beanpattern.model.UnauthorizedException;
 import com.beanpattern.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,10 +12,6 @@ import org.springframework.util.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-/**
- * Session 工具：从请求 Header（X-Session-Id）中解析 token，取出 openId 并获取用户实体。
- * Token 格式：Base64(openId:timestamp)，由 WechatAuthService.wxLogin() 生成。
- */
 @Component
 public class SessionHelper {
 
@@ -25,9 +23,6 @@ public class SessionHelper {
         this.userService = userService;
     }
 
-    /**
-     * 从请求头中解析 openId，失败返回 null。
-     */
     public String resolveOpenId(HttpServletRequest request) {
         String token = request.getHeader(HEADER_SESSION);
         if (!StringUtils.hasText(token)) return null;
@@ -41,23 +36,31 @@ public class SessionHelper {
         }
     }
 
-    /**
-     * 解析用户实体，未登录返回 null。
-     * 适用于允许匿名访问的接口。
-     */
     public UserEntity resolveUser(HttpServletRequest request) {
         String openId = resolveOpenId(request);
         if (!StringUtils.hasText(openId)) return null;
         return userService.getOrCreateByOpenId(openId);
     }
 
-    /**
-     * 解析用户实体，未登录抛出 UnauthorizedException（HTTP 401）。
-     * 适用于强制登录的接口。
-     */
     public UserEntity requireUser(HttpServletRequest request) {
         UserEntity user = resolveUser(request);
         if (user == null) throw new UnauthorizedException();
+        return user;
+    }
+
+    public UserEntity requirePhoneBoundUser(HttpServletRequest request) {
+        UserEntity user = requireUser(request);
+        if (!StringUtils.hasText(user.getPhone())) {
+            throw new PhoneUnboundException();
+        }
+        return user;
+    }
+
+    public UserEntity requireCompleteProfileUser(HttpServletRequest request) {
+        UserEntity user = requirePhoneBoundUser(request);
+        if (!StringUtils.hasText(user.getNickName()) || !StringUtils.hasText(user.getAvatarUrl())) {
+            throw new ProfileIncompleteException();
+        }
         return user;
     }
 }

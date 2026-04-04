@@ -95,7 +95,7 @@ public class BeadController {
         String resultUrl  = body.getOrDefault("resultUrl", "");
         String patternUrl = body.getOrDefault("patternUrl", "");
         String colorStats = body.getOrDefault("colorStats", "");
-        var user = sessionHelper.resolveUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         long taskId = -1;
         if (user != null && !imageUrl.isBlank()) {
             var task = taskRecordService.createTask(
@@ -120,7 +120,7 @@ public class BeadController {
             HttpServletRequest request) {
         String imageUrl = body.getOrDefault("imageUrl", "");
         if (imageUrl.isBlank()) return ApiResponse.fail("imageUrl 不能为空");
-        var user = sessionHelper.resolveUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         long taskId = -1;
         if (user != null) {
             var task = taskRecordService.createTask(
@@ -168,7 +168,7 @@ public class BeadController {
         String style  = (String) body.getOrDefault("style",  "标准");
         int size = body.get("size") instanceof Number n ? n.intValue() : 64;
         if (prompt.isBlank()) return ApiResponse.fail("prompt 不能为空");
-        var user = sessionHelper.resolveUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         long taskId = -1;
         if (user != null) {
             var task = taskRecordService.createTask(

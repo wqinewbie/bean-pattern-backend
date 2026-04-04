@@ -1,7 +1,6 @@
 package com.beanpattern.config;
 
 import com.beanpattern.mapper.AdminMapper;
-import com.beanpattern.model.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -55,6 +54,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             }
             request.setAttribute("adminUsername", username);
             request.setAttribute("adminId", admin.getId());
+            request.setAttribute("adminRole", admin.getRole());
             return true;
         } catch (Exception e) {
             reject(response, "Token解析失败");

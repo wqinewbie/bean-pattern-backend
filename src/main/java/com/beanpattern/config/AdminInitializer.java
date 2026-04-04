@@ -39,10 +39,6 @@ public class AdminInitializer {
                 admin.setStatus(1);
                 adminMapper.insert(admin);
                 log.info("[AdminInitializer] 默认管理员账号已创建: {}/{}", DEFAULT_USERNAME, DEFAULT_PASSWORD);
-            } else if (passwordEncoder.isLegacyMd5(existing.getPassword())) {
-                // 自动将旧 MD5 密码升级为 BCrypt
-                adminMapper.updatePassword(existing.getId(), passwordEncoder.encode(DEFAULT_PASSWORD));
-                log.info("[AdminInitializer] 管理员密码已从MD5升级为BCrypt");
             } else {
                 log.info("[AdminInitializer] 管理员账号已存在，无需初始化");
             }

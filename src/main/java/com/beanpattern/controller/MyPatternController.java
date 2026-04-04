@@ -32,7 +32,7 @@ public class MyPatternController {
     @PostMapping("/save/{taskId}")
     public ApiResponse<String> save(@PathVariable Long taskId,
                                     HttpServletRequest request) {
-        var user = sessionHelper.requireUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         var task = taskRecordService.findById(taskId);
         if (task == null || !task.getUserId().equals(user.getId()))
             return ApiResponse.fail("图纸不存在");
@@ -44,7 +44,7 @@ public class MyPatternController {
     @PostMapping("/unsave/{taskId}")
     public ApiResponse<String> unsave(@PathVariable Long taskId,
                                       HttpServletRequest request) {
-        var user = sessionHelper.requireUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         var task = taskRecordService.findById(taskId);
         if (task == null || !task.getUserId().equals(user.getId()))
             return ApiResponse.fail("图纸不存在");
@@ -57,7 +57,7 @@ public class MyPatternController {
     public ApiResponse<List<Map<String, Object>>> list(
             @RequestParam(defaultValue = "100") int limit,
             HttpServletRequest request) {
-        var user = sessionHelper.requireUser(request);
+        var user = sessionHelper.requireCompleteProfileUser(request);
         var tasks = taskRecordService.listSavedByUser(user.getId(), limit);
         List<Map<String, Object>> result = new ArrayList<>();
         for (ImageTaskEntity t : tasks) {

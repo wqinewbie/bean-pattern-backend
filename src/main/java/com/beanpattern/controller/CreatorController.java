@@ -7,19 +7,18 @@ import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.vo.PatternVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 创作者图纸市场接口
- * GET  /api/creator/patterns      - 图纸市场列表（公开上线，允许匿名）
- * GET  /api/creator/my-patterns   - 我上传的图纸（需登录，401）
- * GET  /api/creator/patterns/{id} - 图纸详情（允许匿名）
- * POST /api/creator/upload        - 上传新图纸（需登录，401）
- */
 @RestController
 @RequestMapping("/api/creator")
 public class CreatorController {
@@ -33,7 +32,6 @@ public class CreatorController {
         this.sessionHelper = sessionHelper;
     }
 
-    /** 图纸市场（公开，允许匿名） */
     @GetMapping("/patterns")
     public ApiResponse<List<PatternVO>> listPublic(
             @RequestParam(defaultValue = "50") int limit) {
@@ -43,17 +41,15 @@ public class CreatorController {
                         .collect(Collectors.toList()));
     }
 
-    /** 我上传的图纸（需登录） */
     @GetMapping("/my-patterns")
     public ApiResponse<List<PatternVO>> myPatterns(HttpServletRequest request) {
-        var user = sessionHelper.requireUser(request);
+        var user = sessionHelper.requirePhoneBoundUser(request);
         return ApiResponse.ok(
                 creatorPatternMapper.listByUser(user.getId()).stream()
                         .map(PatternVO::from)
                         .collect(Collectors.toList()));
     }
 
-    /** 图纸详情（允许匿名） */
     @GetMapping("/patterns/{id}")
     public ApiResponse<PatternVO> detail(@PathVariable Long id) {
         CreatorPatternEntity p = creatorPatternMapper.findById(id);
@@ -61,17 +57,16 @@ public class CreatorController {
         return ApiResponse.ok(PatternVO.from(p));
     }
 
-    /** 上传新图纸（需登录） */
     @PostMapping("/upload")
     public ApiResponse<Map<String, Object>> upload(@RequestBody Map<String, Object> body,
                                                     HttpServletRequest request) {
-        var user = sessionHelper.requireUser(request);
+        var user = sessionHelper.requirePhoneBoundUser(request);
 
-        String title      = (String) body.getOrDefault("title", "");
-        String coverUrl   = (String) body.getOrDefault("coverUrl", "");
+        String title = (String) body.getOrDefault("title", "");
+        String coverUrl = (String) body.getOrDefault("coverUrl", "");
         String patternUrl = (String) body.getOrDefault("patternUrl", "");
-        if (!StringUtils.hasText(title))      return ApiResponse.fail("标题不能为空");
-        if (!StringUtils.hasText(coverUrl))   return ApiResponse.fail("封面图不能为空");
+        if (!StringUtils.hasText(title)) return ApiResponse.fail("标题不能为空");
+        if (!StringUtils.hasText(coverUrl)) return ApiResponse.fail("封面图不能为空");
         if (!StringUtils.hasText(patternUrl)) return ApiResponse.fail("图纸文件不能为空");
 
         CreatorPatternEntity p = new CreatorPatternEntity();
