@@ -1,45 +1,50 @@
+﻿server:
+  port: 8081
+
 spring:
   datasource:
-    # 生产环境数据库配置：全部通过环境变量注入
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:mysql://host.docker.internal:3306/bean_pattern?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&connectionCollation=utf8mb4_unicode_ci}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   data:
     redis:
-      # 生产环境 Redis 配置：全部通过环境变量注入
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:host.docker.internal}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+
+  sql:
+    init:
+      mode: never
 
 app:
-  # 生产环境访问地址（用于返回文件外链）
-  base-url: ${APP_BASE_URL}
+  upload-dir: ${APP_UPLOAD_DIR:/app/uploads}
+  base-url: ${APP_BASE_URL:http://localhost}
+
   s3:
-    # 对象存储配置（S3 兼容）
-    # AWS 真 S3：一般 endpoint 可以留空（使用 AWS 默认）
-    # MinIO / 兼容存储：需要配置 endpoint
     endpoint: ${S3_ENDPOINT:}
-    access-key: ${S3_ACCESS_KEY}
-    secret-key: ${S3_SECRET_KEY}
-    bucket: ${S3_BUCKET}
-    region: ${S3_REGION:us-east-1}
-
-    # AWS 通常不强制 path-style；MinIO 建议 true
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    bucket: ${S3_BUCKET:}
+    region: ${S3_REGION:ap-guangzhou}
     path-style-access: ${S3_PATH_STYLE_ACCESS:true}
-
-    # AWS 虚拟主机风格通常不在 URL 里重复 bucket：
-    # - 如果你的 publicBaseUrl 已经包含 bucket host（如 https://bucket.s3.region.amazonaws.com）
-    #   则设置 urlIncludeBucket=false
-    # - 如果你的 publicBaseUrl 是裸域名（如 https://s3.region.amazonaws.com），则设置 true
     url-include-bucket: ${S3_URL_INCLUDE_BUCKET:true}
+    public-base-url: ${S3_PUBLIC_BASE_URL:}
 
-    # 用于生成“公开可访问”的图片 URL，必须对小程序公网可访问
-    public-base-url: ${S3_PUBLIC_BASE_URL}
   wechat:
-    app-id: ${WECHAT_APP_ID}
-    app-secret: ${WECHAT_APP_SECRET}
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+
   ai:
     api-url: ${AI_API_URL:}
     api-key: ${AI_API_KEY:}
+
+  sms:
+    enabled: ${SMS_ENABLED:false}
+    secret-id: ${SMS_SECRET_ID:}
+    secret-key: ${SMS_SECRET_KEY:}
+    sdk-app-id: ${SMS_SDK_APP_ID:}
+    sign-name: ${SMS_SIGN_NAME:}
+    template-id: ${SMS_TEMPLATE_ID:}
+    region: ${SMS_REGION:ap-guangzhou}
+    code-ttl-seconds: ${SMS_CODE_TTL_SECONDS:300}
