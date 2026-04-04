@@ -4,6 +4,7 @@ import com.beanpattern.entity.AdminEntity;
 import com.beanpattern.mapper.AdminMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -20,14 +21,21 @@ public class AdminInitializer {
 
     private final AdminMapper adminMapper;
     private final PasswordEncoder passwordEncoder;
+    private final boolean enabled;
 
-    public AdminInitializer(AdminMapper adminMapper, PasswordEncoder passwordEncoder) {
+    public AdminInitializer(AdminMapper adminMapper, PasswordEncoder passwordEncoder,
+                            @Value("${app.admin.init-enabled:false}") boolean enabled) {
         this.adminMapper = adminMapper;
         this.passwordEncoder = passwordEncoder;
+        this.enabled = enabled;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
+        if (!enabled) {
+            log.info("[AdminInitializer] default admin initialization is disabled");
+            return;
+        }
         try {
             AdminEntity existing = adminMapper.findByUsername(DEFAULT_USERNAME);
             if (existing == null) {

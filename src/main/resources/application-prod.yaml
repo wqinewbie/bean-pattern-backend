@@ -1,4 +1,4 @@
-﻿server:
+server:
   port: 8081
 
 spring:
@@ -17,6 +17,11 @@ spring:
     init:
       mode: never
 
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    locations: classpath:db/migration
+
 app:
   upload-dir: ${APP_UPLOAD_DIR:/app/uploads}
   base-url: ${APP_BASE_URL:http://localhost}
@@ -27,8 +32,8 @@ app:
     secret-key: ${S3_SECRET_KEY:}
     bucket: ${S3_BUCKET:}
     region: ${S3_REGION:ap-guangzhou}
-    path-style-access: ${S3_PATH_STYLE_ACCESS:true}
-    url-include-bucket: ${S3_URL_INCLUDE_BUCKET:true}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+    url-include-bucket: ${S3_URL_INCLUDE_BUCKET:false}
     public-base-url: ${S3_PUBLIC_BASE_URL:}
 
   wechat:
@@ -48,3 +53,6 @@ app:
     template-id: ${SMS_TEMPLATE_ID:}
     region: ${SMS_REGION:ap-guangzhou}
     code-ttl-seconds: ${SMS_CODE_TTL_SECONDS:300}
+
+  admin:
+    init-enabled: ${APP_ADMIN_INIT_ENABLED:false}

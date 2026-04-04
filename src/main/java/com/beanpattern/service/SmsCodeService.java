@@ -8,18 +8,24 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.sms.v20210111.SmsClient;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsRequest;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsResponse;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SmsCodeService {
 
     private static final String KEY_PREFIX = "sms:code:";
     private final SecureRandom random = new SecureRandom();
+    private final Map<String, CodeRecord> localCodeStore = new ConcurrentHashMap<>();
 
     private final AppProperties appProperties;
     private final StringRedisTemplate stringRedisTemplate;
@@ -37,10 +43,10 @@ public class SmsCodeService {
 
         String code = String.format("%06d", random.nextInt(1_000_000));
         AppProperties.Sms sms = appProperties.getSms();
+        long ttlSeconds = Math.max(60, sms.getCodeTtlSeconds());
 
         if (!sms.isEnabled()) {
-            stringRedisTemplate.opsForValue().set(KEY_PREFIX + phone, code,
-                    Duration.ofSeconds(Math.max(60, sms.getCodeTtlSeconds())));
+            saveCode(phone, code, ttlSeconds);
             return;
         }
 
@@ -74,8 +80,7 @@ public class SmsCodeService {
                 throw new IllegalStateException("短信发送失败: " + reason);
             }
 
-            stringRedisTemplate.opsForValue().set(KEY_PREFIX + phone, code,
-                    Duration.ofSeconds(Math.max(60, sms.getCodeTtlSeconds())));
+            saveCode(phone, code, ttlSeconds);
         } catch (TencentCloudSDKException e) {
             throw new RuntimeException("短信发送失败: " + e.getMessage(), e);
         }
@@ -84,10 +89,42 @@ public class SmsCodeService {
     public boolean verifyCode(String phone, String code) {
         if (!phone.matches("^1\\d{10}$")) return false;
         if (!StringUtils.hasText(code)) return false;
+
+        CodeRecord localRecord = localCodeStore.get(KEY_PREFIX + phone);
+        if (localRecord != null) {
+            if (localRecord.isExpired()) {
+                localCodeStore.remove(KEY_PREFIX + phone);
+                return false;
+            }
+            if (!code.equals(localRecord.code())) return false;
+            localCodeStore.remove(KEY_PREFIX + phone);
+            return true;
+        }
+
         String key = KEY_PREFIX + phone;
-        String saved = stringRedisTemplate.opsForValue().get(key);
-        if (!code.equals(saved)) return false;
-        stringRedisTemplate.delete(key);
-        return true;
+        try {
+            String saved = stringRedisTemplate.opsForValue().get(key);
+            if (!code.equals(saved)) return false;
+            stringRedisTemplate.delete(key);
+            return true;
+        } catch (RedisConnectionFailureException | DataAccessException ex) {
+            return false;
+        }
+    }
+
+    private void saveCode(String phone, String code, long ttlSeconds) {
+        String key = KEY_PREFIX + phone;
+        try {
+            stringRedisTemplate.opsForValue().set(key, code, Duration.ofSeconds(ttlSeconds));
+            localCodeStore.remove(key);
+        } catch (RedisConnectionFailureException | DataAccessException ex) {
+            localCodeStore.put(key, new CodeRecord(code, Instant.now().plusSeconds(ttlSeconds)));
+        }
+    }
+
+    private record CodeRecord(String code, Instant expireAt) {
+        private boolean isExpired() {
+            return Instant.now().isAfter(expireAt);
+        }
     }
 }

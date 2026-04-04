@@ -29,8 +29,8 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-}
       S3_BUCKET: ${S3_BUCKET:-}
       S3_REGION: ${S3_REGION:-ap-guangzhou}
-      S3_PATH_STYLE_ACCESS: ${S3_PATH_STYLE_ACCESS:-true}
-      S3_URL_INCLUDE_BUCKET: ${S3_URL_INCLUDE_BUCKET:-true}
+      S3_PATH_STYLE_ACCESS: ${S3_PATH_STYLE_ACCESS:-false}
+      S3_URL_INCLUDE_BUCKET: ${S3_URL_INCLUDE_BUCKET:-false}
       S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"

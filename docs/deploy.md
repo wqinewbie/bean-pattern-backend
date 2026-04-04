@@ -1,185 +1,203 @@
 # 生产环境部署说明
 
-本文面向把 `bean-pattern-backend` 部署到 Linux 服务器（或同类环境）的场景，包含：进程启动、Nginx 反向代理、HTTPS、以及微信小程序「合法域名」与上传/下载注意事项。
+本文面向把 `bean-pattern-backend` 部署到 Linux 服务器（或同类环境）的场景，包含：容器部署、数据库初始化、对象存储、Nginx 反向代理、HTTPS、以及微信小程序合法域名配置。
 
 ---
 
-## 1. 部署前准备
+## 1. 仓库与部署文件
 
-### 1.1 运行环境
+- 后端服务：`bean-pattern-backend`
+- 管理后台：`bean-pattern-admin`
+- Compose 文件：`bean-pattern-backend/deploy/docker-compose.yml`
+- 后端生产配置：`bean-pattern-backend/src/main/resources/application-prod.yaml`
+- 后台 Nginx 配置：`bean-pattern-admin/deploy/admin.nginx.conf`
 
-- **JDK 17+**（与 `pom.xml` 中 `java.version` 一致即可）
-- **MySQL**：已创建业务库（如 `bean_pattern`），账号具备读写权限
-- **Redis**：若业务后续会用到会话/缓存再启用；当前示例代码不强依赖 Redis 业务逻辑，但 classpath 中有依赖时需保证 Redis 可连，或按需在配置中调整
-- **域名与证书**：对外提供 HTTPS 时使用（Let's Encrypt 或云厂商证书均可）
-
-### 1.2 构建产物
-
-在项目根目录执行打包：
-
-```bash
-./mvnw -DskipTests package
-```
-
-生成：`target/bean-pattern-backend-0.0.1-SNAPSHOT.jar`
+说明：服务器部署时请统一使用 `deploy/docker-compose.yml`，不要再使用仓库根目录历史遗留的本地开发 compose 文件。
 
 ---
 
-## 2. 生产环境变量
+## 2. 部署前准备
 
-生产使用 `application-prod.yaml`，敏感信息通过环境变量注入（勿把密码写进仓库）。
+### 2.1 运行环境
 
-必填示例：
+- Docker 26+
+- Docker Compose v2+
+- MySQL 8（或兼容版本）
+- 可访问的对象存储（当前生产使用腾讯云 COS，按 S3 兼容参数接入）
+- 已备案 HTTPS 域名（小程序正式环境必需）
+
+### 2.2 关键经验
+
+新环境必须 **先初始化数据库 schema，再启动 backend**，否则 `SchemaUpgrader` 会因为核心表缺失而报错。
+
+当前 `deploy/docker-compose.yml` 已预留可选 `db-init` 服务（`tools` profile）用于初始化，但初始化 SQL 仍应视为“首次部署动作”，不要依赖业务容器在空库上自愈。
+
+---
+
+## 3. 生产环境变量
+
+生产使用 `application-prod.yaml`，敏感信息通过 `.env` 或容器环境变量注入。
+
+### 3.1 必填变量
 
 | 变量名 | 说明 |
 |--------|------|
-| `DB_URL` | JDBC URL，如 `jdbc:mysql://127.0.0.1:3306/bean_pattern?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai` |
-| `DB_USERNAME` | 数据库用户名 |
-| `DB_PASSWORD` | 数据库密码 |
-| `REDIS_HOST` | Redis 主机 |
-| `REDIS_PORT` | Redis 端口，默认 `6379` |
-| `REDIS_PASSWORD` | Redis 密码，无则留空 |
-| `APP_BASE_URL` | 对外访问后端的 **HTTPS** 根地址，用于拼接上传文件 URL，如 `https://api.example.com` |
+| `DB_URL` | 生产库 JDBC URL |
+| `DB_USERNAME` | 生产库用户名 |
+| `DB_PASSWORD` | 生产库密码 |
+| `APP_BASE_URL` | 后端对外访问根地址，建议 HTTPS 域名 |
+| `S3_ENDPOINT` | COS S3 endpoint，例如 `https://cos.ap-guangzhou.myqcloud.com` |
+| `S3_ACCESS_KEY` | COS SecretId |
+| `S3_SECRET_KEY` | COS SecretKey |
+| `S3_BUCKET` | COS Bucket 名 |
+| `S3_REGION` | COS 地域，例如 `ap-guangzhou` |
+| `S3_PUBLIC_BASE_URL` | 图片公开访问根地址，例如 `https://<bucket>.cos.ap-guangzhou.myqcloud.com` |
 | `WECHAT_APP_ID` | 小程序 AppID |
 | `WECHAT_APP_SECRET` | 小程序 AppSecret |
 
-可选：
+### 3.2 可选变量
 
 | 变量名 | 说明 |
 |--------|------|
-| `AI_API_URL` | AI 处理接口地址 |
+| `REDIS_HOST` | Redis 主机；当前项目未配置生产 Redis 时可留默认，但短信验证码仅在 Redis 可用或单实例内存兜底下工作 |
+| `REDIS_PORT` | Redis 端口，默认 `6379` |
+| `AI_API_URL` | AI 接口地址 |
 | `AI_API_KEY` | AI 接口密钥 |
+| `SMS_*` | 腾讯云短信配置，启用短信发送时必填 |
 
-启动示例（Linux，`systemd` 或手工均可）：
+### 3.3 COS 配置注意事项
+
+当前代码里 `S3_PUBLIC_BASE_URL` 推荐直接填写 bucket 访问域名，例如：
+
+```text
+https://bean-pattern-1417861640.cos.ap-guangzhou.myqcloud.com
+```
+
+这种情况下：
+
+```text
+S3_PATH_STYLE_ACCESS=false
+S3_URL_INCLUDE_BUCKET=false
+```
+
+否则生成的图片 URL 会重复拼接 bucket 名。
+
+---
+
+## 4. 启动方式
+
+进入：
 
 ```bash
-export DB_URL="jdbc:mysql://..."
-export DB_USERNAME="..."
-export DB_PASSWORD="..."
-export REDIS_HOST="127.0.0.1"
-export REDIS_PORT="6379"
-export REDIS_PASSWORD=""
-export APP_BASE_URL="https://api.example.com"
-export WECHAT_APP_ID="..."
-export WECHAT_APP_SECRET="..."
-export AI_API_URL="..."
-export AI_API_KEY="..."
-
-java -jar target/bean-pattern-backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+cd /home/wangqi/apps/bean-pattern/bean-pattern-backend/deploy
 ```
 
-Windows PowerShell 可参考项目根目录 `README.md` 中的变量设置方式。
-
----
-
-## 3. Nginx 反向代理（推荐）
-
-小程序正式版要求 **HTTPS**，且域名需在公众平台备案到「服务器域名」。常见做法：Nginx 终止 TLS，反向代理到本机 `8080`。
-
-### 3.1 示例配置（HTTP → 后端，仅内网或临时）
-
-```nginx
-server {
-    listen 80;
-    server_name api.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # 上传较大图片时可适当调大
-        client_max_body_size 20m;
-    }
-}
-```
-
-### 3.2 示例配置（HTTPS）
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name api.example.com;
-
-    ssl_certificate     /etc/nginx/ssl/api.example.com.fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/api.example.com.key;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-
-        client_max_body_size 20m;
-    }
-}
-```
-
-修改配置后：
+首次部署：
 
 ```bash
-sudo nginx -t && sudo systemctl reload nginx
+docker compose --profile tools run --rm db-init
 ```
 
-**重要：** 设置 `APP_BASE_URL` 为对外的 HTTPS 地址（如 `https://api.example.com`），否则小程序拿到的图片链接仍是 `http://localhost:8080`，正式环境会无法访问。
+日常构建与启动：
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+docker compose ps
+```
+
+查看日志：
+
+```bash
+docker logs bean-pattern-backend --tail 200
+docker logs bean-pattern-admin --tail 100
+```
 
 ---
 
-## 4. 微信小程序「合法域名」
+## 5. 健康检查与访问验证
 
-登录 [微信公众平台](https://mp.weixin.qq.com/) → **开发** → **开发管理** → **开发设置** → **服务器域名**。
+后端已提供以下健康检查入口：
 
-按本项目实际请求补充：
+- `/`
+- `/health`
+- `/api/health`
 
-| 域名类型 | 说明 |
-|----------|------|
-| **request 合法域名** | 小程序 `wx.request` 访问的后端 API 域名，如 `https://api.example.com` |
-| **uploadFile 合法域名** | 若 `wx.uploadFile` 直接上传到该域名，需把同一 API 域名配进去 |
-| **downloadFile 合法域名** | 若结果图 URL 指向本域名或其它 CDN 域名，需把对应 **HTTPS 域名** 配进去 |
+可用于：
 
-注意：
+- 云平台健康探针
+- Nginx 回源检测
+- 人工快速判断容器是否成功启动
 
-- 仅支持 **HTTPS**，且需备案符合微信要求。
-- 本地调试可在开发者工具勾选「不校验合法域名」；**体验版/正式版必须配置正确**。
+接口返回 `code=0` 且 `data.status=ok` 即表示服务进程正常。
 
 ---
 
-## 5. 小程序端配置
+## 6. Nginx 与同域部署
 
-生产环境将 `miniprogram/utils/config.js` 中的 `API_BASE_URL` 改为你的 HTTPS API 地址，例如：
+当前后台容器监听 `80`，其内部 Nginx 已把 `/api/` 反向代理到 `backend:8081`，因此管理后台上线时推荐直接通过同域名访问：
+
+- 后台页面：`http(s)://admin-domain/`
+- 后台接口：`http(s)://admin-domain/api/...`
+
+这样可以避免后台额外处理跨域。
+
+如果要给小程序提供正式服务，仍建议单独准备 HTTPS API 域名，并把：
+
+- request 合法域名
+- uploadFile 合法域名
+- downloadFile 合法域名
+
+全部配置到微信公众平台。
+
+---
+
+## 7. 小程序上线前配置
+
+`miniprogram/utils/config.js` 不能保留本地内网地址，必须替换成正式 HTTPS API 域名，例如：
 
 ```javascript
 const API_BASE_URL = "https://api.example.com";
 ```
 
-重新上传小程序代码并提交审核前，务必在真机上验证：登录、上传、处理、下载全流程。
+注意：
+
+- 小程序正式版不能使用 IP 直连
+- `wx.request` / `wx.uploadFile` / `wx.downloadFile` 都依赖合法域名配置
+- 若图片 URL 指向 COS，也要把 COS 域名加入下载域名白名单，或统一走你自己的 CDN 域名
 
 ---
 
-## 6. 常见问题
+## 8. 数据库演进建议
 
-### 6.1 图片 URL 打不开
+当前项目仍存在 `SchemaUpgrader` 自动补字段逻辑，它适合“兼容已有表结构”，不适合替代正式迁移体系。
 
-- 检查 `APP_BASE_URL` 是否与浏览器/微信最终访问的域名一致。
-- 检查 Nginx `client_max_body_size` 是否过小导致上传失败。
-- 检查服务器防火墙是否放行 `443` / 反代端口。
+建议后续尽快引入 Flyway：
 
-### 6.2 HTTPS 证书错误
+1. 把 schema 初始化与增量变更写成版本化 SQL
+2. 每次发布前先执行迁移
+3. 让生产环境表结构变更可审计、可追踪、可回滚
 
-- 证书链不完整时，部分客户端会拦截；使用完整链（fullchain）配置 `ssl_certificate`。
-
-### 6.3 AI 接口超时
-
-- 可在 Spring Boot 中单独配置 HTTP 客户端超时（当前示例使用 `HttpClient`，未设长超时；长耗时任务可改为异步 + 轮询或消息队列，视业务再扩展）。
+在 Flyway 完全落地前，至少应维护 `sql/migrations/` 目录记录每次上线 SQL。
 
 ---
 
-## 7. 与 README 的关系
+## 9. 日常更新流程（建议）
 
-- 日常开发、接口说明：见项目根目录 [README.md](../README.md)。
-- 生产部署、域名与 Nginx：**以本文为准**。
+```bash
+cd /home/wangqi/apps/bean-pattern/bean-pattern-backend
+git pull origin main
+
+cd /home/wangqi/apps/bean-pattern/bean-pattern-admin
+git pull origin main
+
+cd /home/wangqi/apps/bean-pattern/bean-pattern-backend/deploy
+docker compose build
+docker compose up -d
+```
+
+若涉及数据库变更：
+
+1. 先执行迁移 SQL / Flyway
+2. 再执行 `docker compose up -d`
+3. 最后验证 `/api/health`、后台登录、小程序主流程
