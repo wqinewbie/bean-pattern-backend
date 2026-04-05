@@ -3,15 +3,15 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/bean_pattern?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&connectionCollation=utf8mb4_unicode_ci
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/bean_pattern_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&connectionCollation=utf8mb4_unicode_ci}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
 
   sql:
     init:
@@ -19,14 +19,14 @@ spring:
 
 app:
   s3:
-    endpoint: http://192.168.31.208:9000
-    access-key: minioadmin
-    secret-key: minioadmin123
-    bucket: bean-pattern-images
-    region: us-east-1
-    path-style-access: true
-    url-include-bucket: true
-    public-base-url: http://192.168.31.208:9000
+    endpoint: ${S3_ENDPOINT:}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    bucket: ${S3_BUCKET:}
+    region: ${S3_REGION:ap-guangzhou}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+    url-include-bucket: ${S3_URL_INCLUDE_BUCKET:false}
+    public-base-url: ${S3_PUBLIC_BASE_URL:}
 
   wechat:
     app-id: wx2adf2cf925983e1b
@@ -45,3 +45,7 @@ app:
     template-id: ${SMS_TEMPLATE_ID:}
     region: ${SMS_REGION:ap-guangzhou}
     code-ttl-seconds: ${SMS_CODE_TTL_SECONDS:300}
+
+
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}

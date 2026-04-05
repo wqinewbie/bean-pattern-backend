@@ -54,5 +54,8 @@ app:
     region: ${SMS_REGION:ap-guangzhou}
     code-ttl-seconds: ${SMS_CODE_TTL_SECONDS:300}
 
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
+
   admin:
     init-enabled: ${APP_ADMIN_INIT_ENABLED:false}

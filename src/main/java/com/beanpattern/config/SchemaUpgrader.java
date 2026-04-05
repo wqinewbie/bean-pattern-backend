@@ -2,6 +2,7 @@ package com.beanpattern.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
@@ -23,9 +24,11 @@ public class SchemaUpgrader implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SchemaUpgrader.class);
     private final JdbcTemplate jdbc;
+    private final boolean seedEnabled;
 
-    public SchemaUpgrader(JdbcTemplate jdbc) {
+    public SchemaUpgrader(JdbcTemplate jdbc, @Value("${app.seed.enabled:false}") boolean seedEnabled) {
         this.jdbc = jdbc;
+        this.seedEnabled = seedEnabled;
     }
 
     @Override
@@ -81,7 +84,11 @@ public class SchemaUpgrader implements ApplicationRunner {
         createBeadTables();
 
         // 初始数据（幂等）
-        seedData();
+        if (seedEnabled) {
+            seedData();
+        } else {
+            log.info("[SchemaUpgrader] seed is disabled, skip seedData");
+        }
 
         // 用户资料完整性约束：昵称与头像不能为空
         enforceUserProfileRequired();
@@ -150,6 +157,11 @@ public class SchemaUpgrader implements ApplicationRunner {
     }
 
     private void seedBeadDataFromSqlFile() {
+        if (!seedEnabled) {
+            log.info("[SchemaUpgrader] seed is disabled, skip bead_color_init");
+            return;
+        }
+
         Integer colorCount = jdbc.queryForObject("SELECT COUNT(*) FROM bead_color", Integer.class);
         if (colorCount != null && colorCount > 0) return;
 
