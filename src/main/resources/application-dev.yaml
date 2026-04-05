@@ -29,8 +29,8 @@ app:
     public-base-url: ${S3_PUBLIC_BASE_URL:}
 
   wechat:
-    app-id: wx2adf2cf925983e1b
-    app-secret: b14f3c5147b2e11aff9a67a0b3a9d5ba
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
 
   ai:
     api-url: ${AI_API_URL:}
