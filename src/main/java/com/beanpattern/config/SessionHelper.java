@@ -1,7 +1,6 @@
 package com.beanpattern.config;
 
 import com.beanpattern.entity.UserEntity;
-import com.beanpattern.model.PhoneUnboundException;
 import com.beanpattern.model.ProfileIncompleteException;
 import com.beanpattern.model.UnauthorizedException;
 import com.beanpattern.service.UserService;
@@ -48,16 +47,8 @@ public class SessionHelper {
         return user;
     }
 
-    public UserEntity requirePhoneBoundUser(HttpServletRequest request) {
-        UserEntity user = requireUser(request);
-        if (!StringUtils.hasText(user.getPhone())) {
-            throw new PhoneUnboundException();
-        }
-        return user;
-    }
-
     public UserEntity requireCompleteProfileUser(HttpServletRequest request) {
-        UserEntity user = requirePhoneBoundUser(request);
+        UserEntity user = requireUser(request);
         if (!StringUtils.hasText(user.getNickName()) || !StringUtils.hasText(user.getAvatarUrl())) {
             throw new ProfileIncompleteException();
         }

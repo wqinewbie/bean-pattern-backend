@@ -43,7 +43,7 @@ public class CreatorController {
 
     @GetMapping("/my-patterns")
     public ApiResponse<List<PatternVO>> myPatterns(HttpServletRequest request) {
-        var user = sessionHelper.requirePhoneBoundUser(request);
+        var user = sessionHelper.requireUser(request);
         return ApiResponse.ok(
                 creatorPatternMapper.listByUser(user.getId()).stream()
                         .map(PatternVO::from)
@@ -60,7 +60,7 @@ public class CreatorController {
     @PostMapping("/upload")
     public ApiResponse<Map<String, Object>> upload(@RequestBody Map<String, Object> body,
                                                     HttpServletRequest request) {
-        var user = sessionHelper.requirePhoneBoundUser(request);
+        var user = sessionHelper.requireUser(request);
 
         String title = (String) body.getOrDefault("title", "");
         String coverUrl = (String) body.getOrDefault("coverUrl", "");

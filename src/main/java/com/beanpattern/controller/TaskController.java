@@ -33,7 +33,7 @@ public class TaskController {
             @RequestParam(defaultValue = "10") int pageSize,
             HttpServletRequest request) {
 
-        UserEntity user = sessionHelper.requirePhoneBoundUser(request);
+        UserEntity user = sessionHelper.requireUser(request);
         int size = Math.min(Math.max(pageSize, 1), 50);
         int offset = (Math.max(page, 1) - 1) * size;
 

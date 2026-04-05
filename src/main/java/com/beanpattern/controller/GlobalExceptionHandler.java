@@ -1,7 +1,6 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.model.ApiResponse;
-import com.beanpattern.model.PhoneUnboundException;
 import com.beanpattern.model.ProfileIncompleteException;
 import com.beanpattern.model.UnauthorizedException;
 import org.slf4j.Logger;
@@ -42,12 +41,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleProfileIncomplete(ProfileIncompleteException ex) {
         return ApiResponse.fail(10010, ex.getMessage());
-    }
-
-    @ExceptionHandler(PhoneUnboundException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ApiResponse<Void> handlePhoneUnbound(PhoneUnboundException ex) {
-        return ApiResponse.fail(10011, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
