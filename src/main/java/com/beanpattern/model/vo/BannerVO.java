@@ -22,15 +22,34 @@ public class BannerVO {
     public static BannerVO from(BannerEntity b) {
         BannerVO vo = new BannerVO();
         vo.id        = b.getId();
-        vo.title     = b.getTitle()     != null ? b.getTitle()     : "";
-        vo.subTitle  = b.getSubTitle()  != null ? b.getSubTitle()  : "";
+        vo.title     = sanitizeText(b.getTitle(), "初夏限定拼豆");
+        vo.subTitle  = sanitizeText(b.getSubTitle(), "一键生成专属图纸");
         vo.imageUrl  = b.getImageUrl()  != null ? b.getImageUrl()  : "";
         vo.linkType  = b.getLinkType()  != null ? b.getLinkType()  : "NONE";
         vo.linkValue = b.getLinkValue() != null ? b.getLinkValue() : "";
-        vo.tagText   = b.getTagText()   != null ? b.getTagText()   : "";
+        vo.tagText   = sanitizeText(b.getTagText(), "魔法上新");
         vo.sortOrder = b.getSortOrder() != null ? b.getSortOrder() : 0;
         vo.status    = b.getStatus()    != null ? b.getStatus()    : 1;
         return vo;
+    }
+
+    private static String sanitizeText(String value, String fallback) {
+        if (value == null) return fallback;
+        String t = value.trim();
+        if (t.isEmpty()) return fallback;
+        if (t.contains("�")) return fallback;
+        if (t.matches(".*[鑴婢閸娴鈥].*")) return fallback;
+        if (looksLikeMojibake(t)) return fallback;
+        return t;
+    }
+
+    private static boolean looksLikeMojibake(String s) {
+        int high = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= 0x80 && c <= 0xFF) high++;
+        }
+        return high >= 3;
     }
 
     public Long    getId()        { return id; }

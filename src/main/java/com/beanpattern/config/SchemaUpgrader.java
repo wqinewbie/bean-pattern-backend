@@ -60,6 +60,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "start_at",   "ALTER TABLE `bp_banner` ADD COLUMN `start_at` DATETIME NULL AFTER `status`");
         addColumn(db, "bp_banner", "end_at",     "ALTER TABLE `bp_banner` ADD COLUMN `end_at` DATETIME NULL AFTER `start_at`");
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+        enforceBannerUtf8mb4();
 
         // bp_recharge_plan
         addColumn(db, "bp_recharge_plan", "is_vip",   "ALTER TABLE `bp_recharge_plan` ADD COLUMN `is_vip` TINYINT(1) NOT NULL DEFAULT 0 AFTER `original_price`");

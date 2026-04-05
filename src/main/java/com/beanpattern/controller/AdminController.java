@@ -279,10 +279,10 @@ public class AdminController {
     @PostMapping("/banners")
     public ApiResponse<String> createBanner(@RequestBody Map<String, Object> body) {
         BannerEntity b = new BannerEntity();
-        b.setTitle((String) body.getOrDefault("title", ""));
-        b.setSubTitle((String) body.getOrDefault("subTitle", ""));
+        b.setTitle(cleanBannerText((String) body.getOrDefault("title", "")));
+        b.setSubTitle(cleanBannerText((String) body.getOrDefault("subTitle", "")));
         b.setImageUrl((String) body.getOrDefault("imageUrl", ""));
-        b.setTagText((String) body.getOrDefault("tagText", ""));
+        b.setTagText(cleanBannerText((String) body.getOrDefault("tagText", "")));
         b.setLinkType((String) body.getOrDefault("linkType", "NONE"));
         b.setLinkValue((String) body.getOrDefault("linkValue", ""));
         b.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 0);
@@ -294,10 +294,10 @@ public class AdminController {
     @PutMapping("/banners/{id}")
     public ApiResponse<String> updateBanner(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         bannerMapper.update(id,
-                (String) body.getOrDefault("title", ""),
-                (String) body.getOrDefault("subTitle", ""),
+                cleanBannerText((String) body.getOrDefault("title", "")),
+                cleanBannerText((String) body.getOrDefault("subTitle", "")),
                 (String) body.getOrDefault("imageUrl", ""),
-                (String) body.getOrDefault("tagText", ""),
+                cleanBannerText((String) body.getOrDefault("tagText", "")),
                 body.get("sortOrder") instanceof Number n ? n.intValue() : 0,
                 (String) body.getOrDefault("linkType", "NONE"),
                 (String) body.getOrDefault("linkValue", ""));

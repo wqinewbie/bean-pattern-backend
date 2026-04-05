@@ -2,6 +2,8 @@ package com.beanpattern.service;
 
 import com.beanpattern.config.AppProperties;
 import com.beanpattern.model.WxLoginResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -18,6 +20,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class WechatAuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(WechatAuthService.class);
 
     private final AppProperties appProperties;
     private final UserService userService;
@@ -45,6 +49,7 @@ public class WechatAuthService {
                     .encodeToString((openId + ":" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
             return new WxLoginResponse(token, openId);
         } catch (Exception e) {
+            log.warn("[wxLogin][failed] msg={}, codeLen={}", e.getMessage(), code == null ? 0 : code.length());
             throw new RuntimeException("wxLogin failed: " + e.getMessage(), e);
         }
     }
@@ -131,8 +136,12 @@ public class WechatAuthService {
         String appId = appProperties.getWechat().getAppId();
         String appSecret = appProperties.getWechat().getAppSecret();
         if (!StringUtils.hasText(appId) || !StringUtils.hasText(appSecret)) {
-            return null;
+            throw new IllegalStateException("微信配置缺失: appId/appSecret 未设置");
         }
+        if (!StringUtils.hasText(code)) {
+            throw new IllegalStateException("微信登录 code 为空");
+        }
+
         try {
             URI uri = UriComponentsBuilder.fromUriString("https://api.weixin.qq.com/sns/jscode2session")
                     .queryParam("appid", appId)
@@ -143,12 +152,28 @@ public class WechatAuthService {
                     .toUri();
             HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                return extractJsonStringValue(response.body(), "openid");
+
+            String body = response.body();
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("jscode2session HTTP " + response.statusCode() + ", body=" + shorten(body, 300));
             }
-        } catch (Exception ignored) {
+
+            String errcode = extractJsonNumberValue(body, "errcode");
+            if (StringUtils.hasText(errcode) && !"0".equals(errcode)) {
+                String errmsg = extractJsonStringValue(body, "errmsg");
+                throw new IllegalStateException("微信登录失败 errcode=" + errcode + ", errmsg=" + (StringUtils.hasText(errmsg) ? errmsg : "unknown"));
+            }
+
+            String openId = extractJsonStringValue(body, "openid");
+            if (!StringUtils.hasText(openId)) {
+                throw new IllegalStateException("微信响应缺少 openid, body=" + shorten(body, 300));
+            }
+            return openId;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("调用微信登录接口异常: " + e.getMessage(), e);
         }
-        return null;
     }
 
     private String extractJsonStringValue(String json, String key) {
@@ -167,5 +192,12 @@ public class WechatAuthService {
         Pattern pattern = Pattern.compile("\\\"" + Pattern.quote(key) + "\\\"\\s*:\\s*([0-9]+)");
         Matcher matcher = pattern.matcher(json);
         return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private String shorten(String s, int maxLen) {
+        if (!StringUtils.hasText(s)) return "";
+        String clean = s.replaceAll("\\s+", " ").trim();
+        if (clean.length() <= maxLen) return clean;
+        return clean.substring(0, maxLen) + "...";
     }
 }
