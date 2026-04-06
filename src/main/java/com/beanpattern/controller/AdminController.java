@@ -527,6 +527,17 @@ public class AdminController {
         m.put("isCurrent", currentAdminId != null && currentAdminId.equals(a.getId()));
         return m;
     }
+
+    private String cleanBannerText(String value) {
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value
+                .replace("\u0000", "")
+                .replace("\r", "")
+                .trim();
+        return sanitized.length() > 255 ? sanitized.substring(0, 255) : sanitized;
+    }
     // ─── 订单管理 ────────────────────────────────────────
 
     @GetMapping("/orders")

@@ -245,4 +245,27 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.warn("[SchemaUpgrader] 设置 bp_user 昵称头像非空约束失败: {}", e.getMessage());
         }
     }
+
+    private void enforceBannerUtf8mb4() {
+        try {
+            String db = jdbc.queryForObject("SELECT DATABASE()", String.class);
+            if (db == null || db.isBlank()) {
+                log.warn("[SchemaUpgrader] 获取数据库名失败，跳过 bp_banner 字符集检查");
+                return;
+            }
+            Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME='bp_banner'",
+                    Integer.class, db
+            );
+            if (count == null || count == 0) {
+                log.info("[SchemaUpgrader] bp_banner 表不存在，跳过字符集修复");
+                return;
+            }
+            jdbc.execute("ALTER TABLE `bp_banner` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            log.info("[SchemaUpgrader] 已确保 bp_banner 使用 utf8mb4 字符集");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 设置 bp_banner utf8mb4 失败: {}", e.getMessage());
+        }
+    }
 }
+
