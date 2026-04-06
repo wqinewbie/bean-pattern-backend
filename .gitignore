@@ -34,3 +34,5 @@ dist/
 # Environment
 .env
 .env.local
+deploy/.env.dev
+deploy/.env.prod
