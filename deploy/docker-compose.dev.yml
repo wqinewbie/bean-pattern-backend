@@ -4,6 +4,7 @@ services:
       context: ..
     container_name: bean-pattern-backend-dev
     restart: unless-stopped
+    entrypoint: ["java", "-jar", "/app/app.jar", "--spring.profiles.active=dev", "--server.port=8082"]
     environment:
       SPRING_PROFILES_ACTIVE: dev
       DB_URL: ${DB_URL}

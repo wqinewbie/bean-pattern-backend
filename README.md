@@ -91,6 +91,37 @@ src/main/java/com/beanpattern/
 └── config/          # 配置类
 ```
 
+## 部署验收（建议每次发布后执行）
+
+> 目标：30 秒确认“镜像入口、激活 profile、健康状态”全部正确。
+
+在 `deploy` 目录执行（以 dev 为例）：
+
+```bash
+docker compose -f docker-compose.dev.yml down -v --remove-orphans
+docker compose -f docker-compose.dev.yml build --no-cache backend
+docker compose -f docker-compose.dev.yml up -d --force-recreate backend
+
+docker inspect bean-pattern-backend-dev --format '{{.Config.Entrypoint}} {{.Config.Cmd}}'
+docker logs --tail=120 bean-pattern-backend-dev
+curl -i http://127.0.0.1:8082/health
+```
+
+验收通过标准：
+
+- `inspect` 中 **不包含** `--spring.profiles.active=prod`（dev 环境）
+- 启动日志显示 `The following 1 profile is active: "dev"`
+- 日志中数据库名为 dev 库（如 `bean_pattern_dev`）
+- `curl /health` 返回 `HTTP 200` 且业务状态 `ok`
+
+快速排障提示：
+
+- 若 `env` 是 dev 但日志仍是 prod：优先检查 `ENTRYPOINT/CMD` 是否硬编码 profile
+- 若健康检查 reset：先看 profile 是否正确，再看 DB/Redis 连接是否可用
+- 若改了 Dockerfile 仍无效：务必使用 `--no-cache` 重建并 `--force-recreate`
+
 ## 许可证
 
 MIT
+
+<!-- deploy-checklist-added -->
