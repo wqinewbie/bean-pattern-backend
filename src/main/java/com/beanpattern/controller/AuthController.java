@@ -20,7 +20,7 @@ public class AuthController {
         this.wechatAuthService = wechatAuthService;
     }
 
-    @PostMapping("/wx-login")
+    @PostMapping({"/wx-login", "/wechat-login"})
     public ApiResponse<WxLoginResponse> wxLogin(@Valid @RequestBody WxLoginRequest request) {
         return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode()));
     }

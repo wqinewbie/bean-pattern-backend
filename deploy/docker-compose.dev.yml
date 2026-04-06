@@ -36,7 +36,6 @@ services:
       S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # dev 仅内网访问建议不暴露公网；需要公网访问时再映射
     ports:
       - "127.0.0.1:8082:8082"
     volumes:
@@ -45,9 +44,11 @@ services:
   admin:
     build:
       context: ../../bean-pattern-admin
+      args:
+        NGINX_CONF: deploy/admin.dev.nginx.conf
     container_name: bean-pattern-admin-dev
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "127.0.0.1:8080:80"
+      - "80:80"

@@ -42,6 +42,8 @@ services:
   admin:
     build:
       context: ../../bean-pattern-admin
+      args:
+        NGINX_CONF: deploy/admin.nginx.conf
     container_name: bean-pattern-admin
     restart: unless-stopped
     depends_on:
