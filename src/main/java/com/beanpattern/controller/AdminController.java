@@ -3,6 +3,7 @@ package com.beanpattern.controller;
 import com.beanpattern.config.PasswordEncoder;
 import com.beanpattern.entity.*;
 import com.beanpattern.mapper.*;
+import com.beanpattern.mapper.TutorialMapper;
 import com.beanpattern.model.ApiResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,7 @@ public class AdminController {
     private final OrderMapper orderMapper;
     private final RechargePlanMapper rechargePlanMapper;
     private final BeadAdminMapper beadAdminMapper;
+    private final TutorialMapper tutorialMapper;
     private final PasswordEncoder passwordEncoder;
 
     public AdminController(AdminMapper adminMapper, UserMapper userMapper,
@@ -47,6 +49,7 @@ public class AdminController {
                            ImageTaskMapper imageTaskMapper, OrderMapper orderMapper,
                            RechargePlanMapper rechargePlanMapper,
                            BeadAdminMapper beadAdminMapper,
+                           TutorialMapper tutorialMapper,
                            PasswordEncoder passwordEncoder) {
         this.adminMapper = adminMapper;
         this.userMapper = userMapper;
@@ -57,6 +60,7 @@ public class AdminController {
         this.orderMapper = orderMapper;
         this.rechargePlanMapper = rechargePlanMapper;
         this.beadAdminMapper = beadAdminMapper;
+        this.tutorialMapper = tutorialMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -307,6 +311,55 @@ public class AdminController {
     @PostMapping("/banners/{id}/toggle")
     public ApiResponse<String> toggleBanner(@PathVariable Long id) {
         bannerMapper.toggleStatus(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 教程管理 ────────────────────────────────────────
+
+    @GetMapping("/tutorials")
+    public ApiResponse<List<Map<String, Object>>> adminTutorials() {
+        return ApiResponse.ok(tutorialMapper.listAll().stream().map(t -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("title", t.getTitle());
+            m.put("description", t.getDescription() != null ? t.getDescription() : "");
+            m.put("videoUrl", t.getVideoUrl() != null ? t.getVideoUrl() : "");
+            m.put("thumbnailUrl", t.getThumbnailUrl() != null ? t.getThumbnailUrl() : "");
+            m.put("sortOrder", t.getSortOrder());
+            m.put("status", t.getStatus());
+            return m;
+        }).collect(Collectors.toList()));
+    }
+
+    @PostMapping("/tutorials")
+    public ApiResponse<String> createTutorial(@RequestBody Map<String, Object> body) {
+        TutorialEntity t = new TutorialEntity();
+        t.setTitle((String) body.getOrDefault("title", ""));
+        t.setDescription((String) body.getOrDefault("description", ""));
+        t.setVideoUrl((String) body.getOrDefault("videoUrl", ""));
+        t.setThumbnailUrl((String) body.getOrDefault("thumbnailUrl", ""));
+        t.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 0);
+        t.setStatus(1);
+        tutorialMapper.insert(t);
+        return ApiResponse.ok("ok");
+    }
+
+    @PutMapping("/tutorials/{id}")
+    public ApiResponse<String> updateTutorial(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        TutorialEntity t = new TutorialEntity();
+        t.setId(id);
+        t.setTitle((String) body.getOrDefault("title", ""));
+        t.setDescription((String) body.getOrDefault("description", ""));
+        t.setVideoUrl((String) body.getOrDefault("videoUrl", ""));
+        t.setThumbnailUrl((String) body.getOrDefault("thumbnailUrl", ""));
+        t.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 0);
+        tutorialMapper.update(t);
+        return ApiResponse.ok("ok");
+    }
+
+    @PostMapping("/tutorials/{id}/toggle")
+    public ApiResponse<String> toggleTutorial(@PathVariable Long id) {
+        tutorialMapper.toggleStatus(id);
         return ApiResponse.ok("ok");
     }
 
