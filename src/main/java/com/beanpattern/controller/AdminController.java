@@ -5,8 +5,12 @@ import com.beanpattern.entity.*;
 import com.beanpattern.mapper.*;
 import com.beanpattern.mapper.TutorialMapper;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.ImageUploadResponse;
+import com.beanpattern.service.ImageStorageService;
+import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -42,6 +46,7 @@ public class AdminController {
     private final BeadAdminMapper beadAdminMapper;
     private final TutorialMapper tutorialMapper;
     private final PasswordEncoder passwordEncoder;
+    private final ImageStorageService imageStorageService;
 
     public AdminController(AdminMapper adminMapper, UserMapper userMapper,
                            BannerMapper bannerMapper, FeedbackMapper feedbackMapper,
@@ -50,7 +55,8 @@ public class AdminController {
                            RechargePlanMapper rechargePlanMapper,
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           ImageStorageService imageStorageService) {
         this.adminMapper = adminMapper;
         this.userMapper = userMapper;
         this.bannerMapper = bannerMapper;
@@ -62,6 +68,7 @@ public class AdminController {
         this.beadAdminMapper = beadAdminMapper;
         this.tutorialMapper = tutorialMapper;
         this.passwordEncoder = passwordEncoder;
+        this.imageStorageService = imageStorageService;
     }
 
     // ─── 看板 ───────────────────────────────────────────
@@ -361,6 +368,12 @@ public class AdminController {
     public ApiResponse<String> toggleTutorial(@PathVariable Long id) {
         tutorialMapper.toggleStatus(id);
         return ApiResponse.ok("ok");
+    }
+
+    @PostMapping(value = "/tutorials/video-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<ImageUploadResponse> uploadTutorialVideo(@RequestParam("file") MultipartFile file) {
+        ImageUploadResponse upload = imageStorageService.store(file);
+        return ApiResponse.ok(upload);
     }
 
     // ─── 拼豆品牌 / 色盘 / 色号管理 ─────────────────────────
