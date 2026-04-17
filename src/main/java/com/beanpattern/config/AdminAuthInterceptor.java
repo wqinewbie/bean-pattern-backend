@@ -26,8 +26,13 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String path = request.getRequestURI();
+        String method = request.getMethod();
         // 登录接口放行
         if (path.equals("/api/admin/login")) {
+            return true;
+        }
+        // OPTIONS 预检请求放行（CORS 需要）
+        if ("OPTIONS".equalsIgnoreCase(method)) {
             return true;
         }
         String header = request.getHeader("Authorization");
