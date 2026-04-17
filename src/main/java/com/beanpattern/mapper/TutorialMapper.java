@@ -13,6 +13,11 @@ public interface TutorialMapper {
             "FROM bp_tutorial ORDER BY sort_order ASC")
     List<TutorialEntity> listAll();
 
+    @Select("SELECT id, title, description, video_url AS videoUrl, thumbnail_url AS thumbnailUrl, " +
+            "sort_order AS sortOrder, status, created_at AS createdAt " +
+            "FROM bp_tutorial WHERE status = 1 ORDER BY sort_order ASC")
+    List<TutorialEntity> listActive();
+
     @Insert("INSERT INTO bp_tutorial(title, description, video_url, thumbnail_url, sort_order, status) " +
             "VALUES(#{title}, #{description}, #{videoUrl}, #{thumbnailUrl}, #{sortOrder}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
