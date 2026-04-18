@@ -6,6 +6,10 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
 server:
   # 后端端口，小程序里 API_BASE_URL 要和这里一致
   port: 8081

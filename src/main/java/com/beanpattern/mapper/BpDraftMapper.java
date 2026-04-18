@@ -27,13 +27,19 @@ public interface BpDraftMapper {
     @Delete("DELETE FROM bp_draft WHERE id=#{id}")
     int deleteById(@Param("id") Long id);
 
-    @Select("SELECT * FROM bp_draft WHERE id=#{id}")
+    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
+          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "created_at, updated_at, expires_at FROM bp_draft WHERE id=#{id}")
     BpDraft findById(@Param("id") Long id);
 
-    @Select("SELECT * FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC")
+    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
+          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "created_at, updated_at, expires_at FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC")
     List<BpDraft> listByUserId(@Param("userId") Long userId);
 
-    @Select("SELECT * FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC LIMIT #{limit}")
+    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
+          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "created_at, updated_at, expires_at FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC LIMIT #{limit}")
     List<BpDraft> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT COUNT(*) FROM bp_draft WHERE user_id=#{userId}")
@@ -42,7 +48,9 @@ public interface BpDraftMapper {
     @Update("UPDATE bp_draft SET box_id=#{boxId}, updated_at=CURRENT_TIMESTAMP WHERE id=#{id}")
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
-    @Select("SELECT * FROM bp_draft WHERE expires_at < NOW()")
+    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
+          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "created_at, updated_at, expires_at FROM bp_draft WHERE expires_at < NOW()")
     List<BpDraft> listExpired();
 
     @Delete("DELETE FROM bp_draft WHERE expires_at < NOW()")

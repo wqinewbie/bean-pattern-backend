@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface WatermarkConfigMapper {
 
-    @Select("SELECT * FROM bp_watermark_config LIMIT 1")
+    @Select("SELECT id, enabled, text, font_size, color, position, opacity, margin, created_at, updated_at FROM bp_watermark_config LIMIT 1")
     WatermarkConfig getConfig();
 
     @Insert("""
