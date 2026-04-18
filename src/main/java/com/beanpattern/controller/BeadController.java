@@ -2,7 +2,7 @@ package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.BpHistory;
-import com.beanpattern.entity.User;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.AiImageService;
 import com.beanpattern.service.BeadColorService;
@@ -94,6 +94,7 @@ public class BeadController {
      */
     @PostMapping("/generate-pattern")
     public ApiResponse<Map<String, Object>> generatePattern(
+            HttpServletRequest request,
             @RequestBody Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         List<List<List<Integer>>> rawGrid = (List<List<List<Integer>>>) body.get("rgbData");
@@ -178,7 +179,7 @@ public class BeadController {
             Long historyId = null;
             try {
                 // 获取当前用户
-                User user = sessionHelper.getCurrentUser();
+                UserEntity user = sessionHelper.resolveUser(request);
                 if (user != null) {
                     BpHistory history = new BpHistory();
                     history.setUserId(user.getId());
