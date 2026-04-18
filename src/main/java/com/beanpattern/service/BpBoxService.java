@@ -19,6 +19,10 @@ public class BpBoxService {
         if (box.getId() != null) {
             return bpBoxMapper.update(box);
         }
+        // 设置 status 默认值：0=处理中 1=已完成 2=已失效
+        if (box.getStatus() == null) {
+            box.setStatus(1); // 默认设为已完成
+        }
         return bpBoxMapper.insert(box);
     }
 
