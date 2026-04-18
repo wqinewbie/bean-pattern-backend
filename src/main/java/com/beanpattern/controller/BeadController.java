@@ -1,9 +1,12 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
+import com.beanpattern.entity.BpHistory;
+import com.beanpattern.entity.User;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.AiImageService;
 import com.beanpattern.service.BeadColorService;
+import com.beanpattern.service.BpHistoryService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,13 +19,16 @@ public class BeadController {
     private final SessionHelper sessionHelper;
     private final AiImageService aiImageService;
     private final BeadColorService beadColorService;
+    private final BpHistoryService bpHistoryService;
 
     public BeadController(SessionHelper sessionHelper,
                           AiImageService aiImageService,
-                          BeadColorService beadColorService) {
+                          BeadColorService beadColorService,
+                          BpHistoryService bpHistoryService) {
         this.sessionHelper = sessionHelper;
         this.aiImageService = aiImageService;
         this.beadColorService = beadColorService;
+        this.bpHistoryService = bpHistoryService;
     }
 
     /** GET /api/bead/brands */
@@ -168,12 +174,36 @@ public class BeadController {
                 ));
             }
             
+            // 保存到时光机（后端直接处理）
+            Long historyId = null;
+            try {
+                // 获取当前用户
+                User user = sessionHelper.getCurrentUser();
+                if (user != null) {
+                    BpHistory history = new BpHistory();
+                    history.setUserId(user.getId());
+                    history.setSourceType("LOCAL");
+                    history.setBrand(brand);
+                    history.setColorCount(colorPalette.size());
+                    history.setGridSize(rows);
+                    history.setGridData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(gridData));
+                    history.setColorPalette(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(colorPalette));
+                    history.setRgbData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(effectRgbData));
+                    bpHistoryService.save(history);
+                    historyId = history.getId();
+                }
+            } catch (Exception e) {
+                // 保存失败不影响主流程，记录日志
+                System.err.println("保存到时光机失败: " + e.getMessage());
+            }
+            
             return ApiResponse.ok(Map.of(
                     "gridData", gridData,
                     "colorPalette", colorPalette,
-                    "effectRgbData", effectRgbData, // 效果图用的 RGB 数据（拼豆颜色）
+                    "effectRgbData", effectRgbData,
                     "gridSize", rows,
-                    "colorCount", colorPalette.size()
+                    "colorCount", colorPalette.size(),
+                    "historyId", historyId != null ? historyId : 0
             ));
         } catch (Exception e) {
             return ApiResponse.fail("生成色号图失败：" + e.getMessage());

@@ -16,6 +16,7 @@ public class BpBox {
     private String gridData;    // 色号索引数组
     private String colorPalette; // 颜色表JSON
     private Long draftId;      // 关联草稿箱ID
+    private Long historyId;   // 关联时光机ID
     private String sourceUrl;  // 原图URL
     private Integer status;    // 0=处理中 1=已完成 2=已失效
     private String progressData; // 沉浸模式进度JSON
