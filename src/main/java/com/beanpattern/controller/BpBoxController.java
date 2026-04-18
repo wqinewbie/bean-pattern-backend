@@ -63,7 +63,20 @@ public class BpBoxController {
 
         BpBox box = bpBoxService.getById(id);
         if (box == null) return ApiResponse.fail("图纸不存在");
-        if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
+        
+        System.out.println("=== /box/detail ===");
+        System.out.println("请求用户ID: " + user.getId());
+        System.out.println("图纸用户ID: " + box.getUserId());
+        System.out.println("图纸ID: " + id);
+        
+        if (box.getUserId() == null) {
+            System.out.println("错误：图纸的 userId 为 null");
+            return ApiResponse.fail("图纸数据异常");
+        }
+        if (!box.getUserId().equals(user.getId())) {
+            System.out.println("错误：用户ID不匹配");
+            return ApiResponse.fail("无权访问");
+        }
 
         return ApiResponse.ok(box);
     }

@@ -70,7 +70,20 @@ public class BpHistoryController {
 
         BpHistory history = bpHistoryService.getById(id);
         if (history == null) return ApiResponse.fail("记录不存在");
-        if (history.getUserId() == null || !history.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
+        
+        System.out.println("=== /history/detail ===");
+        System.out.println("请求用户ID: " + user.getId());
+        System.out.println("记录用户ID: " + history.getUserId());
+        System.out.println("记录ID: " + id);
+        
+        if (history.getUserId() == null) {
+            System.out.println("错误：记录的 userId 为 null");
+            return ApiResponse.fail("记录数据异常");
+        }
+        if (!history.getUserId().equals(user.getId())) {
+            System.out.println("错误：用户ID不匹配");
+            return ApiResponse.fail("无权访问");
+        }
 
         return ApiResponse.ok(history);
     }
