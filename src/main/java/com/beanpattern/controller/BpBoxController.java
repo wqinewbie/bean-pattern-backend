@@ -34,8 +34,17 @@ public class BpBoxController {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
+        System.out.println("=== /box/save ===");
+        System.out.println("用户ID: " + user.getId());
+        System.out.println("图纸名称: " + box.getName());
+        System.out.println("来源类型: " + box.getSourceType());
+        
         box.setUserId(user.getId());
+        System.out.println("设置的 userId: " + box.getUserId());
+        
         bpBoxService.save(box);
+        System.out.println("保存后的图纸ID: " + box.getId());
+        
         return ApiResponse.ok(box);
     }
 
@@ -66,12 +75,12 @@ public class BpBoxController {
         
         System.out.println("=== /box/detail ===");
         System.out.println("请求用户ID: " + user.getId());
-        System.out.println("图纸用户ID: " + box.getUserId());
-        System.out.println("图纸ID: " + id);
+        System.out.println("图纸对象: " + box);
+        System.out.println("图纸ID: " + id + ", userId: " + box.getUserId() + ", name: " + box.getName());
         
         if (box.getUserId() == null) {
             System.out.println("错误：图纸的 userId 为 null");
-            return ApiResponse.fail("图纸数据异常");
+            return ApiResponse.fail("图纸数据异常，请重新保存");
         }
         if (!box.getUserId().equals(user.getId())) {
             System.out.println("错误：用户ID不匹配");
