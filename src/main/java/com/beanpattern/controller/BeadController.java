@@ -119,14 +119,19 @@ public class BeadController {
             // 构建 gridData 和 colorPalette
             List<List<Integer>> gridData = new ArrayList<>();
             Map<String, BeadColorService.BeadColor> colorMap = new LinkedHashMap<>();
+            Map<String, Integer> colorIndexMap = new LinkedHashMap<>(); // 记录每个颜色 id 对应的索引
             
             for (BeadColorService.BeadColor[] row : matched) {
                 List<Integer> rowList = new ArrayList<>();
                 for (BeadColorService.BeadColor c : row) {
-                    rowList.add(colorMap.size()); // 索引作为色号
-                    if (!colorMap.containsKey(c.id())) {
+                    if (!colorIndexMap.containsKey(c.id())) {
+                        // 新颜色，添加到 colorMap 和 colorIndexMap
+                        int newIndex = colorIndexMap.size();
+                        colorIndexMap.put(c.id(), newIndex);
                         colorMap.put(c.id(), c);
                     }
+                    // 使用该颜色对应的索引
+                    rowList.add(colorIndexMap.get(c.id()));
                 }
                 gridData.add(rowList);
             }
