@@ -16,9 +16,18 @@ public class BpBoxService {
     }
 
     public int save(BpBox box) {
+        System.out.println("=== BpBoxService.save() 开始 ===");
+        System.out.println("传入的 box: " + box);
+        System.out.println("userId: " + box.getUserId() + ", sourceType: " + box.getSourceType());
+        System.out.println("gridSize: " + box.getGridSize() + ", colorCount: " + box.getColorCount());
+        System.out.println("gridData 长度: " + (box.getGridData() != null ? box.getGridData().length() : 0));
+        System.out.println("colorPalette 长度: " + (box.getColorPalette() != null ? box.getColorPalette().length() : 0));
+        
         if (box.getId() != null) {
+            System.out.println("更新模式");
             return bpBoxMapper.update(box);
         }
+        
         // 设置 sourceType 默认值（必须是有效值：LOCAL, AI, DRAW）
         if (box.getSourceType() == null || box.getSourceType().isBlank() ||
             (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
@@ -28,10 +37,19 @@ public class BpBoxService {
         if (box.getStatus() == null) {
             box.setStatus(1); // 默认设为已完成
         }
-        return bpBoxMapper.insert(box);
+        
+        System.out.println("设置后的 userId: " + box.getUserId());
+        int result = bpBoxMapper.insert(box);
+        System.out.println("INSERT 返回值: " + result + ", 生成的 ID: " + box.getId());
+        System.out.println("=== BpBoxService.save() 结束 ===");
+        
+        return result;
     }
 
     public int insert(BpBox box) {
+        System.out.println("=== BpBoxService.insert() ===");
+        System.out.println("userId: " + box.getUserId());
+        
         // 设置 sourceType 默认值（必须是有效值：LOCAL, AI, DRAW）
         if (box.getSourceType() == null || box.getSourceType().isBlank() ||
             (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
