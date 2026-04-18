@@ -181,6 +181,7 @@ public class BeadController {
                 // 获取当前用户
                 UserEntity user = sessionHelper.resolveUser(request);
                 if (user != null) {
+                    System.out.println("=== 保存到时光机，用户ID: " + user.getId());
                     BpHistory history = new BpHistory();
                     history.setUserId(user.getId());
                     history.setSourceType("LOCAL");
@@ -190,12 +191,17 @@ public class BeadController {
                     history.setGridData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(gridData));
                     history.setColorPalette(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(colorPalette));
                     history.setRgbData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(effectRgbData));
-                    bpHistoryService.save(history);
+                    // 使用 insert() 方法，会自动设置过期时间
+                    int result = bpHistoryService.insert(history);
                     historyId = history.getId();
+                    System.out.println("=== 时光机保存成功，ID: " + historyId + "，影响行数: " + result);
+                } else {
+                    System.out.println("=== 保存到时光机失败：用户未登录");
                 }
             } catch (Exception e) {
                 // 保存失败不影响主流程，记录日志
-                System.err.println("保存到时光机失败: " + e.getMessage());
+                System.err.println("=== 保存到时光机异常: " + e.getMessage());
+                e.printStackTrace();
             }
             
             return ApiResponse.ok(Map.of(
