@@ -28,17 +28,17 @@ public interface BpDraftMapper {
     int deleteById(@Param("id") Long id);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "rgb_data, grid_data, color_palette, box_id, "
           + "created_at, updated_at, expires_at FROM bp_draft WHERE id=#{id}")
     BpDraft findById(@Param("id") Long id);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "rgb_data, grid_data, color_palette, box_id, "
           + "created_at, updated_at, expires_at FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC")
     List<BpDraft> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "rgb_data, grid_data, color_palette, box_id, "
           + "created_at, updated_at, expires_at FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC LIMIT #{limit}")
     List<BpDraft> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
@@ -49,7 +49,7 @@ public interface BpDraftMapper {
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
+          + "rgb_data, grid_data, color_palette, box_id, "
           + "created_at, updated_at, expires_at FROM bp_draft WHERE expires_at < NOW()")
     List<BpDraft> listExpired();
 

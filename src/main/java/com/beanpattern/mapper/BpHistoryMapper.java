@@ -21,18 +21,18 @@ public interface BpHistoryMapper {
     int deleteById(@Param("id") Long id);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
-          + "created_at, updated_at, expires_at FROM bp_history WHERE id=#{id}")
+          + "rgb_data, grid_data, color_palette, box_id, source_url, "
+          + "created_at, expires_at FROM bp_history WHERE id=#{id}")
     BpHistory findById(@Param("id") Long id);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
-          + "created_at, updated_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC")
+          + "rgb_data, grid_data, color_palette, box_id, source_url, "
+          + "created_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC")
     List<BpHistory> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
-          + "created_at, updated_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")
+          + "rgb_data, grid_data, color_palette, box_id, source_url, "
+          + "created_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")
     List<BpHistory> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT COUNT(*) FROM bp_history WHERE user_id=#{userId}")
@@ -42,8 +42,8 @@ public interface BpHistoryMapper {
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
     @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, status, progress_data, "
-          + "created_at, updated_at, expires_at FROM bp_history WHERE expires_at < NOW()")
+          + "rgb_data, grid_data, color_palette, box_id, source_url, "
+          + "created_at, expires_at FROM bp_history WHERE expires_at < NOW()")
     List<BpHistory> listExpired();
 
     @Delete("DELETE FROM bp_history WHERE expires_at < NOW()")
