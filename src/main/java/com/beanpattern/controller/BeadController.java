@@ -136,6 +136,16 @@ public class BeadController {
                 gridData.add(rowList);
             }
             
+            // 构建效果图用的 rgbData（已经被替换为拼豆颜色）
+            List<List<List<Integer>>> effectRgbData = new ArrayList<>();
+            for (BeadColorService.BeadColor[] row : matched) {
+                List<List<Integer>> rowList = new ArrayList<>();
+                for (BeadColorService.BeadColor c : row) {
+                    rowList.add(List.of(c.r(), c.g(), c.b()));
+                }
+                effectRgbData.add(rowList);
+            }
+            
             // 构建 colorPalette
             List<Map<String, Object>> colorPalette = new ArrayList<>();
             int index = 0;
@@ -161,6 +171,7 @@ public class BeadController {
             return ApiResponse.ok(Map.of(
                     "gridData", gridData,
                     "colorPalette", colorPalette,
+                    "effectRgbData", effectRgbData, // 效果图用的 RGB 数据（拼豆颜色）
                     "gridSize", rows,
                     "colorCount", colorPalette.size()
             ));
