@@ -101,6 +101,7 @@ public class BeadController {
         String brand = (String) body.getOrDefault("brand", "mard");
         String algo = (String) body.getOrDefault("algo", "standard");
         int colorCount = body.get("colorCount") instanceof Number n ? n.intValue() : 0;
+        String sourceUrl = (String) body.getOrDefault("sourceUrl", "");
         
         if (rawGrid == null || rawGrid.isEmpty()) {
             return ApiResponse.fail("rgbData 不能为空");
@@ -191,6 +192,7 @@ public class BeadController {
                     history.setGridData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(gridData));
                     history.setColorPalette(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(colorPalette));
                     history.setRgbData(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(effectRgbData));
+                    history.setSourceUrl(sourceUrl);
                     // 使用 insert() 方法，会自动设置过期时间
                     int result = bpHistoryService.insert(history);
                     historyId = history.getId();
