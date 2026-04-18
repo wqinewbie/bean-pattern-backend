@@ -23,6 +23,17 @@ public class BpHistoryService {
     }
 
     public int insert(BpHistory history) {
+        // 验证 sourceType，必须是有效值
+        String sourceType = history.getSourceType();
+        if (sourceType == null || sourceType.isBlank()) {
+            sourceType = "LOCAL";
+            history.setSourceType(sourceType);
+        }
+        // 确保是有效值
+        if (!"LOCAL".equals(sourceType) && !"AI".equals(sourceType)) {
+            sourceType = "LOCAL";
+            history.setSourceType(sourceType);
+        }
         // 自动设置过期时间
         if (history.getExpiresAt() == null) {
             history.setExpiresAt(LocalDateTime.now().plusDays(EXPIRE_DAYS));
