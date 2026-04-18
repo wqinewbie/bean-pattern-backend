@@ -19,6 +19,11 @@ public class BpBoxService {
         if (box.getId() != null) {
             return bpBoxMapper.update(box);
         }
+        // 设置 sourceType 默认值（必须是有效值：LOCAL, AI, DRAW）
+        if (box.getSourceType() == null || box.getSourceType().isBlank() ||
+            (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
+            box.setSourceType("LOCAL");
+        }
         // 设置 status 默认值：0=处理中 1=已完成 2=已失效
         if (box.getStatus() == null) {
             box.setStatus(1); // 默认设为已完成
@@ -27,6 +32,11 @@ public class BpBoxService {
     }
 
     public int insert(BpBox box) {
+        // 设置 sourceType 默认值（必须是有效值：LOCAL, AI, DRAW）
+        if (box.getSourceType() == null || box.getSourceType().isBlank() ||
+            (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
+            box.setSourceType("LOCAL");
+        }
         // 设置 status 默认值：0=处理中 1=已完成 2=已失效
         if (box.getStatus() == null) {
             box.setStatus(1); // 默认设为已完成
