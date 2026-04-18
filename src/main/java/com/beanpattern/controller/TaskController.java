@@ -1,49 +1,36 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
-import com.beanpattern.entity.ImageTaskEntity;
-import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
-import com.beanpattern.service.TaskRecordService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @deprecated 旧任务接口，已废弃。请使用 /api/box/list 代替
+ */
 @RestController
 @RequestMapping("/api/task")
+@Deprecated
 public class TaskController {
 
     private final SessionHelper sessionHelper;
-    private final TaskRecordService taskRecordService;
 
-    public TaskController(SessionHelper sessionHelper,
-                          TaskRecordService taskRecordService) {
+    public TaskController(SessionHelper sessionHelper) {
         this.sessionHelper = sessionHelper;
-        this.taskRecordService = taskRecordService;
     }
 
     @GetMapping("/list")
-    public ApiResponse<Map<String, Object>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize,
-            HttpServletRequest request) {
-
-        UserEntity user = sessionHelper.requireUser(request);
-        int size = Math.min(Math.max(pageSize, 1), 50);
-        int offset = (Math.max(page, 1) - 1) * size;
-
-        List<ImageTaskEntity> pageList = taskRecordService.listByUserPage(user.getId(), offset, size);
-        int total = taskRecordService.countByUser(user.getId());
-
+    public ApiResponse<Map<String, Object>> list(HttpServletRequest request) {
+        // 旧接口已废弃，返回空列表
         return ApiResponse.ok(Map.of(
-                "list", pageList,
-                "total", total,
-                "hasMore", offset + pageList.size() < total
+                "list", List.of(),
+                "total", 0,
+                "hasMore", false
         ));
     }
 }

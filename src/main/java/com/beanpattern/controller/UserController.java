@@ -2,10 +2,9 @@ package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.UserEntity;
-import com.beanpattern.mapper.ImageTaskMapper;
+import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.vo.UserVO;
-import com.beanpattern.service.SmsCodeService;
 import com.beanpattern.service.UserService;
 import com.beanpattern.service.WechatAuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -24,20 +22,17 @@ public class UserController {
 
     private final SessionHelper sessionHelper;
     private final UserService userService;
-    private final ImageTaskMapper imageTaskMapper;
+    private final UserMapper userMapper;
     private final WechatAuthService wechatAuthService;
-    private final SmsCodeService smsCodeService;
 
     public UserController(SessionHelper sessionHelper,
                           UserService userService,
-                          ImageTaskMapper imageTaskMapper,
-                          WechatAuthService wechatAuthService,
-                          SmsCodeService smsCodeService) {
+                          UserMapper userMapper,
+                          WechatAuthService wechatAuthService) {
         this.sessionHelper = sessionHelper;
         this.userService = userService;
-        this.imageTaskMapper = imageTaskMapper;
+        this.userMapper = userMapper;
         this.wechatAuthService = wechatAuthService;
-        this.smsCodeService = smsCodeService;
     }
 
     @GetMapping("/profile")
@@ -49,12 +44,13 @@ public class UserController {
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> stats(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("total", imageTaskMapper.countByUser(user.getId()));
-        data.put("success", imageTaskMapper.countSuccessByUser(user.getId()));
-        data.put("saved", imageTaskMapper.countSavedByUser(user.getId()));
-        data.put("ai", imageTaskMapper.countAiByUser(user.getId()));
-        return ApiResponse.ok(data);
+        // TODO: 后续根据新表结构重新统计
+        return ApiResponse.ok(Map.of(
+                "total", 0,
+                "success", 0,
+                "saved", 0,
+                "ai", 0
+        ));
     }
 
     @PostMapping("/update")
@@ -62,30 +58,6 @@ public class UserController {
                                       HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         userService.updateProfile(user.getId(), body.get("nickName"), body.get("avatarUrl"));
-        return ApiResponse.ok("ok");
-    }
-
-    @PostMapping("/send-phone-code")
-    public ApiResponse<String> sendPhoneCode(@RequestBody Map<String, String> body,
-                                             HttpServletRequest request) {
-        sessionHelper.requireUser(request);
-        String phone = body.getOrDefault("phone", "").trim();
-        if (phone.isEmpty()) return ApiResponse.fail("手机号不能为空");
-        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("手机号格式不正确");
-        smsCodeService.sendCode(phone);
-        return ApiResponse.ok("ok");
-    }
-
-    @PostMapping("/bind-phone-by-code")
-    public ApiResponse<String> bindPhoneByCode(@RequestBody Map<String, String> body,
-                                               HttpServletRequest request) {
-        UserEntity user = sessionHelper.requireUser(request);
-        String phone = body.getOrDefault("phone", "").trim();
-        String code = body.getOrDefault("code", "").trim();
-        if (phone.isEmpty()) return ApiResponse.fail("手机号不能为空");
-        if (!phone.matches("^1\\d{10}$")) return ApiResponse.fail("手机号格式不正确");
-        if (!smsCodeService.verifyCode(phone, code)) return ApiResponse.fail("验证码错误或已过期");
-        userService.bindPhone(user.getId(), phone);
         return ApiResponse.ok("ok");
     }
 

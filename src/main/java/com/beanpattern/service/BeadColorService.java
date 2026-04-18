@@ -3,7 +3,15 @@ package com.beanpattern.service;
 import com.beanpattern.mapper.BeadColorMapper;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -43,6 +51,52 @@ public class BeadColorService {
     /** 查询所有品牌 */
     public List<String> getBrandNames() {
         return beadColorMapper.queryAllBrands();
+    }
+
+    /**
+     * 下载图片并缩放到指定尺寸
+     * @param imageUrl 图片URL
+     * @param targetSize 目标尺寸（正方形）
+     * @return int[][][] rgb数据 [y][x][rgb]
+     */
+    public int[][][] downloadAndResize(String imageUrl, int targetSize) throws Exception {
+        URL url = new URL(imageUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+        
+        int responseCode = conn.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            throw new Exception("下载图片失败，HTTP " + responseCode);
+        }
+        
+        try (InputStream in = conn.getInputStream()) {
+            BufferedImage originalImage = ImageIO.read(in);
+            if (originalImage == null) {
+                throw new Exception("无法解析图片格式");
+            }
+            
+            // 缩放到目标尺寸
+            BufferedImage resized = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = resized.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(originalImage, 0, 0, targetSize, targetSize, null);
+            g.dispose();
+            
+            // 提取 RGB 数据
+            int[][][] rgbData = new int[targetSize][targetSize][3];
+            for (int y = 0; y < targetSize; y++) {
+                for (int x = 0; x < targetSize; x++) {
+                    int rgb = resized.getRGB(x, y);
+                    rgbData[y][x][0] = (rgb >> 16) & 0xFF; // R
+                    rgbData[y][x][1] = (rgb >> 8) & 0xFF;  // G
+                    rgbData[y][x][2] = rgb & 0xFF;         // B
+                }
+            }
+            
+            return rgbData;
+        }
     }
 
     public BeadColor[][] matchGrid(int[][][] rgbGrid, String brand) {

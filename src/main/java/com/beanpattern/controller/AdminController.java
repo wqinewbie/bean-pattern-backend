@@ -40,7 +40,6 @@ public class AdminController {
     private final BannerMapper bannerMapper;
     private final FeedbackMapper feedbackMapper;
     private final CreatorPatternMapper creatorPatternMapper;
-    private final ImageTaskMapper imageTaskMapper;
     private final OrderMapper orderMapper;
     private final RechargePlanMapper rechargePlanMapper;
     private final BeadAdminMapper beadAdminMapper;
@@ -51,7 +50,7 @@ public class AdminController {
     public AdminController(AdminMapper adminMapper, UserMapper userMapper,
                            BannerMapper bannerMapper, FeedbackMapper feedbackMapper,
                            CreatorPatternMapper creatorPatternMapper,
-                           ImageTaskMapper imageTaskMapper, OrderMapper orderMapper,
+                           OrderMapper orderMapper,
                            RechargePlanMapper rechargePlanMapper,
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
@@ -62,7 +61,6 @@ public class AdminController {
         this.bannerMapper = bannerMapper;
         this.feedbackMapper = feedbackMapper;
         this.creatorPatternMapper = creatorPatternMapper;
-        this.imageTaskMapper = imageTaskMapper;
         this.orderMapper = orderMapper;
         this.rechargePlanMapper = rechargePlanMapper;
         this.beadAdminMapper = beadAdminMapper;
@@ -77,7 +75,8 @@ public class AdminController {
     public ApiResponse<Map<String, Object>> dashboard() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("totalUsers", userMapper.count());
-        data.put("totalTasks", imageTaskMapper.count());
+        // 旧任务表已废弃，显示0
+        data.put("totalTasks", 0);
         java.math.BigDecimal income = orderMapper.todayIncome();
         data.put("todayIncome", income != null ? income : java.math.BigDecimal.ZERO);
         long pending = feedbackMapper.listAll().stream()
@@ -220,52 +219,8 @@ public class AdminController {
             @RequestParam(defaultValue = "") String taskType,
             @RequestParam(defaultValue = "") String status,
             @RequestParam(defaultValue = "") String isSaved) {
-        var all = imageTaskMapper.listAll(0, 10000);
-        var filtered = all.stream().filter(t -> {
-            if (StringUtils.hasText(taskType) && !taskType.equals(t.getTaskType())) return false;
-            if (StringUtils.hasText(status) && !status.equals(t.getStatus())) return false;
-            if (StringUtils.hasText(isSaved)) {
-                int saved = "1".equals(isSaved) ? 1 : 0;
-                if ((t.getIsSaved() != null ? t.getIsSaved() : 0) != saved) return false;
-            }
-            if (StringUtils.hasText(q)) {
-                String taskIdText = String.valueOf(t.getId());
-                String userIdText = String.valueOf(t.getUserId());
-                String userName = "";
-                if (t.getUserId() != null) {
-                    var u = userMapper.findById(t.getUserId());
-                    if (u != null && u.getNickName() != null) userName = u.getNickName();
-                }
-                if (!taskIdText.contains(q) && !userIdText.contains(q) && !userName.contains(q)) return false;
-            }
-            return true;
-        }).collect(Collectors.toList());
-
-        int total = filtered.size();
-        int from = (page - 1) * pageSize;
-        var paged = filtered.stream().skip(from).limit(pageSize).map(t -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", t.getId());
-            m.put("userId", t.getUserId());
-            m.put("taskType", t.getTaskType() != null ? t.getTaskType() : "");
-            m.put("status", t.getStatus() != null ? t.getStatus() : "");
-            m.put("isSaved", t.getIsSaved() != null && t.getIsSaved() == 1);
-            m.put("sourceUrl", t.getSourceUrl() != null ? t.getSourceUrl() : "");
-            m.put("resultUrl", t.getResultUrl() != null ? t.getResultUrl() : "");
-            m.put("patternUrl", t.getPatternUrl() != null ? t.getPatternUrl() : "");
-            m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : "");
-            m.put("updatedAt", t.getUpdatedAt() != null ? t.getUpdatedAt().toString() : "");
-            String userName = "";
-            if (t.getUserId() != null) {
-                var u = userMapper.findById(t.getUserId());
-                if (u != null && u.getNickName() != null) userName = u.getNickName();
-                else if (u != null) userName = "用户#" + t.getUserId();
-            }
-            m.put("userName", userName);
-            return m;
-        }).collect(Collectors.toList());
-
-        return ApiResponse.ok(Map.of("list", paged, "total", total));
+        // 旧任务表已废弃，返回空列表
+        return ApiResponse.ok(Map.of("list", List.of(), "total", 0));
     }
 
     // ─── Banner管理 ──────────────────────────────────────
@@ -697,24 +652,6 @@ public class AdminController {
     @PostMapping("/vip-plans/{id}/toggle")
     public ApiResponse<String> toggleVipPlan(@PathVariable Long id) {
         rechargePlanMapper.toggleStatus(id);
-        return ApiResponse.ok("ok");
-    }
-
-    // ─── 提现管理 ────────────────────────────────────────
-
-    @GetMapping("/withdraws")
-    public ApiResponse<List<Map<String, Object>>> withdraws() {
-        // 暂返回空列表，对接bp_withdraw表后替换
-        return ApiResponse.ok(List.of());
-    }
-
-    @PostMapping("/withdraws/{id}/approve")
-    public ApiResponse<String> approveWithdraw(@PathVariable Long id) {
-        return ApiResponse.ok("ok");
-    }
-
-    @PostMapping("/withdraws/{id}/reject")
-    public ApiResponse<String> rejectWithdraw(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return ApiResponse.ok("ok");
     }
 }
