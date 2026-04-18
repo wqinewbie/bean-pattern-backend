@@ -63,7 +63,7 @@ public class BpBoxController {
 
         BpBox box = bpBoxService.getById(id);
         if (box == null) return ApiResponse.fail("图纸不存在");
-        if (!box.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
+        if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
 
         return ApiResponse.ok(box);
     }
@@ -79,7 +79,7 @@ public class BpBoxController {
 
         BpBox box = bpBoxService.getById(id);
         if (box == null) return ApiResponse.fail("图纸不存在");
-        if (!box.getUserId().equals(user.getId())) return ApiResponse.fail("无权删除");
+        if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权删除");
 
         bpBoxService.delete(id);
         return ApiResponse.ok(null);
@@ -96,7 +96,7 @@ public class BpBoxController {
 
         BpBox existing = bpBoxService.getById(box.getId());
         if (existing == null) return ApiResponse.fail("图纸不存在");
-        if (!existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
+        if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
         bpBoxService.update(box);
         return ApiResponse.ok(null);
@@ -118,7 +118,7 @@ public class BpBoxController {
 
         BpBox box = bpBoxService.getById(boxId);
         if (box == null) return ApiResponse.fail("图纸不存在");
-        if (!box.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
+        if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
         // 只更新进度数据
         box.setProgressData(progressData);

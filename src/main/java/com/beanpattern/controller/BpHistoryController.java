@@ -70,7 +70,7 @@ public class BpHistoryController {
 
         BpHistory history = bpHistoryService.getById(id);
         if (history == null) return ApiResponse.fail("记录不存在");
-        if (!history.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
+        if (history.getUserId() == null || !history.getUserId().equals(user.getId())) return ApiResponse.fail("无权访问");
 
         return ApiResponse.ok(history);
     }
@@ -86,7 +86,7 @@ public class BpHistoryController {
 
         BpHistory history = bpHistoryService.getById(id);
         if (history == null) return ApiResponse.fail("记录不存在");
-        if (!history.getUserId().equals(user.getId())) return ApiResponse.fail("无权删除");
+        if (history.getUserId() == null || !history.getUserId().equals(user.getId())) return ApiResponse.fail("无权删除");
 
         bpHistoryService.delete(id);
         return ApiResponse.ok(null);
@@ -107,7 +107,7 @@ public class BpHistoryController {
 
         BpHistory history = bpHistoryService.getById(historyId);
         if (history == null) return ApiResponse.fail("记录不存在");
-        if (!history.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
+        if (history.getUserId() == null || !history.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
 
         // 复制到图纸箱
         BpBox box = new BpBox();
