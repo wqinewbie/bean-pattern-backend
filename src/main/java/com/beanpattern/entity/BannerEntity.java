@@ -10,6 +10,7 @@ public class BannerEntity {
     private String linkType;
     private String linkValue;
     private String tagText;
+    private String bgColor;
     private Integer sortOrder;
     private Integer status;
     private LocalDateTime startAt;
@@ -31,6 +32,8 @@ public class BannerEntity {
     public void setLinkValue(String linkValue) { this.linkValue = linkValue; }
     public String getTagText() { return tagText; }
     public void setTagText(String tagText) { this.tagText = tagText; }
+    public String getBgColor() { return bgColor; }
+    public void setBgColor(String bgColor) { this.bgColor = bgColor; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
     public Integer getStatus() { return status; }

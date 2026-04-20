@@ -126,7 +126,7 @@ public class BpBoxController {
 
     /**
      * POST /api/box/progress
-     * 保存沉浸模式进度
+     * 保存沉浸模式进度（V6.0支持新字段）
      */
     @PostMapping("/progress")
     public ApiResponse<Void> saveProgress(@RequestBody java.util.Map<String, Object> body, HttpServletRequest request) {
@@ -135,6 +135,11 @@ public class BpBoxController {
 
         Long boxId = body.get("boxId") != null ? ((Number) body.get("boxId")).longValue() : null;
         String progressData = body.get("progressData") != null ? (String) body.get("progressData") : null;
+        
+        // V6.0 新增字段
+        String focusProgress = body.get("focusProgress") != null ? (String) body.get("focusProgress") : null;
+        Integer focusCompletedCells = body.get("focusCompletedCells") != null ? ((Number) body.get("focusCompletedCells")).intValue() : null;
+        Integer focusTotalCells = body.get("focusTotalCells") != null ? ((Number) body.get("focusTotalCells")).intValue() : null;
 
         if (boxId == null) return ApiResponse.fail("boxId 不能为空");
 
@@ -142,8 +147,13 @@ public class BpBoxController {
         if (box == null) return ApiResponse.fail("图纸不存在");
         if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
-        // 只更新进度数据
+        // 更新进度数据（旧字段兼容）
         box.setProgressData(progressData);
+        // V6.0 新字段
+        box.setFocusProgress(focusProgress);
+        box.setFocusCompletedCells(focusCompletedCells);
+        box.setFocusTotalCells(focusTotalCells);
+        
         bpBoxService.update(box);
 
         return ApiResponse.ok(null);

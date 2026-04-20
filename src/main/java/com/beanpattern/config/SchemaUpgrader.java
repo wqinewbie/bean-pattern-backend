@@ -57,6 +57,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_image_task", "title",       "ALTER TABLE `bp_image_task` ADD COLUMN `title` VARCHAR(128) NULL AFTER `is_public`");
 
         // bp_banner
+        addColumn(db, "bp_banner", "bg_color",   "ALTER TABLE `bp_banner` ADD COLUMN `bg_color` VARCHAR(32) NULL DEFAULT '' AFTER `tag_text`");
         addColumn(db, "bp_banner", "start_at",   "ALTER TABLE `bp_banner` ADD COLUMN `start_at` DATETIME NULL AFTER `status`");
         addColumn(db, "bp_banner", "end_at",     "ALTER TABLE `bp_banner` ADD COLUMN `end_at` DATETIME NULL AFTER `start_at`");
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");

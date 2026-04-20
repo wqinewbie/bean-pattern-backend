@@ -234,6 +234,7 @@ public class AdminController {
             m.put("subTitle", b.getSubTitle() != null ? b.getSubTitle() : "");
             m.put("imageUrl", b.getImageUrl() != null ? b.getImageUrl() : "");
             m.put("tagText", b.getTagText() != null ? b.getTagText() : "");
+            m.put("bgColor", b.getBgColor() != null ? b.getBgColor() : "");
             m.put("linkType", b.getLinkType() != null ? b.getLinkType() : "NONE");
             m.put("linkValue", b.getLinkValue() != null ? b.getLinkValue() : "");
             m.put("sortOrder", b.getSortOrder());
@@ -249,6 +250,7 @@ public class AdminController {
         b.setSubTitle(cleanBannerText((String) body.getOrDefault("subTitle", "")));
         b.setImageUrl((String) body.getOrDefault("imageUrl", ""));
         b.setTagText(cleanBannerText((String) body.getOrDefault("tagText", "")));
+        b.setBgColor((String) body.getOrDefault("bgColor", ""));
         b.setLinkType((String) body.getOrDefault("linkType", "NONE"));
         b.setLinkValue((String) body.getOrDefault("linkValue", ""));
         b.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 0);
@@ -264,6 +266,7 @@ public class AdminController {
                 cleanBannerText((String) body.getOrDefault("subTitle", "")),
                 (String) body.getOrDefault("imageUrl", ""),
                 cleanBannerText((String) body.getOrDefault("tagText", "")),
+                (String) body.getOrDefault("bgColor", ""),
                 body.get("sortOrder") instanceof Number n ? n.intValue() : 0,
                 (String) body.getOrDefault("linkType", "NONE"),
                 (String) body.getOrDefault("linkValue", ""));

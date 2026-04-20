@@ -11,8 +11,15 @@ public class OrderEntity {
     private String planName;
     private BigDecimal amount;
     private String status;
+    
+    // V6.0 新增字段
+    private Long productId;           // VIP产品ID
+    private Integer vipLevelPurchased; // 购买的VIP等级
+    private Integer vipDays;          // VIP天数
+    private String giftItems;         // 赠品JSON字符串
+    
     private LocalDateTime createdAt;
-
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getOrderNo() { return orderNo; }
@@ -29,4 +36,12 @@ public class OrderEntity {
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+    public Integer getVipLevelPurchased() { return vipLevelPurchased; }
+    public void setVipLevelPurchased(Integer vipLevelPurchased) { this.vipLevelPurchased = vipLevelPurchased; }
+    public Integer getVipDays() { return vipDays; }
+    public void setVipDays(Integer vipDays) { this.vipDays = vipDays; }
+    public String getGiftItems() { return giftItems; }
+    public void setGiftItems(String giftItems) { this.giftItems = giftItems; }
 }

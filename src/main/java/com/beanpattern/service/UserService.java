@@ -14,6 +14,11 @@ public class UserService {
 
     public static final String DEFAULT_NICK_NAME = "魔法师小豆";
     public static final String DEFAULT_AVATAR_URL = "https://dummyimage.com/200x200/ffe9c2/8b5e3c.png&text=%E8%B1%86";
+    
+    // 默认配额（非VIP用户）
+    public static final int DEFAULT_STORAGE_QUOTA = 10;
+    public static final int DEFAULT_DRAFT_QUOTA = 5;
+    public static final int DEFAULT_AI_QUOTA = 5;
 
     private final UserMapper userMapper;
 
@@ -44,6 +49,11 @@ public class UserService {
         user.setOpenId(openId);
         user.setNickName(DEFAULT_NICK_NAME);
         user.setAvatarUrl(DEFAULT_AVATAR_URL);
+        user.setStorageQuota(DEFAULT_STORAGE_QUOTA);
+        user.setDraftQuota(DEFAULT_DRAFT_QUOTA);
+        user.setCurrentStorage(0);
+        user.setCurrentDraft(0);
+        user.setAiQuota(DEFAULT_AI_QUOTA);
         userMapper.insert(user);
         return user;
     }
@@ -66,5 +76,104 @@ public class UserService {
     public void bindPhone(Long id, String phone) {
         if (id == null || !StringUtils.hasText(phone)) return;
         userMapper.updatePhone(id, phone);
+    }
+    
+    /**
+     * 检查用户存储配额是否已满
+     */
+    public boolean isStorageQuotaFull(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return true;
+        int quota = user.getStorageQuota() != null ? user.getStorageQuota() : DEFAULT_STORAGE_QUOTA;
+        int current = user.getCurrentStorage() != null ? user.getCurrentStorage() : 0;
+        return current >= quota;
+    }
+    
+    /**
+     * 检查用户草稿配额是否已满
+     */
+    public boolean isDraftQuotaFull(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return true;
+        int quota = user.getDraftQuota() != null ? user.getDraftQuota() : DEFAULT_DRAFT_QUOTA;
+        int current = user.getCurrentDraft() != null ? user.getCurrentDraft() : 0;
+        return current >= quota;
+    }
+    
+    /**
+     * 检查用户AI配额是否可用
+     */
+    public boolean hasAiQuota(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return false;
+        int quota = user.getAiQuota() != null ? user.getAiQuota() : DEFAULT_AI_QUOTA;
+        return quota > 0;
+    }
+    
+    /**
+     * 使用AI配额
+     */
+    @Transactional
+    public boolean useAiQuota(Long userId) {
+        if (!hasAiQuota(userId)) {
+            return false;
+        }
+        userMapper.addAiQuota(userId, -1);
+        return true;
+    }
+    
+    /**
+     * 增加存储使用量
+     */
+    @Transactional
+    public void incrementStorageUsage(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return;
+        int current = user.getCurrentStorage() != null ? user.getCurrentStorage() : 0;
+        userMapper.updateCurrentStorage(userId, current + 1);
+    }
+    
+    /**
+     * 减少存储使用量
+     */
+    @Transactional
+    public void decrementStorageUsage(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return;
+        int current = user.getCurrentStorage() != null ? user.getCurrentStorage() : 0;
+        if (current > 0) {
+            userMapper.updateCurrentStorage(userId, current - 1);
+        }
+    }
+    
+    /**
+     * 增加草稿使用量
+     */
+    @Transactional
+    public void incrementDraftUsage(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return;
+        int current = user.getCurrentDraft() != null ? user.getCurrentDraft() : 0;
+        userMapper.updateCurrentDraft(userId, current + 1);
+    }
+    
+    /**
+     * 减少草稿使用量
+     */
+    @Transactional
+    public void decrementDraftUsage(Long userId) {
+        UserEntity user = userMapper.findById(userId);
+        if (user == null) return;
+        int current = user.getCurrentDraft() != null ? user.getCurrentDraft() : 0;
+        if (current > 0) {
+            userMapper.updateCurrentDraft(userId, current - 1);
+        }
+    }
+    
+    /**
+     * 获取用户完整信息
+     */
+    public UserEntity getUserById(Long userId) {
+        return userMapper.findById(userId);
     }
 }

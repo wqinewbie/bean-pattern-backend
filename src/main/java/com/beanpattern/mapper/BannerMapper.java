@@ -10,7 +10,7 @@ public interface BannerMapper {
 
     /** 获取当前有效的Banner：status=1 且在定时上下线时间范围内 */
     @Select("SELECT id, title, sub_title AS subTitle, image_url AS imageUrl, " +
-            "link_type AS linkType, link_value AS linkValue, tag_text AS tagText, " +
+            "link_type AS linkType, link_value AS linkValue, tag_text AS tagText, bg_color AS bgColor, " +
             "sort_order AS sortOrder, status, created_at AS createdAt " +
             "FROM bp_banner WHERE status = 1 " +
             "AND (start_at IS NULL OR start_at <= NOW()) " +
@@ -19,21 +19,21 @@ public interface BannerMapper {
     List<BannerEntity> listActive();
 
     @Select("SELECT id, title, sub_title AS subTitle, image_url AS imageUrl, " +
-            "link_type AS linkType, link_value AS linkValue, tag_text AS tagText, " +
+            "link_type AS linkType, link_value AS linkValue, tag_text AS tagText, bg_color AS bgColor, " +
             "sort_order AS sortOrder, status, created_at AS createdAt " +
             "FROM bp_banner ORDER BY sort_order ASC")
     List<BannerEntity> listAll();
 
-    @Insert("INSERT INTO bp_banner(title, sub_title, image_url, tag_text, link_type, link_value, sort_order, status) " +
-            "VALUES(#{title}, #{subTitle}, #{imageUrl}, #{tagText}, #{linkType}, #{linkValue}, #{sortOrder}, #{status})")
+    @Insert("INSERT INTO bp_banner(title, sub_title, image_url, tag_text, bg_color, link_type, link_value, sort_order, status) " +
+            "VALUES(#{title}, #{subTitle}, #{imageUrl}, #{tagText}, #{bgColor}, #{linkType}, #{linkValue}, #{sortOrder}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BannerEntity banner);
 
     @Update("UPDATE bp_banner SET title=#{title}, sub_title=#{subTitle}, image_url=#{imageUrl}, " +
-            "tag_text=#{tagText}, sort_order=#{sortOrder}, link_type=#{linkType}, link_value=#{linkValue}, updated_at=NOW() WHERE id=#{id}")
+            "tag_text=#{tagText}, bg_color=#{bgColor}, sort_order=#{sortOrder}, link_type=#{linkType}, link_value=#{linkValue}, updated_at=NOW() WHERE id=#{id}")
     int update(@Param("id") Long id, @Param("title") String title, @Param("subTitle") String subTitle,
-               @Param("imageUrl") String imageUrl, @Param("tagText") String tagText, @Param("sortOrder") int sortOrder,
-               @Param("linkType") String linkType, @Param("linkValue") String linkValue);
+               @Param("imageUrl") String imageUrl, @Param("tagText") String tagText, @Param("bgColor") String bgColor,
+               @Param("sortOrder") int sortOrder, @Param("linkType") String linkType, @Param("linkValue") String linkValue);
 
     @Update("UPDATE bp_banner SET status = CASE WHEN status=1 THEN 0 ELSE 1 END, updated_at=NOW() WHERE id=#{id}")
     int toggleStatus(@Param("id") Long id);

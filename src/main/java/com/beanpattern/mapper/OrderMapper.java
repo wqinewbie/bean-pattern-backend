@@ -15,6 +15,21 @@ public interface OrderMapper {
     @Select("SELECT COALESCE(SUM(amount), 0) FROM bp_order WHERE DATE(created_at) = CURDATE() AND status = 'PAID'")
     BigDecimal todayIncome();
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, amount, status, created_at AS createdAt FROM bp_order ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
+    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
+            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
+            "vip_days AS vipDays, gift_items AS giftItems, " +
+            "created_at AS createdAt FROM bp_order ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
     List<OrderEntity> listAll(@Param("offset") int offset, @Param("size") int size);
+    
+    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
+            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
+            "vip_days AS vipDays, gift_items AS giftItems, " +
+            "created_at AS createdAt FROM bp_order WHERE id = #{id}")
+    OrderEntity findById(@Param("id") Long id);
+    
+    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
+            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
+            "vip_days AS vipDays, gift_items AS giftItems, " +
+            "created_at AS createdAt FROM bp_order WHERE order_no = #{orderNo}")
+    OrderEntity findByOrderNo(@Param("orderNo") String orderNo);
 }

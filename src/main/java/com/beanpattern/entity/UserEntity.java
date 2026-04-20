@@ -15,6 +15,12 @@ public class UserEntity {
     private Integer gender;
     private Integer vipLevel;
     private LocalDateTime vipExpireAt;
+    private Integer storageQuota;
+    private Integer draftQuota;
+    private Integer currentStorage;
+    private Integer currentDraft;
+    private LocalDateTime aiResetAt;
+    private String availableBrands;
     private Integer magicCoins;
     private Integer aiQuota;
     private Integer status;
@@ -47,6 +53,24 @@ public class UserEntity {
 
     public LocalDateTime getVipExpireAt() { return vipExpireAt; }
     public void setVipExpireAt(LocalDateTime vipExpireAt) { this.vipExpireAt = vipExpireAt; }
+
+    public Integer getStorageQuota() { return storageQuota; }
+    public void setStorageQuota(Integer storageQuota) { this.storageQuota = storageQuota; }
+
+    public Integer getDraftQuota() { return draftQuota; }
+    public void setDraftQuota(Integer draftQuota) { this.draftQuota = draftQuota; }
+
+    public Integer getCurrentStorage() { return currentStorage; }
+    public void setCurrentStorage(Integer currentStorage) { this.currentStorage = currentStorage; }
+
+    public Integer getCurrentDraft() { return currentDraft; }
+    public void setCurrentDraft(Integer currentDraft) { this.currentDraft = currentDraft; }
+
+    public LocalDateTime getAiResetAt() { return aiResetAt; }
+    public void setAiResetAt(LocalDateTime aiResetAt) { this.aiResetAt = aiResetAt; }
+
+    public String getAvailableBrands() { return availableBrands; }
+    public void setAvailableBrands(String availableBrands) { this.availableBrands = availableBrands; }
 
     public Integer getMagicCoins() { return magicCoins; }
     public void setMagicCoins(Integer magicCoins) { this.magicCoins = magicCoins; }
