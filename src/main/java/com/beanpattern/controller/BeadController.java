@@ -40,13 +40,16 @@ public class BeadController {
         return ApiResponse.ok(result);
     }
 
-    /** GET /api/bead/colors?brand=mard&colorCount=48 */
-    @GetMapping("/colors")
-    public ApiResponse<List<BeadColorService.BeadColor>> getColors(
-            @RequestParam(defaultValue = "mard") String brand,
-            @RequestParam(defaultValue = "0") int colorCount) {
-        return ApiResponse.ok(beadColorService.getColors(brand, colorCount));
-    }
+    /**
+     * GET /api/bead/colors
+     * [已弃用] 小程序端使用 brands 接口获取调色板信息
+     */
+    // @GetMapping("/colors")
+    // public ApiResponse<List<BeadColorService.BeadColor>> getColors(
+    //         @RequestParam(defaultValue = "mard") String brand,
+    //         @RequestParam(defaultValue = "0") int colorCount) {
+    //     return ApiResponse.ok(beadColorService.getColors(brand, colorCount));
+    // }
 
     /**
      * POST /api/bead/generate-result
@@ -221,6 +224,7 @@ public class BeadController {
 
     /**
      * POST /api/bead/match-colors
+     * 纯前端处理架构：前端负责采样，后端只做颜色匹配
      * body: { brand: "mard", algo: "standard", grid: [[[r,g,b],...], ...] }
      */
     @PostMapping("/match-colors")
