@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8081
 
 spring:
@@ -16,11 +16,6 @@ spring:
   sql:
     init:
       mode: never
-
-  flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
-    locations: classpath:db/migration
 
 app:
   upload-dir: ${APP_UPLOAD_DIR:/app/uploads}
@@ -59,3 +54,4 @@ app:
 
   admin:
     init-enabled: ${APP_ADMIN_INIT_ENABLED:false}
+
