@@ -19,6 +19,7 @@ public class BpDraftService {
     }
 
     public int save(BpDraft draft) {
+        normalizePixelData(draft);
         if (draft.getId() != null) {
             return bpDraftMapper.update(draft);
         }
@@ -26,7 +27,7 @@ public class BpDraftService {
     }
 
     public int insert(BpDraft draft) {
-        // 自动设置过期时间
+        normalizePixelData(draft);
         if (draft.getExpiresAt() == null) {
             draft.setExpiresAt(LocalDateTime.now().plusDays(EXPIRE_DAYS));
         }
@@ -34,6 +35,7 @@ public class BpDraftService {
     }
 
     public int update(BpDraft draft) {
+        normalizePixelData(draft);
         return bpDraftMapper.update(draft);
     }
 
@@ -42,15 +44,25 @@ public class BpDraftService {
     }
 
     public BpDraft getById(Long id) {
-        return bpDraftMapper.findById(id);
+        BpDraft draft = bpDraftMapper.findById(id);
+        hydrateMappedPixelData(draft);
+        return draft;
     }
 
     public List<BpDraft> listByUserId(Long userId) {
-        return bpDraftMapper.listByUserId(userId);
+        List<BpDraft> list = bpDraftMapper.listByUserId(userId);
+        if (list != null) {
+            list.forEach(this::hydrateMappedPixelData);
+        }
+        return list;
     }
 
     public List<BpDraft> listByUserId(Long userId, int limit) {
-        return bpDraftMapper.listByUserIdWithLimit(userId, limit);
+        List<BpDraft> list = bpDraftMapper.listByUserIdWithLimit(userId, limit);
+        if (list != null) {
+            list.forEach(this::hydrateMappedPixelData);
+        }
+        return list;
     }
 
     public int countByUserId(Long userId) {
@@ -67,5 +79,25 @@ public class BpDraftService {
 
     public int deleteExpired() {
         return bpDraftMapper.deleteExpired();
+    }
+
+    private void normalizePixelData(BpDraft draft) {
+        if (draft == null) return;
+        if (draft.getMappedPixelData() != null && !draft.getMappedPixelData().isBlank()) {
+            draft.setPixelData(draft.getMappedPixelData());
+            return;
+        }
+        if ((draft.getMappedPixelData() == null || draft.getMappedPixelData().isBlank())
+            && draft.getPixelData() != null && !draft.getPixelData().isBlank()) {
+            draft.setMappedPixelData(draft.getPixelData());
+        }
+    }
+
+    private void hydrateMappedPixelData(BpDraft draft) {
+        if (draft == null) return;
+        if ((draft.getMappedPixelData() == null || draft.getMappedPixelData().isBlank())
+            && draft.getPixelData() != null && !draft.getPixelData().isBlank()) {
+            draft.setMappedPixelData(draft.getPixelData());
+        }
     }
 }

@@ -19,22 +19,21 @@ public class BpHistoryService {
     }
 
     public int save(BpHistory history) {
+        normalizePixelData(history);
         return bpHistoryMapper.insert(history);
     }
 
     public int insert(BpHistory history) {
-        // 验证 sourceType，必须是有效值
+        normalizePixelData(history);
         String sourceType = history.getSourceType();
         if (sourceType == null || sourceType.isBlank()) {
             sourceType = "LOCAL";
             history.setSourceType(sourceType);
         }
-        // 确保是有效值
         if (!"LOCAL".equals(sourceType) && !"AI".equals(sourceType)) {
             sourceType = "LOCAL";
             history.setSourceType(sourceType);
         }
-        // 自动设置过期时间
         if (history.getExpiresAt() == null) {
             history.setExpiresAt(LocalDateTime.now().plusDays(EXPIRE_DAYS));
         }
@@ -46,15 +45,25 @@ public class BpHistoryService {
     }
 
     public BpHistory getById(Long id) {
-        return bpHistoryMapper.findById(id);
+        BpHistory history = bpHistoryMapper.findById(id);
+        hydrateMappedPixelData(history);
+        return history;
     }
 
     public List<BpHistory> listByUserId(Long userId) {
-        return bpHistoryMapper.listByUserId(userId);
+        List<BpHistory> list = bpHistoryMapper.listByUserId(userId);
+        if (list != null) {
+            list.forEach(this::hydrateMappedPixelData);
+        }
+        return list;
     }
 
     public List<BpHistory> listByUserId(Long userId, int limit) {
-        return bpHistoryMapper.listByUserIdWithLimit(userId, limit);
+        List<BpHistory> list = bpHistoryMapper.listByUserIdWithLimit(userId, limit);
+        if (list != null) {
+            list.forEach(this::hydrateMappedPixelData);
+        }
+        return list;
     }
 
     public int countByUserId(Long userId) {
@@ -71,5 +80,25 @@ public class BpHistoryService {
 
     public int deleteExpired() {
         return bpHistoryMapper.deleteExpired();
+    }
+
+    private void normalizePixelData(BpHistory history) {
+        if (history == null) return;
+        if (history.getMappedPixelData() != null && !history.getMappedPixelData().isBlank()) {
+            history.setPixelData(history.getMappedPixelData());
+            return;
+        }
+        if ((history.getMappedPixelData() == null || history.getMappedPixelData().isBlank())
+            && history.getPixelData() != null && !history.getPixelData().isBlank()) {
+            history.setMappedPixelData(history.getPixelData());
+        }
+    }
+
+    private void hydrateMappedPixelData(BpHistory history) {
+        if (history == null) return;
+        if ((history.getMappedPixelData() == null || history.getMappedPixelData().isBlank())
+            && history.getPixelData() != null && !history.getPixelData().isBlank()) {
+            history.setMappedPixelData(history.getPixelData());
+        }
     }
 }

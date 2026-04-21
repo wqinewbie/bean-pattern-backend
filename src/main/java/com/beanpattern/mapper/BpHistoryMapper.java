@@ -10,9 +10,11 @@ public interface BpHistoryMapper {
 
     @Insert("""
             INSERT INTO bp_history (user_id, source_type, brand, color_count, name, grid_size,
-                                   rgb_data, grid_data, color_palette, box_id, source_url, expires_at)
+                                   rgb_data, grid_data, color_palette, box_id, source_url, expires_at,
+                                   pixel_data, color_mapping)
             VALUES (#{userId}, #{sourceType}, #{brand}, #{colorCount}, #{name}, #{gridSize},
-                    #{rgbData}, #{gridData}, #{colorPalette}, #{boxId}, #{sourceUrl}, #{expiresAt})
+                    #{rgbData}, #{gridData}, #{colorPalette}, #{boxId}, #{sourceUrl}, #{expiresAt},
+                    #{pixelData}, #{colorMapping})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BpHistory history);
@@ -20,19 +22,22 @@ public interface BpHistoryMapper {
     @Delete("DELETE FROM bp_history WHERE id=#{id}")
     int deleteById(@Param("id") Long id);
 
-    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, "
-          + "created_at, expires_at FROM bp_history WHERE id=#{id}")
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "rgb_data AS rgbData, grid_data AS gridData, color_palette AS colorPalette, box_id AS boxId, source_url AS sourceUrl, "
+          + "pixel_data AS pixelData, color_mapping AS colorMapping, "
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE id=#{id}")
     BpHistory findById(@Param("id") Long id);
 
-    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, "
-          + "created_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC")
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "rgb_data AS rgbData, grid_data AS gridData, color_palette AS colorPalette, box_id AS boxId, source_url AS sourceUrl, "
+          + "pixel_data AS pixelData, color_mapping AS colorMapping, "
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC")
     List<BpHistory> listByUserId(@Param("userId") Long userId);
 
-    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, "
-          + "created_at, expires_at FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "rgb_data AS rgbData, grid_data AS gridData, color_palette AS colorPalette, box_id AS boxId, source_url AS sourceUrl, "
+          + "pixel_data AS pixelData, color_mapping AS colorMapping, "
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")
     List<BpHistory> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT COUNT(*) FROM bp_history WHERE user_id=#{userId}")
@@ -41,9 +46,10 @@ public interface BpHistoryMapper {
     @Update("UPDATE bp_history SET box_id=#{boxId} WHERE id=#{id}")
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
-    @Select("SELECT id, user_id, source_type, brand, color_count, name, grid_size, "
-          + "rgb_data, grid_data, color_palette, box_id, source_url, "
-          + "created_at, expires_at FROM bp_history WHERE expires_at < NOW()")
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "rgb_data AS rgbData, grid_data AS gridData, color_palette AS colorPalette, box_id AS boxId, source_url AS sourceUrl, "
+          + "pixel_data AS pixelData, color_mapping AS colorMapping, "
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE expires_at < NOW()")
     List<BpHistory> listExpired();
 
     @Delete("DELETE FROM bp_history WHERE expires_at < NOW()")

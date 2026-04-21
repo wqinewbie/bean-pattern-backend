@@ -19,6 +19,7 @@ public class BpDraft {
     
     // V6.0 新增字段
     private String pixelData;    // 像素数据JSON（可选，用于优化大数据传输）
+    private String mappedPixelData; // 前端主格式JSON（API字段，映射到pixelData）
     private String colorMapping; // 颜色映射JSON
     
     private LocalDateTime expiresAt; // 过期时间

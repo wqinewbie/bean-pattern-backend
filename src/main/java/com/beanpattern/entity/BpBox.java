@@ -23,6 +23,7 @@ public class BpBox {
     
     // V6.0 新增字段
     private String pixelData;    // 像素数据JSON（可选，用于优化大数据传输）
+    private String mappedPixelData; // 前端主格式JSON（API字段，映射到pixelData）
     private String colorMapping; // 颜色映射JSON
     private String focusProgress; // 沉浸模式进度JSON（新）
     private Integer focusCompletedCells; // 沉浸模式已完成格子数

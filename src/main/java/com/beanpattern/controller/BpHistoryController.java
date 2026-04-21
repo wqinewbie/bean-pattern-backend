@@ -133,6 +133,9 @@ public class BpHistoryController {
         box.setRgbData(history.getRgbData());
         box.setGridData(history.getGridData());
         box.setColorPalette(history.getColorPalette());
+        box.setPixelData(history.getPixelData());
+        box.setMappedPixelData(history.getMappedPixelData());
+        box.setColorMapping(history.getColorMapping());
         box.setSourceUrl(history.getSourceUrl());
         box.setStatus(1); // 已完成
 
