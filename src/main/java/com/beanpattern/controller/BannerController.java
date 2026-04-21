@@ -29,13 +29,6 @@ public class BannerController {
         List<BannerVO> list = bannerMapper.listActive().stream()
                 .map(BannerVO::from)
                 .collect(Collectors.toList());
-
-        // 兼容老数据：若 bgColor 为空则给默认值
-        for (BannerVO vo : list) {
-            if (vo.getBgColor() == null || vo.getBgColor().trim().isEmpty()) {
-                vo.setBgColor("#FF9800");
-            }
-        }
         return ApiResponse.ok(list);
     }
 }
