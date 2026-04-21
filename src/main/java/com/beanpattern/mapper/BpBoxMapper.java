@@ -10,11 +10,11 @@ public interface BpBoxMapper {
 
     @Insert("""
             INSERT INTO bp_box (user_id, source_type, brand, color_count, name, grid_size,
-                              draft_id, history_id, source_url, status,
+                              draft_id, history_id, source_url, cover_url, status,
                               focus_progress, focus_completed_cells, focus_total_cells,
                               mapped_pixel_data)
             VALUES (#{userId}, #{sourceType}, #{brand}, #{colorCount}, #{name}, #{gridSize},
-                   #{draftId}, #{historyId}, #{sourceUrl}, #{status},
+                   #{draftId}, #{historyId}, #{sourceUrl}, #{coverUrl}, #{status},
                    #{focusProgress}, #{focusCompletedCells}, #{focusTotalCells},
                    #{mappedPixelData})
             """)
@@ -22,7 +22,7 @@ public interface BpBoxMapper {
     int insert(BpBox box);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, status, "
+          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
           + "mapped_pixel_data AS mappedPixelData, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE id=#{id}")
@@ -37,6 +37,7 @@ public interface BpBoxMapper {
                 draft_id=#{draftId},
                 history_id=#{historyId},
                 source_url=#{sourceUrl},
+                cover_url=#{coverUrl},
                 status=#{status},
                 focus_progress=#{focusProgress},
                 focus_completed_cells=#{focusCompletedCells},
@@ -51,14 +52,14 @@ public interface BpBoxMapper {
     int deleteById(@Param("id") Long id);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, status, "
+          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
           + "mapped_pixel_data AS mappedPixelData, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE user_id=#{userId} ORDER BY created_at DESC")
     List<BpBox> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, status, "
+          + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
           + "mapped_pixel_data AS mappedPixelData, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")

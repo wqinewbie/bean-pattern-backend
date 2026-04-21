@@ -2,6 +2,7 @@ package com.beanpattern.model.vo;
 
 import com.beanpattern.entity.BannerEntity;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Banner视图对象
@@ -16,6 +17,8 @@ public class BannerVO {
     private String  linkType;
     private String  linkValue;
     private String  tagText;
+    @JsonProperty("bgColor")
+    private String  bgColor;
     private Integer sortOrder;
     private Integer status;
 
@@ -28,6 +31,10 @@ public class BannerVO {
         vo.linkType  = b.getLinkType()  != null ? b.getLinkType()  : "NONE";
         vo.linkValue = b.getLinkValue() != null ? b.getLinkValue() : "";
         vo.tagText   = sanitizeText(b.getTagText(), "魔法上新");
+
+        String rawBg = b.getBgColor();
+        vo.bgColor = (rawBg != null && !rawBg.trim().isEmpty()) ? rawBg.trim() : "#FF9800";
+
         vo.sortOrder = b.getSortOrder() != null ? b.getSortOrder() : 0;
         vo.status    = b.getStatus()    != null ? b.getStatus()    : 1;
         return vo;
@@ -59,6 +66,7 @@ public class BannerVO {
     public String  getLinkType()  { return linkType; }
     public String  getLinkValue() { return linkValue; }
     public String  getTagText()   { return tagText; }
+    public String  getBgColor()   { return bgColor; }
     public Integer getSortOrder() { return sortOrder; }
     public Integer getStatus()    { return status; }
 }

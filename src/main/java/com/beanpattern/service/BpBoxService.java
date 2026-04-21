@@ -27,6 +27,9 @@ public class BpBoxService {
         if (box.getStatus() == null) {
             box.setStatus(1);
         }
+        if ((box.getCoverUrl() == null || box.getCoverUrl().isBlank()) && box.getSourceUrl() != null && !box.getSourceUrl().isBlank()) {
+            box.setCoverUrl(box.getSourceUrl());
+        }
 
         return bpBoxMapper.insert(box);
     }
@@ -38,6 +41,9 @@ public class BpBoxService {
         }
         if (box.getStatus() == null) {
             box.setStatus(1);
+        }
+        if ((box.getCoverUrl() == null || box.getCoverUrl().isBlank()) && box.getSourceUrl() != null && !box.getSourceUrl().isBlank()) {
+            box.setCoverUrl(box.getSourceUrl());
         }
         return bpBoxMapper.insert(box);
     }
