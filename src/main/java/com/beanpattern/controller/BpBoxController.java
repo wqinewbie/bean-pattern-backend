@@ -134,8 +134,7 @@ public class BpBoxController {
         if (user == null) return ApiResponse.fail("请先登录");
 
         Long boxId = body.get("boxId") != null ? ((Number) body.get("boxId")).longValue() : null;
-        String progressData = body.get("progressData") != null ? (String) body.get("progressData") : null;
-        
+
         // V6.0 新增字段
         String focusProgress = body.get("focusProgress") != null ? (String) body.get("focusProgress") : null;
         Integer focusCompletedCells = body.get("focusCompletedCells") != null ? ((Number) body.get("focusCompletedCells")).intValue() : null;
@@ -147,8 +146,6 @@ public class BpBoxController {
         if (box == null) return ApiResponse.fail("图纸不存在");
         if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
-        // 更新进度数据（旧字段兼容）
-        box.setProgressData(progressData);
         // V6.0 新字段
         box.setFocusProgress(focusProgress);
         box.setFocusCompletedCells(focusCompletedCells);

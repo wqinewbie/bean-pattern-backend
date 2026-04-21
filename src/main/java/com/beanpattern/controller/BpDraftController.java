@@ -123,9 +123,7 @@ public class BpDraftController {
         box.setColorCount(draft.getColorCount());
         box.setName(name);
         box.setGridSize(draft.getGridSize());
-        box.setRgbData(draft.getRgbData());
-        box.setGridData(draft.getGridData());
-        box.setColorPalette(draft.getColorPalette());
+        box.setMappedPixelData(draft.getMappedPixelData());
         box.setDraftId(draft.getId());
         box.setStatus(1); // 已完成
 

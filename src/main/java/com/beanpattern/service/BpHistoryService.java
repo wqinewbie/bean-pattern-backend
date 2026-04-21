@@ -19,12 +19,10 @@ public class BpHistoryService {
     }
 
     public int save(BpHistory history) {
-        normalizePixelData(history);
         return bpHistoryMapper.insert(history);
     }
 
     public int insert(BpHistory history) {
-        normalizePixelData(history);
         String sourceType = history.getSourceType();
         if (sourceType == null || sourceType.isBlank()) {
             sourceType = "LOCAL";
@@ -45,25 +43,15 @@ public class BpHistoryService {
     }
 
     public BpHistory getById(Long id) {
-        BpHistory history = bpHistoryMapper.findById(id);
-        hydrateMappedPixelData(history);
-        return history;
+        return bpHistoryMapper.findById(id);
     }
 
     public List<BpHistory> listByUserId(Long userId) {
-        List<BpHistory> list = bpHistoryMapper.listByUserId(userId);
-        if (list != null) {
-            list.forEach(this::hydrateMappedPixelData);
-        }
-        return list;
+        return bpHistoryMapper.listByUserId(userId);
     }
 
     public List<BpHistory> listByUserId(Long userId, int limit) {
-        List<BpHistory> list = bpHistoryMapper.listByUserIdWithLimit(userId, limit);
-        if (list != null) {
-            list.forEach(this::hydrateMappedPixelData);
-        }
-        return list;
+        return bpHistoryMapper.listByUserIdWithLimit(userId, limit);
     }
 
     public int countByUserId(Long userId) {
@@ -80,25 +68,5 @@ public class BpHistoryService {
 
     public int deleteExpired() {
         return bpHistoryMapper.deleteExpired();
-    }
-
-    private void normalizePixelData(BpHistory history) {
-        if (history == null) return;
-        if (history.getMappedPixelData() != null && !history.getMappedPixelData().isBlank()) {
-            history.setPixelData(history.getMappedPixelData());
-            return;
-        }
-        if ((history.getMappedPixelData() == null || history.getMappedPixelData().isBlank())
-            && history.getPixelData() != null && !history.getPixelData().isBlank()) {
-            history.setMappedPixelData(history.getPixelData());
-        }
-    }
-
-    private void hydrateMappedPixelData(BpHistory history) {
-        if (history == null) return;
-        if ((history.getMappedPixelData() == null || history.getMappedPixelData().isBlank())
-            && history.getPixelData() != null && !history.getPixelData().isBlank()) {
-            history.setMappedPixelData(history.getPixelData());
-        }
     }
 }

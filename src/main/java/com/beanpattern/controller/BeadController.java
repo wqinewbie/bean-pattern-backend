@@ -104,52 +104,45 @@ public class BeadController {
 
             BeadColorService.BeadColor[][] matched = beadColorService.matchGrid(rgbGrid, brand, colorCount, algo);
 
-            List<List<Integer>> gridData = new ArrayList<>();
-            Map<String, BeadColorService.BeadColor> colorMap = new LinkedHashMap<>();
-            Map<String, Integer> colorIndexMap = new LinkedHashMap<>();
+            List<List<Map<String, Object>>> mappedPixelData = new ArrayList<>();
+            Map<String, Integer> statCount = new LinkedHashMap<>();
+            Map<String, Map<String, Object>> statMeta = new LinkedHashMap<>();
 
             for (BeadColorService.BeadColor[] row : matched) {
-                List<Integer> rowList = new ArrayList<>();
+                List<Map<String, Object>> rowList = new ArrayList<>();
                 for (BeadColorService.BeadColor c : row) {
-                    if (!colorIndexMap.containsKey(c.id())) {
-                        int newIndex = colorIndexMap.size();
-                        colorIndexMap.put(c.id(), newIndex);
-                        colorMap.put(c.id(), c);
-                    }
-                    rowList.add(colorIndexMap.get(c.id()));
-                }
-                gridData.add(rowList);
-            }
+                    String hex = String.format("#%02X%02X%02X", c.r(), c.g(), c.b());
+                    rowList.add(Map.of(
+                            "id", c.id(),
+                            "name", c.name(),
+                            "r", c.r(),
+                            "g", c.g(),
+                            "b", c.b(),
+                            "hex", hex,
+                            "isExternal", false
+                    ));
 
-            List<List<List<Integer>>> effectRgbData = new ArrayList<>();
-            for (BeadColorService.BeadColor[] row : matched) {
-                List<List<Integer>> rowList = new ArrayList<>();
-                for (BeadColorService.BeadColor c : row) {
-                    rowList.add(List.of(c.r(), c.g(), c.b()));
-                }
-                effectRgbData.add(rowList);
-            }
-
-            List<Map<String, Object>> colorPalette = new ArrayList<>();
-            int index = 0;
-            for (BeadColorService.BeadColor c : colorMap.values()) {
-                int count = 0;
-                for (BeadColorService.BeadColor[] row : matched) {
-                    for (BeadColorService.BeadColor pixel : row) {
-                        if (pixel.id().equals(c.id())) {
-                            count++;
-                        }
+                    statCount.put(c.id(), statCount.getOrDefault(c.id(), 0) + 1);
+                    if (!statMeta.containsKey(c.id())) {
+                        statMeta.put(c.id(), Map.of(
+                                "id", c.id(),
+                                "name", c.name(),
+                                "r", c.r(),
+                                "g", c.g(),
+                                "b", c.b(),
+                                "hex", hex
+                        ));
                     }
                 }
-                colorPalette.add(Map.of(
-                        "id", c.id(),
-                        "index", index++,
-                        "name", c.name(),
-                        "r", c.r(),
-                        "g", c.g(),
-                        "b", c.b(),
-                        "count", count
-                ));
+                mappedPixelData.add(rowList);
+            }
+
+            List<Map<String, Object>> colorStats = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : statCount.entrySet()) {
+                Map<String, Object> meta = statMeta.get(entry.getKey());
+                Map<String, Object> row = new LinkedHashMap<>(meta);
+                row.put("count", entry.getValue());
+                colorStats.add(row);
             }
 
             Long historyId = null;
@@ -160,11 +153,9 @@ public class BeadController {
                     history.setUserId(user.getId());
                     history.setSourceType("LOCAL");
                     history.setBrand(brand);
-                    history.setColorCount(colorPalette.size());
+                    history.setColorCount(colorStats.size());
                     history.setGridSize(rows);
-                    history.setGridData(OBJECT_MAPPER.writeValueAsString(gridData));
-                    history.setColorPalette(OBJECT_MAPPER.writeValueAsString(colorPalette));
-                    history.setRgbData(OBJECT_MAPPER.writeValueAsString(effectRgbData));
+                    history.setMappedPixelData(OBJECT_MAPPER.writeValueAsString(mappedPixelData));
                     history.setSourceUrl(sourceUrl);
                     bpHistoryService.insert(history);
                     historyId = history.getId();
@@ -174,11 +165,10 @@ public class BeadController {
             }
 
             return ApiResponse.ok(Map.of(
-                    "gridData", gridData,
-                    "colorPalette", colorPalette,
-                    "effectRgbData", effectRgbData,
+                    "mappedPixelData", mappedPixelData,
+                    "colorStats", colorStats,
                     "gridSize", rows,
-                    "colorCount", colorPalette.size(),
+                    "colorCount", colorStats.size(),
                     "historyId", historyId != null ? historyId : 0
             ));
         } catch (Exception e) {

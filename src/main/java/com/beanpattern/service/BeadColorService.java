@@ -77,11 +77,26 @@ public class BeadColorService {
                 throw new Exception("无法解析图片格式");
             }
             
-            // 缩放到目标尺寸
+            // 缩放到目标尺寸（保持宽高比，留白填充为正方形）
             BufferedImage resized = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = resized.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(originalImage, 0, 0, targetSize, targetSize, null);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // 白底，避免透明区域变黑
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, targetSize, targetSize);
+
+            int srcW = originalImage.getWidth();
+            int srcH = originalImage.getHeight();
+            double scale = Math.min((double) targetSize / srcW, (double) targetSize / srcH);
+            int drawW = Math.max(1, (int) Math.round(srcW * scale));
+            int drawH = Math.max(1, (int) Math.round(srcH * scale));
+            int offsetX = (targetSize - drawW) / 2;
+            int offsetY = (targetSize - drawH) / 2;
+
+            g.drawImage(originalImage, offsetX, offsetY, drawW, drawH, null);
             g.dispose();
             
             // 提取 RGB 数据
