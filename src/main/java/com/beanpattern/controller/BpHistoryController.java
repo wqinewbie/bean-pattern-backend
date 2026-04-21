@@ -133,6 +133,9 @@ public class BpHistoryController {
         box.setMappedPixelData(history.getMappedPixelData());
         box.setSourceUrl(history.getSourceUrl());
         box.setStatus(1); // 已完成
+        box.setFocusCompletedCells(0);
+        box.setFocusTotalCells(Math.max(1, (history.getGridSize() == null ? 1 : history.getGridSize()) * (history.getGridSize() == null ? 1 : history.getGridSize())));
+        box.setFocusProgress("0");
 
         bpBoxService.insert(box);
 

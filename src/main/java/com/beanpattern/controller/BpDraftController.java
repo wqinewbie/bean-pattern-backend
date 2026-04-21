@@ -126,6 +126,9 @@ public class BpDraftController {
         box.setMappedPixelData(draft.getMappedPixelData());
         box.setDraftId(draft.getId());
         box.setStatus(1); // 已完成
+        box.setFocusCompletedCells(0);
+        box.setFocusTotalCells(Math.max(1, (draft.getGridSize() == null ? 1 : draft.getGridSize()) * (draft.getGridSize() == null ? 1 : draft.getGridSize())));
+        box.setFocusProgress("0");
 
         bpBoxService.insert(box);
 

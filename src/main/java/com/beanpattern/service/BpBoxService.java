@@ -30,6 +30,16 @@ public class BpBoxService {
         if ((box.getCoverUrl() == null || box.getCoverUrl().isBlank()) && box.getSourceUrl() != null && !box.getSourceUrl().isBlank()) {
             box.setCoverUrl(box.getSourceUrl());
         }
+        if (box.getFocusCompletedCells() == null) {
+            box.setFocusCompletedCells(0);
+        }
+        if (box.getFocusTotalCells() == null) {
+            int size = box.getGridSize() == null ? 1 : box.getGridSize();
+            box.setFocusTotalCells(Math.max(1, size * size));
+        }
+        if (box.getFocusProgress() == null || box.getFocusProgress().isBlank()) {
+            box.setFocusProgress("0");
+        }
 
         return bpBoxMapper.insert(box);
     }
@@ -44,6 +54,16 @@ public class BpBoxService {
         }
         if ((box.getCoverUrl() == null || box.getCoverUrl().isBlank()) && box.getSourceUrl() != null && !box.getSourceUrl().isBlank()) {
             box.setCoverUrl(box.getSourceUrl());
+        }
+        if (box.getFocusCompletedCells() == null) {
+            box.setFocusCompletedCells(0);
+        }
+        if (box.getFocusTotalCells() == null) {
+            int size = box.getGridSize() == null ? 1 : box.getGridSize();
+            box.setFocusTotalCells(Math.max(1, size * size));
+        }
+        if (box.getFocusProgress() == null || box.getFocusProgress().isBlank()) {
+            box.setFocusProgress("0");
         }
         return bpBoxMapper.insert(box);
     }
