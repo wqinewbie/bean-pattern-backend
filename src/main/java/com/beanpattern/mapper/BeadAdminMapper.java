@@ -1,4 +1,4 @@
-﻿package com.beanpattern.mapper;
+package com.beanpattern.mapper;
 
 import org.apache.ibatis.annotations.*;
 
