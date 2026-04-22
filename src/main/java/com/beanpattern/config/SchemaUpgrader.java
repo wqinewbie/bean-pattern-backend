@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 数据库字段兼容升级器
@@ -143,7 +145,32 @@ public class SchemaUpgrader implements ApplicationRunner {
                             "UNIQUE KEY uk_brand_count(brand_id, color_count)" +
                             ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌套装表'");
 
+            createTableIfNotExists(db, "bead_brand_kit_palette",
+                    "CREATE TABLE bead_brand_kit_palette (" +
+                            "kit_id INT NOT NULL COMMENT '套餐ID'," +
+                            "palette_id INT NOT NULL COMMENT '色盘ID'," +
+                            "sort_order INT NOT NULL DEFAULT 0 COMMENT '排序'," +
+                            "PRIMARY KEY(kit_id, palette_id)," +
+                            "KEY idx_palette_id(palette_id)" +
+                            ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌套餐色盘关联表'");
+
+            createTableIfNotExists(db, "bead_brand_color_override",
+                    "CREATE TABLE bead_brand_color_override (" +
+                            "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                            "brand_id INT NOT NULL COMMENT '品牌ID'," +
+                            "color_id INT NOT NULL COMMENT '颜色ID'," +
+                            "display_name VARCHAR(64) NULL COMMENT '品牌颜色显示名'," +
+                            "hex CHAR(7) NOT NULL," +
+                            "r TINYINT UNSIGNED NOT NULL," +
+                            "g TINYINT UNSIGNED NOT NULL," +
+                            "b TINYINT UNSIGNED NOT NULL," +
+                            "UNIQUE KEY uk_brand_color(brand_id, color_id)," +
+                            "KEY idx_brand_rgb(brand_id, r, g, b)" +
+                            ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌颜色覆盖表'");
+
             seedBeadDataFromSqlFile();
+            migrateBeadKitPalettes();
+            migrateBrandColorOverrides(db);
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 创建bead表失败: {}", e.getMessage());
         }
@@ -156,6 +183,57 @@ public class SchemaUpgrader implements ApplicationRunner {
         if (count == null || count == 0) {
             jdbc.execute(createSql);
             log.info("[SchemaUpgrader] 创建表: {}", table);
+        }
+    }
+
+    private void migrateBeadKitPalettes() {
+        try {
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bead_brand_kit_palette", Integer.class);
+            if (count != null && count > 0) return;
+
+            List<Map<String, Object>> kits = jdbc.queryForList("SELECT id, palette_ids FROM bead_brand_kit");
+            for (Map<String, Object> kit : kits) {
+                Number kitIdNum = (Number) kit.get("id");
+                if (kitIdNum == null) continue;
+                int kitId = kitIdNum.intValue();
+                String paletteIds = String.valueOf(kit.get("palette_ids") == null ? "" : kit.get("palette_ids")).trim();
+                if (paletteIds.isEmpty()) continue;
+                String[] names = paletteIds.split(",");
+                for (int i = 0; i < names.length; i++) {
+                    String name = names[i] == null ? "" : names[i].trim();
+                    if (name.isEmpty()) continue;
+                    List<Integer> paletteIdList = jdbc.query("SELECT id FROM bead_palette WHERE name = ?", (rs, rowNum) -> rs.getInt(1), name);
+                    if (paletteIdList.isEmpty()) continue;
+                    jdbc.update("INSERT IGNORE INTO bead_brand_kit_palette(kit_id, palette_id, sort_order) VALUES(?, ?, ?)", kitId, paletteIdList.get(0), i);
+                }
+            }
+            log.info("[SchemaUpgrader] bead_brand_kit_palette 数据迁移完成");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 迁移 bead_brand_kit_palette 失败: {}", e.getMessage());
+        }
+    }
+
+    private void migrateBrandColorOverrides(String db) {
+        try {
+            Integer legacyExists = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME='bead_brand_rgb_code'",
+                    Integer.class, db
+            );
+            if (legacyExists == null || legacyExists == 0) return;
+
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bead_brand_color_override", Integer.class);
+            if (count != null && count > 0) return;
+
+            jdbc.execute("""
+                INSERT IGNORE INTO bead_brand_color_override(brand_id, color_id, display_name, hex, r, g, b)
+                SELECT b.id, c.id, c.display_name, bc.hex, bc.r, bc.g, bc.b
+                FROM bead_brand_rgb_code bc
+                JOIN bead_brand b ON b.name = bc.brand_name
+                JOIN bead_color c ON c.code = bc.code
+            """);
+            log.info("[SchemaUpgrader] bead_brand_color_override 数据迁移完成");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 迁移 bead_brand_color_override 失败: {}", e.getMessage());
         }
     }
 

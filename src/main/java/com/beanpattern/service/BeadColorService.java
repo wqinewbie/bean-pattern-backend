@@ -3,15 +3,9 @@ package com.beanpattern.service;
 import com.beanpattern.mapper.BeadColorMapper;
 import org.springframework.stereotype.Service;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -21,7 +15,6 @@ public class BeadColorService {
 
     private final BeadColorMapper beadColorMapper;
 
-    // 运行时缓存：key = "brand:colorCount" 或 "brand:all"
     private final Map<String, List<BeadColor>> paletteCache = new ConcurrentHashMap<>();
     private final Map<String, double[][]> labCache = new ConcurrentHashMap<>();
 
@@ -29,89 +22,21 @@ public class BeadColorService {
         this.beadColorMapper = beadColorMapper;
     }
 
-    /**
-     * 获取指定品牌 + 色数套装的颜色列表
-     * colorCount <= 0 表示获取该品牌全量颜色
-     */
     public List<BeadColor> getColors(String brand, int colorCount) {
         String key = brand.toLowerCase() + ":" + colorCount;
         return paletteCache.computeIfAbsent(key, k -> loadColors(brand, colorCount));
     }
 
-    /** 兼容旧接口：只传品牌，返回全量颜色 */
     public List<BeadColor> getColors(String brand) {
         return getColors(brand, 0);
     }
 
-    /** 查询某品牌所有可用套装色数 */
     public List<Integer> getKits(String brand) {
         return beadColorMapper.queryKitsByBrand(brand);
     }
 
-    /** 查询所有品牌 */
     public List<String> getBrandNames() {
         return beadColorMapper.queryAllBrands();
-    }
-
-    /**
-     * 下载图片并缩放到指定尺寸
-     * @param imageUrl 图片URL
-     * @param targetSize 目标尺寸（正方形）
-     * @return int[][][] rgb数据 [y][x][rgb]
-     */
-    public int[][][] downloadAndResize(String imageUrl, int targetSize) throws Exception {
-        URL url = new URL(imageUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(10000);
-        conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-        
-        int responseCode = conn.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            throw new Exception("下载图片失败，HTTP " + responseCode);
-        }
-        
-        try (InputStream in = conn.getInputStream()) {
-            BufferedImage originalImage = ImageIO.read(in);
-            if (originalImage == null) {
-                throw new Exception("无法解析图片格式");
-            }
-            
-            // 缩放到目标尺寸（保持宽高比，留白填充为正方形）
-            BufferedImage resized = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = resized.createGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            // 白底，避免透明区域变黑
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, targetSize, targetSize);
-
-            int srcW = originalImage.getWidth();
-            int srcH = originalImage.getHeight();
-            double scale = Math.min((double) targetSize / srcW, (double) targetSize / srcH);
-            int drawW = Math.max(1, (int) Math.round(srcW * scale));
-            int drawH = Math.max(1, (int) Math.round(srcH * scale));
-            int offsetX = (targetSize - drawW) / 2;
-            int offsetY = (targetSize - drawH) / 2;
-
-            g.drawImage(originalImage, offsetX, offsetY, drawW, drawH, null);
-            g.dispose();
-            
-            // 提取 RGB 数据
-            int[][][] rgbData = new int[targetSize][targetSize][3];
-            for (int y = 0; y < targetSize; y++) {
-                for (int x = 0; x < targetSize; x++) {
-                    int rgb = resized.getRGB(x, y);
-                    rgbData[y][x][0] = (rgb >> 16) & 0xFF; // R
-                    rgbData[y][x][1] = (rgb >> 8) & 0xFF;  // G
-                    rgbData[y][x][2] = rgb & 0xFF;         // B
-                }
-            }
-            
-            return rgbData;
-        }
     }
 
     public BeadColor[][] matchGrid(int[][][] rgbGrid, String brand) {
@@ -129,9 +54,21 @@ public class BeadColorService {
 
         double wL, wA, wB;
         switch (algo == null ? "standard" : algo) {
-            case "portrait" -> { wL = 1.0; wA = 6.0; wB = 4.0; }
-            case "pixel"    -> { wL = 2.5; wA = 2.0; wB = 2.0; }
-            default         -> { wL = 1.0; wA = 3.5; wB = 3.5; }
+            case "portrait" -> {
+                wL = 1.0;
+                wA = 6.0;
+                wB = 4.0;
+            }
+            case "pixel" -> {
+                wL = 2.5;
+                wA = 2.0;
+                wB = 2.0;
+            }
+            default -> {
+                wL = 1.0;
+                wA = 3.5;
+                wB = 3.5;
+            }
         }
 
         int rows = rgbGrid.length;
@@ -139,15 +76,15 @@ public class BeadColorService {
         for (int y = 0; y < rows; y++) {
             int cols = rgbGrid[y].length;
             result[y] = new BeadColor[cols];
-            for (int x = 0; x < cols; x++)
+            for (int x = 0; x < cols; x++) {
                 result[y][x] = findClosest(
                         rgbGrid[y][x][0], rgbGrid[y][x][1], rgbGrid[y][x][2],
-                        palette, labs, wL, wA, wB);
+                        palette, labs, wL, wA, wB
+                );
+            }
         }
         return result;
     }
-
-    // ---- 私有方法 ----
 
     private List<BeadColor> loadColors(String brand, int colorCount) {
         List<Map<String, Object>> rows = colorCount > 0
@@ -168,8 +105,9 @@ public class BeadColorService {
 
     private double[][] buildLabCache(List<BeadColor> palette) {
         double[][] labs = new double[palette.size()][3];
-        for (int i = 0; i < palette.size(); i++)
+        for (int i = 0; i < palette.size(); i++) {
             labs[i] = rgbToLab(palette.get(i).r(), palette.get(i).g(), palette.get(i).b());
+        }
         return labs;
     }
 
@@ -179,7 +117,7 @@ public class BeadColorService {
     }
 
     private BeadColor findClosest(int r, int g, int b, List<BeadColor> palette,
-                                   double[][] labs, double wL, double wA, double wB) {
+                                  double[][] labs, double wL, double wA, double wB) {
         double[] src = rgbToLab(r, g, b);
         BeadColor best = palette.get(0);
         double bestDist = Double.MAX_VALUE;
@@ -188,13 +126,18 @@ public class BeadColorService {
             double da = src[1] - labs[i][1];
             double db = src[2] - labs[i][2];
             double d = dL * dL * wL + da * da * wA + db * db * wB;
-            if (d < bestDist) { bestDist = d; best = palette.get(i); }
+            if (d < bestDist) {
+                bestDist = d;
+                best = palette.get(i);
+            }
         }
         return best;
     }
 
     private static double[] rgbToLab(int r, int g, int b) {
-        double R = r / 255.0, G = g / 255.0, B = b / 255.0;
+        double R = r / 255.0;
+        double G = g / 255.0;
+        double B = b / 255.0;
         R = R > 0.04045 ? Math.pow((R + 0.055) / 1.055, 2.4) : R / 12.92;
         G = G > 0.04045 ? Math.pow((G + 0.055) / 1.055, 2.4) : G / 12.92;
         B = B > 0.04045 ? Math.pow((B + 0.055) / 1.055, 2.4) : B / 12.92;

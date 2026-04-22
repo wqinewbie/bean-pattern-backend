@@ -10,21 +10,21 @@ public interface BeadColorMapper {
 
     /**
      * 查询某品牌某色数套装下的所有色码（含 HEX/RGB）
-     * 优先使用 bead_brand_rgb_code 中该品牌专属 RGB，避免跨品牌串色号。
+     * 优先使用品牌颜色覆盖表，套餐与色盘关系走中间表。
      */
     @Select("""
         SELECT DISTINCT
                c.code AS id,
-               c.code AS name,
-               COALESCE(bc.r, c.r) AS r,
-               COALESCE(bc.g, c.g) AS g,
-               COALESCE(bc.b, c.b) AS b
+               COALESCE(bco.display_name, c.display_name, c.code) AS name,
+               COALESCE(bco.r, c.r) AS r,
+               COALESCE(bco.g, c.g) AS g,
+               COALESCE(bco.b, c.b) AS b
         FROM bead_brand b
         JOIN bead_brand_kit k ON k.brand_id = b.id AND k.color_count = #{colorCount}
-        JOIN bead_palette p ON FIND_IN_SET(p.name, k.palette_ids) > 0
-        JOIN bead_palette_color pc ON pc.palette_id = p.id
+        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
+        JOIN bead_palette_color pc ON pc.palette_id = bkp.palette_id
         JOIN bead_color c ON c.id = pc.color_id
-        LEFT JOIN bead_brand_rgb_code bc ON bc.brand_name = b.name AND bc.code = c.code
+        LEFT JOIN bead_brand_color_override bco ON bco.brand_id = b.id AND bco.color_id = c.id
         WHERE b.name = #{brand}
         ORDER BY c.code
         """)
@@ -34,28 +34,20 @@ public interface BeadColorMapper {
 
     /** 查询某品牌全量颜色（优先品牌专属映射；补充套装并集） */
     @Select("""
-        SELECT DISTINCT t.id, t.name, t.r, t.g, t.b
-        FROM (
-            SELECT bc.code AS id, bc.code AS name, bc.r, bc.g, bc.b
-            FROM bead_brand_rgb_code bc
-            WHERE bc.brand_name = #{brand}
-
-            UNION ALL
-
-            SELECT c.code AS id,
-                   c.code AS name,
-                   COALESCE(bc.r, c.r) AS r,
-                   COALESCE(bc.g, c.g) AS g,
-                   COALESCE(bc.b, c.b) AS b
-            FROM bead_brand b
-            JOIN bead_brand_kit k ON k.brand_id = b.id
-            JOIN bead_palette p ON FIND_IN_SET(p.name, k.palette_ids) > 0
-            JOIN bead_palette_color pc ON pc.palette_id = p.id
-            JOIN bead_color c ON c.id = pc.color_id
-            LEFT JOIN bead_brand_rgb_code bc ON bc.brand_name = b.name AND bc.code = c.code
-            WHERE b.name = #{brand}
-        ) t
-        ORDER BY t.id
+        SELECT DISTINCT
+               c.code AS id,
+               COALESCE(bco.display_name, c.display_name, c.code) AS name,
+               COALESCE(bco.r, c.r) AS r,
+               COALESCE(bco.g, c.g) AS g,
+               COALESCE(bco.b, c.b) AS b
+        FROM bead_brand b
+        JOIN bead_brand_kit k ON k.brand_id = b.id
+        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
+        JOIN bead_palette_color pc ON pc.palette_id = bkp.palette_id
+        JOIN bead_color c ON c.id = pc.color_id
+        LEFT JOIN bead_brand_color_override bco ON bco.brand_id = b.id AND bco.color_id = c.id
+        WHERE b.name = #{brand}
+        ORDER BY c.code
         """)
     List<Map<String, Object>> queryAllColorsByBrand(@Param("brand") String brand);
 

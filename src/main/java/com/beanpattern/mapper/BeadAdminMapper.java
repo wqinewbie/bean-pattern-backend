@@ -1,4 +1,4 @@
-package com.beanpattern.mapper;
+﻿package com.beanpattern.mapper;
 
 import org.apache.ibatis.annotations.*;
 
@@ -70,7 +70,19 @@ public interface BeadAdminMapper {
     @Delete("DELETE FROM bead_color WHERE id = #{id}")
     int deleteColor(@Param("id") Long id);
 
-    @Select("SELECT k.id, k.brand_id AS brandId, b.name AS brandName, k.color_count AS colorCount, k.palette_ids AS paletteIds FROM bead_brand_kit k LEFT JOIN bead_brand b ON b.id = k.brand_id ORDER BY k.brand_id, k.color_count")
+    @Select("""
+        SELECT k.id,
+               k.brand_id AS brandId,
+               b.name AS brandName,
+               k.color_count AS colorCount,
+               COALESCE(GROUP_CONCAT(p.name ORDER BY bkp.sort_order SEPARATOR ','), k.palette_ids) AS paletteIds
+        FROM bead_brand_kit k
+        LEFT JOIN bead_brand b ON b.id = k.brand_id
+        LEFT JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
+        LEFT JOIN bead_palette p ON p.id = bkp.palette_id
+        GROUP BY k.id, k.brand_id, b.name, k.color_count, k.palette_ids
+        ORDER BY k.brand_id, k.color_count
+        """)
     List<Map<String, Object>> listBrandKits();
 
     @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
