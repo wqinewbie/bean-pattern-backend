@@ -5,6 +5,12 @@ import java.time.LocalDateTime;
 
 @Data
 public class BpBox {
+    // 状态常量
+    public static final int STATUS_PROCESSING = 0; // 处理中
+    public static final int STATUS_COMPLETED = 1;  // 已完成
+    public static final int STATUS_INVALID = 2;    // 已失效
+    public static final int STATUS_DELETED = 3;    // 已删除（逻辑删除）
+
     private Long id;
     private Long userId;
     private String sourceType;  // LOCAL, AI, DRAW
@@ -16,7 +22,7 @@ public class BpBox {
     private Long historyId;     // 关联时光机ID
     private String sourceUrl;   // 原图URL
     private String coverUrl;    // 封面图URL（压缩图）
-    private Integer status;     // 0=处理中 1=已完成 2=已失效
+    private Integer status;     // 0=处理中 1=已完成 2=已失效 3=已删除
 
     private String mappedPixelData; // 主图案JSON(二维像素对象)
     private String focusProgress;   // 沉浸模式进度JSON

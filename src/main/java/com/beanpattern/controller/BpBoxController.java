@@ -120,7 +120,8 @@ public class BpBoxController {
         if (existing == null) return ApiResponse.fail("图纸不存在");
         if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
-        bpBoxService.update(box);
+        // 只更新名称，避免传输大量 mappedPixelData
+        bpBoxService.updateName(box.getId(), box.getName());
         return ApiResponse.ok(null);
     }
 

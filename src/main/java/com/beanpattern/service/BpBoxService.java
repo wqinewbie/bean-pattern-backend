@@ -72,6 +72,10 @@ public class BpBoxService {
         return bpBoxMapper.update(box);
     }
 
+    public int updateName(Long id, String name) {
+        return bpBoxMapper.updateName(id, name);
+    }
+
     public int delete(Long id) {
         return bpBoxMapper.deleteById(id);
     }
