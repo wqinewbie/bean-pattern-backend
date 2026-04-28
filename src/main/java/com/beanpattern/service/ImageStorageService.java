@@ -31,27 +31,27 @@ public class ImageStorageService {
 
     public ImageUploadResponse store(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException(“Uploaded file is empty”);
+            throw new IllegalArgumentException("Uploaded file is empty");
         }
         // 统一生成对象名（key），避免文件名碰撞
         String extension = guessExtension(file.getOriginalFilename());
         String key = UUID.randomUUID() + extension;
 
-        System.out.println(“[ImageStorageService] store() called, originalFilename=” + file.getOriginalFilename() + “, key=” + key);
+        System.out.println("[ImageStorageService] store() called, originalFilename=" + file.getOriginalFilename() + ", key=" + key);
 
-        // 只要 s3 配置齐全就走对象存储（你要求”不准备把图片存到本地”，所以这里把本地当兜底）
+        // 只要 s3 配置齐全就走对象存储（你要求"不准备把图片存到本地"，所以这里把本地当兜底）
         if (isS3Configured()) {
-            System.out.println(“[ImageStorageService] S3 is configured, uploading to S3...”);
+            System.out.println("[ImageStorageService] S3 is configured, uploading to S3...");
             uploadToS3(file, key);
             String publicUrl = buildPublicUrl(key);
-            System.out.println(“[ImageStorageService] Upload success, publicUrl=” + publicUrl);
+            System.out.println("[ImageStorageService] Upload success, publicUrl=" + publicUrl);
             return new ImageUploadResponse(publicUrl, key);
         }
 
         // 兜底：如果你还没配 s3 配置，仍然不让代码彻底报错
         // 注意：真实生产请确保 s3 配置正确；本兜底仍会依赖本地 uploads。
-        System.err.println(“[ImageStorageService] S3 is NOT configured!”);
-        throw new IllegalStateException(“S3 is not configured. Please fill app.s3.* in application-dev.yaml / application-prod.yaml”);
+        System.err.println("[ImageStorageService] S3 is NOT configured!");
+        throw new IllegalStateException("S3 is not configured. Please fill app.s3.* in application-dev.yaml / application-prod.yaml");
     }
 
     private boolean isS3Configured() {
@@ -83,7 +83,7 @@ public class ImageStorageService {
         PutObjectRequest request = PutObjectRequest.builder()
                 .bucket(s3.getBucket())
                 .key(key)
-                // 你要求“公开读”：这里给对象设置 PUBLIC_READ ACL。
+                // 你要求"公开读"：这里给对象设置 PUBLIC_READ ACL。
                 // 若 AWS 开启了 Block Public Access，可能需要改为配置 bucket policy/CDN（后续再处理）。
                 .acl(ObjectCannedACL.PUBLIC_READ)
                 .contentType(contentType)
@@ -103,7 +103,7 @@ public class ImageStorageService {
             throw new IllegalStateException("Failed to read uploaded file", e);
         }
 
-        // 同步上传（当前为“上传-处理-返回 URL”的简单链路）
+        // 同步上传（当前为"上传-处理-返回 URL"的简单链路）
         s3Client().putObject(request, body);
     }
 
