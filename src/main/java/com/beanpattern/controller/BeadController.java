@@ -120,6 +120,27 @@ public class BeadController {
         return ApiResponse.ok(data);
     }
 
+    @GetMapping("/kits/{kitId}/colors")
+    public ApiResponse<List<Map<String, Object>>> colorsByKit(@PathVariable Long kitId) {
+        var list = beadAdminMapper.listColorsByKitId(kitId);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            String code = item.get("code") == null ? "" : String.valueOf(item.get("code"));
+            String hex = item.get("hex") == null ? "" : String.valueOf(item.get("hex"));
+            data.add(Map.of(
+                    "id", item.get("id") == null ? "" : String.valueOf(item.get("id")),
+                    "code", code,
+                    "name", code,
+                    "hex", hex.startsWith("#") ? hex.toUpperCase() : ("#" + hex).toUpperCase(),
+                    "r", item.get("r"),
+                    "g", item.get("g"),
+                    "b", item.get("b")
+            ));
+        }
+        data.sort(Comparator.comparing(o -> String.valueOf(o.get("code"))));
+        return ApiResponse.ok(data);
+    }
+
     @GetMapping("/palettes/{id}/colors")
     public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
         var list = beadAdminMapper.listColorsByPaletteId(id);
