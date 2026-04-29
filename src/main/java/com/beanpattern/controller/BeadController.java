@@ -83,6 +83,43 @@ public class BeadController {
         return ApiResponse.ok(data);
     }
 
+    @GetMapping("/brands/{brandId}/kits")
+    public ApiResponse<List<Map<String, Object>>> kitsByBrand(@PathVariable Long brandId) {
+        var list = beadAdminMapper.listKitsByBrandId(brandId);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            Object id = item.get("id");
+            Object colorCount = item.get("color_count");
+            if (colorCount == null) colorCount = item.get("colorCount");
+            int count = 0;
+            if (colorCount instanceof Number n) count = n.intValue();
+            else if (colorCount != null) {
+                try { count = Integer.parseInt(String.valueOf(colorCount)); } catch (Exception ignored) {}
+            }
+            data.add(Map.of(
+                    "id", id == null ? "" : String.valueOf(id),
+                    "colorCount", count,
+                    "name", count > 0 ? (count + "色") : "套餐"
+            ));
+        }
+        return ApiResponse.ok(data);
+    }
+
+    @GetMapping("/kits/{kitId}/palettes")
+    public ApiResponse<List<Map<String, Object>>> palettesByKit(@PathVariable Long kitId) {
+        var list = beadAdminMapper.listPalettesByKitId(kitId);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            Object id = item.get("id");
+            Object name = item.get("name");
+            data.add(Map.of(
+                    "id", id == null ? "" : String.valueOf(id),
+                    "name", name == null ? "" : String.valueOf(name)
+            ));
+        }
+        return ApiResponse.ok(data);
+    }
+
     @GetMapping("/palettes/{id}/colors")
     public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
         var list = beadAdminMapper.listColorsByPaletteId(id);

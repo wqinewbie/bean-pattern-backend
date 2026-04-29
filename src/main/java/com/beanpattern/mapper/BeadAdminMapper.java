@@ -85,6 +85,18 @@ public interface BeadAdminMapper {
         """)
     List<Map<String, Object>> listBrandKits();
 
+    @Select("SELECT id, color_count FROM bead_brand_kit WHERE brand_id = #{brandId} ORDER BY color_count, id")
+    List<Map<String, Object>> listKitsByBrandId(@Param("brandId") Long brandId);
+
+    @Select("""
+        SELECT p.id, p.name
+        FROM bead_brand_kit_palette bkp
+        JOIN bead_palette p ON p.id = bkp.palette_id
+        WHERE bkp.kit_id = #{kitId}
+        ORDER BY bkp.sort_order, p.id
+        """)
+    List<Map<String, Object>> listPalettesByKitId(@Param("kitId") Long kitId);
+
     @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
     List<Map<String, Object>> listColorsByPaletteId(@Param("paletteId") Integer paletteId);
 
