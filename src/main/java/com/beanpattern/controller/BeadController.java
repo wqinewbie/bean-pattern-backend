@@ -69,22 +69,18 @@ public class BeadController {
     }
 
     @GetMapping("/brand-kits")
-    public ApiResponse<List<Integer>> brandKits(@RequestParam("brandId") Long brandId) {
-        var brands = beadAdminMapper.listBrands();
-        String brandName = null;
-        for (var item : brands) {
+    public ApiResponse<List<Map<String, Object>>> brandKits(@RequestParam("brandId") Long brandId) {
+        var list = beadAdminMapper.listPalettesByBrandId(brandId);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
             Object id = item.get("id");
-            if (id == null) continue;
-            if (String.valueOf(id).equals(String.valueOf(brandId))) {
-                Object name = item.get("name");
-                brandName = name == null ? null : String.valueOf(name);
-                break;
-            }
+            Object name = item.get("name");
+            data.add(Map.of(
+                    "id", id == null ? "" : String.valueOf(id),
+                    "name", name == null ? "" : String.valueOf(name)
+            ));
         }
-        if (brandName == null || brandName.isBlank()) {
-            return ApiResponse.ok(List.of());
-        }
-        return ApiResponse.ok(beadColorService.getKits(brandName));
+        return ApiResponse.ok(data);
     }
 
     @GetMapping("/palettes/{id}/colors")
