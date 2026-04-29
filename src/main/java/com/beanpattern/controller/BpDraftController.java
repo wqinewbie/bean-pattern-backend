@@ -93,6 +93,31 @@ public class BpDraftController {
     }
 
     /**
+     * PUT /api/draft/rename
+     * 重命名草稿
+     */
+    @PutMapping("/rename")
+    public ApiResponse<Void> rename(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+        var user = sessionHelper.requireCompleteProfileUser(request);
+        if (user == null) return ApiResponse.fail("请先登录");
+
+        Long id = body.get("id") != null ? ((Number) body.get("id")).longValue() : null;
+        String name = body.get("name") != null ? (String) body.get("name") : null;
+
+        if (id == null) return ApiResponse.fail("id 不能为空");
+        if (name == null || name.trim().isEmpty()) return ApiResponse.fail("name 不能为空");
+
+        BpDraft draft = bpDraftService.getById(id);
+        if (draft == null) return ApiResponse.fail("草稿不存在");
+        if (!draft.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
+
+        draft.setName(name.trim());
+        bpDraftService.update(draft);
+
+        return ApiResponse.ok(null);
+    }
+
+    /**
      * POST /api/draft/to-box
      * 草稿保存到图纸箱
      */

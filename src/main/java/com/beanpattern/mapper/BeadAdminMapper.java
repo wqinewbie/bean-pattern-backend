@@ -88,6 +88,16 @@ public interface BeadAdminMapper {
     @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
     List<Map<String, Object>> listColorsByPaletteId(@Param("paletteId") Integer paletteId);
 
+    @Select("""
+        SELECT DISTINCT p.id, p.name
+        FROM bead_brand_kit k
+        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
+        JOIN bead_palette p ON p.id = bkp.palette_id
+        WHERE k.brand_id = #{brandId}
+        ORDER BY p.id
+        """)
+    List<Map<String, Object>> listPalettesByBrandId(@Param("brandId") Long brandId);
+
     @Select({"<script>",
             "SELECT id FROM bead_color WHERE code IN",
             "<foreach collection='codes' item='code' open='(' separator=',' close=')'>",

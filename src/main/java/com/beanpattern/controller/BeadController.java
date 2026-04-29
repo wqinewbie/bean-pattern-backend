@@ -3,9 +3,11 @@ package com.beanpattern.controller;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.AiImageService;
 import com.beanpattern.service.BeadColorService;
+import com.beanpattern.mapper.BeadAdminMapper;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +18,14 @@ public class BeadController {
 
     private final AiImageService aiImageService;
     private final BeadColorService beadColorService;
+    private final BeadAdminMapper beadAdminMapper;
 
     public BeadController(AiImageService aiImageService,
-                          BeadColorService beadColorService) {
+                          BeadColorService beadColorService,
+                          BeadAdminMapper beadAdminMapper) {
         this.aiImageService = aiImageService;
         this.beadColorService = beadColorService;
+        this.beadAdminMapper = beadAdminMapper;
     }
 
     @GetMapping("/brands")
@@ -31,6 +36,76 @@ public class BeadController {
             result.put(b, beadColorService.getKits(b));
         }
         return ApiResponse.ok(result);
+    }
+
+    @GetMapping("/brand-list")
+    public ApiResponse<List<Map<String, Object>>> brandList() {
+        var list = beadAdminMapper.listBrands();
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            Object id = item.get("id");
+            Object name = item.get("name");
+            data.add(Map.of(
+                    "id", id == null ? "" : String.valueOf(id),
+                    "name", name == null ? "" : String.valueOf(name)
+            ));
+        }
+        return ApiResponse.ok(data);
+    }
+
+    @GetMapping("/palettes")
+    public ApiResponse<List<Map<String, Object>>> palettesByBrand(@RequestParam("brandId") Long brandId) {
+        var list = beadAdminMapper.listPalettesByBrandId(brandId);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            Object id = item.get("id");
+            Object name = item.get("name");
+            data.add(Map.of(
+                    "id", id == null ? "" : String.valueOf(id),
+                    "name", name == null ? "" : String.valueOf(name)
+            ));
+        }
+        return ApiResponse.ok(data);
+    }
+
+    @GetMapping("/brand-kits")
+    public ApiResponse<List<Integer>> brandKits(@RequestParam("brandId") Long brandId) {
+        var brands = beadAdminMapper.listBrands();
+        String brandName = null;
+        for (var item : brands) {
+            Object id = item.get("id");
+            if (id == null) continue;
+            if (String.valueOf(id).equals(String.valueOf(brandId))) {
+                Object name = item.get("name");
+                brandName = name == null ? null : String.valueOf(name);
+                break;
+            }
+        }
+        if (brandName == null || brandName.isBlank()) {
+            return ApiResponse.ok(List.of());
+        }
+        return ApiResponse.ok(beadColorService.getKits(brandName));
+    }
+
+    @GetMapping("/palettes/{id}/colors")
+    public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
+        var list = beadAdminMapper.listColorsByPaletteId(id);
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            String code = item.get("code") == null ? "" : String.valueOf(item.get("code"));
+            String hex = item.get("hex") == null ? "" : String.valueOf(item.get("hex"));
+            data.add(Map.of(
+                    "id", item.get("id") == null ? "" : String.valueOf(item.get("id")),
+                    "code", code,
+                    "name", code,
+                    "hex", hex.startsWith("#") ? hex.toUpperCase() : ("#" + hex).toUpperCase(),
+                    "r", item.get("r"),
+                    "g", item.get("g"),
+                    "b", item.get("b")
+            ));
+        }
+        data.sort(Comparator.comparing(o -> String.valueOf(o.get("code"))));
+        return ApiResponse.ok(data);
     }
 
     @PostMapping("/generate-result")
