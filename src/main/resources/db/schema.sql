@@ -226,3 +226,39 @@ SELECT * FROM (
   SELECT '豪华包','30次AI生成 + 500金币',500,30,45.00,60.00,0,0,'超值',3 UNION ALL
   SELECT 'VIP月卡','无限AI + 1000金币 + VIP',1000,999,28.00,39.00,1,30,'热门',4
 ) AS tmp WHERE NOT EXISTS (SELECT 1 FROM `bp_recharge_plan` LIMIT 1);
+
+-- =========================
+-- 水印配置表
+-- =========================
+
+CREATE TABLE IF NOT EXISTS `bp_watermark_config` (
+  `id`               BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `app_name`         VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋' COMMENT '小程序名称',
+  `default_text`     VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋出品' COMMENT '默认水印文字',
+  `font_size`        INT NOT NULL DEFAULT 24 COMMENT '字体大小',
+  `color`            VARCHAR(64) NOT NULL DEFAULT 'rgba(100,100,100,0.25)' COMMENT '颜色',
+  `angle`            INT NOT NULL DEFAULT -30 COMMENT '倾斜角度（度）',
+  `spacing_x_ratio`  DECIMAL(3,2) NOT NULL DEFAULT 0.22 COMMENT '水平间距比例',
+  `spacing_y_ratio`  DECIMAL(3,2) NOT NULL DEFAULT 0.18 COMMENT '垂直间距比例',
+  `opacity`          DECIMAL(3,2) NOT NULL DEFAULT 0.25 COMMENT '透明度',
+  `created_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='全局水印配置表';
+
+CREATE TABLE IF NOT EXISTS `bp_user_watermark_config` (
+  `id`          BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id`     BIGINT NOT NULL COMMENT '用户ID',
+  `enabled`     TINYINT(1) NOT NULL DEFAULT 1 COMMENT '0=关闭 1=开启',
+  `custom_text` VARCHAR(128) NULL COMMENT '自定义水印文字（VIP专属）',
+  `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户水印配置表（VIP功能）';
+
+-- 插入默认水印配置
+INSERT INTO `bp_watermark_config` 
+  (`app_name`, `default_text`, `font_size`, `color`, `angle`, `spacing_x_ratio`, `spacing_y_ratio`, `opacity`)
+SELECT '拼豆魔法屋', '拼豆魔法屋出品', 24, 'rgba(100,100,100,0.25)', -30, 0.22, 0.18, 0.25
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `bp_watermark_config` LIMIT 1);

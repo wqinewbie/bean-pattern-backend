@@ -1,18 +1,33 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.WatermarkConfig;
+import com.beanpattern.entity.UserWatermarkConfig;
+import com.beanpattern.entity.User;
 import com.beanpattern.mapper.WatermarkConfigMapper;
+import com.beanpattern.mapper.UserWatermarkConfigMapper;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class WatermarkConfigService {
 
     private final WatermarkConfigMapper mapper;
+    private final UserWatermarkConfigMapper userMapper;
+    private final UserService userService;
 
-    public WatermarkConfigService(WatermarkConfigMapper mapper) {
+    public WatermarkConfigService(WatermarkConfigMapper mapper, 
+                                  UserWatermarkConfigMapper userMapper,
+                                  UserService userService) {
         this.mapper = mapper;
+        this.userMapper = userMapper;
+        this.userService = userService;
     }
 
+    /**
+     * 获取全局水印配置
+     */
     public WatermarkConfig getConfig() {
         WatermarkConfig config = mapper.getConfig();
         if (config == null) {
@@ -21,6 +36,9 @@ public class WatermarkConfigService {
         return config;
     }
 
+    /**
+     * 保存全局水印配置
+     */
     public WatermarkConfig save(WatermarkConfig config) {
         WatermarkConfig existing = mapper.getConfig();
         if (existing != null) {
@@ -32,15 +50,91 @@ public class WatermarkConfigService {
         return config;
     }
 
+    /**
+     * 获取用户水印配置（小程序端调用）
+     */
+    public Map<String, Object> getUserConfig(Long userId) {
+        // 1. 获取全局配置
+        WatermarkConfig globalConfig = getConfig();
+        
+        // 2. 获取用户信息
+        User user = userService.getById(userId);
+        boolean isVip = user != null && user.isVip();
+        
+        // 3. 获取用户个人配置
+        UserWatermarkConfig userConfig = userMapper.getByUserId(userId);
+        
+        // 4. 组装返回数据
+        Map<String, Object> result = new HashMap<>();
+        result.put("appName", globalConfig.getAppName());
+        result.put("isVip", isVip);
+        result.put("canCustomize", isVip);
+        
+        // 5. 水印配置
+        Map<String, Object> watermark = new HashMap<>();
+        
+        if (isVip && userConfig != null) {
+            // VIP用户使用个人配置
+            watermark.put("enabled", userConfig.getEnabled() == 1);
+            watermark.put("text", userConfig.getCustomText() != null 
+                ? userConfig.getCustomText() 
+                : globalConfig.getDefaultText());
+        } else {
+            // 普通用户强制使用默认配置
+            watermark.put("enabled", true);
+            watermark.put("text", globalConfig.getDefaultText());
+        }
+        
+        // 样式配置（所有用户统一）
+        watermark.put("fontSize", globalConfig.getFontSize());
+        watermark.put("color", globalConfig.getColor());
+        watermark.put("angle", globalConfig.getAngle());
+        watermark.put("spacingXRatio", globalConfig.getSpacingXRatio());
+        watermark.put("spacingYRatio", globalConfig.getSpacingYRatio());
+        watermark.put("opacity", globalConfig.getOpacity());
+        
+        result.put("watermark", watermark);
+        
+        return result;
+    }
+
+    /**
+     * 保存用户水印配置（VIP专属）
+     */
+    public void saveUserConfig(Long userId, Integer enabled, String customText) {
+        // 检查VIP权限
+        User user = userService.getById(userId);
+        if (user == null || !user.isVip()) {
+            throw new RuntimeException("仅VIP用户可以自定义水印");
+        }
+        
+        UserWatermarkConfig config = userMapper.getByUserId(userId);
+        if (config == null) {
+            config = new UserWatermarkConfig();
+            config.setUserId(userId);
+            config.setEnabled(enabled != null ? enabled : 1);
+            config.setCustomText(customText);
+            userMapper.insert(config);
+        } else {
+            config.setEnabled(enabled != null ? enabled : config.getEnabled());
+            config.setCustomText(customText);
+            userMapper.updateByUserId(config);
+        }
+    }
+
+    /**
+     * 获取默认配置
+     */
     public WatermarkConfig getDefaultConfig() {
         WatermarkConfig config = new WatermarkConfig();
-        config.setEnabled(1);
-        config.setText("拼豆小程序");
+        config.setAppName("拼豆魔法屋");
+        config.setDefaultText("拼豆魔法屋出品");
         config.setFontSize(24);
-        config.setColor("rgba(128,128,128,0.5)");
-        config.setPosition("右下");
-        config.setOpacity(0.5);
-        config.setMargin(20);
+        config.setColor("rgba(100,100,100,0.25)");
+        config.setAngle(-30);
+        config.setSpacingXRatio(0.22);
+        config.setSpacingYRatio(0.18);
+        config.setOpacity(0.25);
         return config;
     }
 }
