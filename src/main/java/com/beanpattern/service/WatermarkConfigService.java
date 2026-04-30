@@ -59,7 +59,8 @@ public class WatermarkConfigService {
         
         // 2. 获取用户信息
         UserEntity user = userService.getUserById(userId);
-        boolean isVip = user != null && user.isVip();
+        boolean isVip = user != null && user.getVipLevel() != null && user.getVipLevel() > 0 
+                        && user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(java.time.LocalDateTime.now());
         
         // 3. 获取用户个人配置
         UserWatermarkConfig userConfig = userMapper.getByUserId(userId);
@@ -104,7 +105,10 @@ public class WatermarkConfigService {
     public void saveUserConfig(Long userId, Integer enabled, String customText) {
         // 检查VIP权限
         UserEntity user = userService.getUserById(userId);
-        if (user == null || !user.isVip()) {
+        boolean isVip = user != null && user.getVipLevel() != null && user.getVipLevel() > 0 
+                        && user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(java.time.LocalDateTime.now());
+        
+        if (!isVip) {
             throw new RuntimeException("仅VIP用户可以自定义水印");
         }
         
