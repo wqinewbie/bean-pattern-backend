@@ -2,7 +2,7 @@ package com.beanpattern.service;
 
 import com.beanpattern.entity.WatermarkConfig;
 import com.beanpattern.entity.UserWatermarkConfig;
-import com.beanpattern.entity.User;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.WatermarkConfigMapper;
 import com.beanpattern.mapper.UserWatermarkConfigMapper;
 import org.springframework.stereotype.Service;
@@ -58,7 +58,7 @@ public class WatermarkConfigService {
         WatermarkConfig globalConfig = getConfig();
         
         // 2. 获取用户信息
-        User user = userService.getById(userId);
+        UserEntity user = userService.getUserById(userId);
         boolean isVip = user != null && user.isVip();
         
         // 3. 获取用户个人配置
@@ -103,7 +103,7 @@ public class WatermarkConfigService {
      */
     public void saveUserConfig(Long userId, Integer enabled, String customText) {
         // 检查VIP权限
-        User user = userService.getById(userId);
+        UserEntity user = userService.getUserById(userId);
         if (user == null || !user.isVip()) {
             throw new RuntimeException("仅VIP用户可以自定义水印");
         }

@@ -1,9 +1,10 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.WatermarkConfig;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.WatermarkConfigService;
-import com.beanpattern.util.SessionUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -13,9 +14,11 @@ import java.util.Map;
 public class WatermarkConfigController {
 
     private final WatermarkConfigService service;
+    private final SessionHelper sessionHelper;
 
-    public WatermarkConfigController(WatermarkConfigService service) {
+    public WatermarkConfigController(WatermarkConfigService service, SessionHelper sessionHelper) {
         this.service = service;
+        this.sessionHelper = sessionHelper;
     }
 
     /**
@@ -42,8 +45,8 @@ public class WatermarkConfigController {
      * 获取用户水印配置（小程序端用）
      */
     @GetMapping("/user-config")
-    public ApiResponse<Map<String, Object>> getUserConfig() {
-        Long userId = SessionUtil.getCurrentUserId();
+    public ApiResponse<Map<String, Object>> getUserConfig(HttpServletRequest request) {
+        Long userId = sessionHelper.requireUser(request).getId();
         return ApiResponse.ok(service.getUserConfig(userId));
     }
 
@@ -52,8 +55,8 @@ public class WatermarkConfigController {
      * 保存用户水印配置（小程序端用，VIP专属）
      */
     @PostMapping("/user-config")
-    public ApiResponse<String> saveUserConfig(@RequestBody Map<String, Object> params) {
-        Long userId = SessionUtil.getCurrentUserId();
+    public ApiResponse<String> saveUserConfig(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+        Long userId = sessionHelper.requireUser(request).getId();
         Integer enabled = params.get("enabled") != null ? (Integer) params.get("enabled") : null;
         String customText = (String) params.get("customText");
         
