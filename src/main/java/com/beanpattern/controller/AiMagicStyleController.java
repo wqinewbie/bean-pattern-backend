@@ -42,7 +42,7 @@ public class AiMagicStyleController {
     @PostMapping("/admin/ai-magic-style/save")
     public ApiResponse<Void> save(@RequestBody AiMagicStyle style) {
         service.save(style);
-        return ApiResponse.ok();
+        return ApiResponse.ok(null);
     }
 
     /**
@@ -51,6 +51,6 @@ public class AiMagicStyleController {
     @DeleteMapping("/admin/ai-magic-style/delete/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);
-        return ApiResponse.ok();
+        return ApiResponse.ok(null);
     }
 }

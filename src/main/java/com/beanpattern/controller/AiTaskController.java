@@ -68,7 +68,7 @@ public class AiTaskController {
 
         aiTaskService.updateTaskStatus(taskId, status, aiImageUrl, errorMessage);
 
-        return ApiResponse.ok();
+        return ApiResponse.ok(null);
     }
 
     /**

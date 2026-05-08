@@ -83,7 +83,7 @@ public class NotificationController {
         UserEntity user = sessionHelper.requireUser(request);
         boolean success = notificationService.markAsRead(user.getId(), id);
         if (!success) {
-            return ApiResponse.error("通知不存在或无权限");
+            return ApiResponse.fail("通知不存在或无权限");
         }
         return ApiResponse.ok(null);
     }
@@ -108,7 +108,7 @@ public class NotificationController {
         UserEntity user = sessionHelper.requireUser(request);
         boolean success = notificationService.deleteNotification(user.getId(), id);
         if (!success) {
-            return ApiResponse.error("通知不存在或无权限");
+            return ApiResponse.fail("通知不存在或无权限");
         }
         return ApiResponse.ok(null);
     }
