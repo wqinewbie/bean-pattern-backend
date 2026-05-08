@@ -72,6 +72,16 @@ public class SchemaUpgrader implements ApplicationRunner {
 
         // bp_order
         addColumn(db, "bp_order", "plan_name", "ALTER TABLE `bp_order` ADD COLUMN `plan_name` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '套餐名称快照' AFTER `plan_id`");
+        addColumn(db, "bp_order", "product_id", "ALTER TABLE `bp_order` ADD COLUMN `product_id` BIGINT NULL COMMENT '商品ID' AFTER `plan_name`");
+        addColumn(db, "bp_order", "vip_level_purchased", "ALTER TABLE `bp_order` ADD COLUMN `vip_level_purchased` TINYINT(1) NULL COMMENT '购买的VIP等级' AFTER `product_id`");
+        addColumn(db, "bp_order", "vip_days", "ALTER TABLE `bp_order` ADD COLUMN `vip_days` INT NULL COMMENT 'VIP天数' AFTER `vip_level_purchased`");
+        addColumn(db, "bp_order", "gift_items", "ALTER TABLE `bp_order` ADD COLUMN `gift_items` TEXT NULL COMMENT '礼品项JSON' AFTER `vip_days`");
+        addColumn(db, "bp_order", "product_type", "ALTER TABLE `bp_order` ADD COLUMN `product_type` VARCHAR(32) NULL COMMENT '商品类型：vip/card/gift' AFTER `gift_items`");
+        addColumn(db, "bp_order", "package_code", "ALTER TABLE `bp_order` ADD COLUMN `package_code` VARCHAR(64) NULL COMMENT '套餐代码' AFTER `product_type`");
+        addColumn(db, "bp_order", "expire_at", "ALTER TABLE `bp_order` ADD COLUMN `expire_at` DATETIME NULL COMMENT '订单过期时间' AFTER `package_code`");
+        addColumn(db, "bp_order", "deliver_status", "ALTER TABLE `bp_order` ADD COLUMN `deliver_status` VARCHAR(32) NULL DEFAULT 'PENDING' COMMENT '发货状态：PENDING/SUCCESS/FAILED' AFTER `expire_at`");
+        addColumn(db, "bp_order", "deliver_error", "ALTER TABLE `bp_order` ADD COLUMN `deliver_error` VARCHAR(512) NULL COMMENT '发货错误信息' AFTER `deliver_status`");
+        addColumn(db, "bp_order", "transaction_id", "ALTER TABLE `bp_order` ADD COLUMN `transaction_id` VARCHAR(64) NULL COMMENT '微信交易单号' AFTER `deliver_error`");
 
         // bp_feedback
         addColumn(db, "bp_feedback", "updated_at", "ALTER TABLE `bp_feedback` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");

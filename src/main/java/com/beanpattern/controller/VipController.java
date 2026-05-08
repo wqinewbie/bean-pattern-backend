@@ -86,6 +86,14 @@ public class VipController {
     }
 
     /**
+     * 获取用户会员信息（前端兼容路径）
+     */
+    @GetMapping("/info")
+    public ApiResponse<Map<String, Object>> getVipInfo(HttpServletRequest request) {
+        return getVipStatus(request);
+    }
+
+    /**
      * 获取VIP购买记录
      */
     @GetMapping("/records")
@@ -119,6 +127,7 @@ public class VipController {
             return ApiResponse.fail("获取次卡套餐失败: " + e.getMessage());
         }
     }
+
 
     /**
      * 获取权益对比表
