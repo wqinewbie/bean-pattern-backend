@@ -77,6 +77,10 @@ public class TaskService {
             throw new IllegalArgumentException("任务不存在: " + taskCode);
         }
 
+        // 从extraConfig中获取目标次数，默认为1
+        int targetCount = 1;
+        // TODO: 如果需要从extraConfig JSON中解析目标次数，可以在这里实现
+
         LocalDate periodStart = getPeriodStart(config.getTaskType());
         UserTaskProgress progress = userTaskProgressMapper.findByUserAndTaskAndPeriod(userId, config.getId(), periodStart);
 
@@ -87,10 +91,10 @@ public class TaskService {
             progress.setTaskId(config.getId());
             progress.setTaskCode(taskCode);
             progress.setCurrentCount(1);
-            progress.setTargetCount(config.getTargetCount());
+            progress.setTargetCount(targetCount);
             progress.setPeriodStart(periodStart);
-            
-            if (1 >= config.getTargetCount()) {
+
+            if (1 >= targetCount) {
                 progress.setStatus(1); // 已完成可领取
                 progress.setCompletedAt(LocalDateTime.now());
             } else {
@@ -102,16 +106,16 @@ public class TaskService {
                 // 已领取，不处理
                 return progress;
             }
-            
+
             int newCount = progress.getCurrentCount() + 1;
             int newStatus = 0;
             LocalDateTime completedAt = null;
-            
-            if (newCount >= config.getTargetCount()) {
+
+            if (newCount >= targetCount) {
                 newStatus = 1; // 已完成可领取
                 completedAt = LocalDateTime.now();
             }
-            
+
             userTaskProgressMapper.updateProgress(progress.getId(), newCount, newStatus, completedAt);
             progress.setCurrentCount(newCount);
             progress.setStatus(newStatus);
