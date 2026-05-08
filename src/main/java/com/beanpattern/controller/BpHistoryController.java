@@ -48,15 +48,35 @@ public class BpHistoryController {
 
     /**
      * GET /api/history/list
-     * 获取时光机列表
+     * 获取时光机列表（支持分页）
+     * @param page 页码，从1开始，默认1
+     * @param pageSize 每页数量，默认20
      */
     @GetMapping("/list")
-    public ApiResponse<List<BpHistory>> list(HttpServletRequest request) {
+    public ApiResponse<Map<String, Object>> list(
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
-        List<BpHistory> list = bpHistoryService.listByUserId(user.getId());
-        return ApiResponse.ok(list);
+        // 参数校验
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100; // 限制最大每页数量
+
+        int offset = (page - 1) * pageSize;
+        List<BpHistory> list = bpHistoryService.listByUserIdWithPage(user.getId(), pageSize, offset);
+        int total = bpHistoryService.countByUserId(user.getId());
+        boolean hasMore = offset + list.size() < total;
+
+        return ApiResponse.ok(Map.of(
+                "list", list,
+                "total", total,
+                "page", page,
+                "pageSize", pageSize,
+                "hasMore", hasMore
+        ));
     }
 
     /**

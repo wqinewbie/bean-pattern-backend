@@ -44,6 +44,7 @@ public class AdminController {
     private final RechargePlanMapper rechargePlanMapper;
     private final BeadAdminMapper beadAdminMapper;
     private final TutorialMapper tutorialMapper;
+    private final TaskConfigMapper taskConfigMapper;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
 
@@ -54,6 +55,7 @@ public class AdminController {
                            RechargePlanMapper rechargePlanMapper,
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
+                           TaskConfigMapper taskConfigMapper,
                            PasswordEncoder passwordEncoder,
                            ImageStorageService imageStorageService) {
         this.adminMapper = adminMapper;
@@ -65,6 +67,7 @@ public class AdminController {
         this.rechargePlanMapper = rechargePlanMapper;
         this.beadAdminMapper = beadAdminMapper;
         this.tutorialMapper = tutorialMapper;
+        this.taskConfigMapper = taskConfigMapper;
         this.passwordEncoder = passwordEncoder;
         this.imageStorageService = imageStorageService;
     }
@@ -655,6 +658,62 @@ public class AdminController {
     @PostMapping("/vip-plans/{id}/toggle")
     public ApiResponse<String> toggleVipPlan(@PathVariable Long id) {
         rechargePlanMapper.toggleStatus(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 任务中心管理 ─────────────────────────────────────
+
+    @GetMapping("/tasks")
+    public ApiResponse<List<TaskConfig>> getTasks() {
+        List<TaskConfig> list = taskConfigMapper.findAll();
+        return ApiResponse.ok(list);
+    }
+
+    @PostMapping("/tasks")
+    public ApiResponse<String> createTask(@RequestBody TaskConfig task) {
+        if (task.getTaskCode() == null || task.getTaskCode().trim().isEmpty()) {
+            return ApiResponse.fail("任务代码不能为空");
+        }
+        if (task.getTaskName() == null || task.getTaskName().trim().isEmpty()) {
+            return ApiResponse.fail("任务名称不能为空");
+        }
+        // 检查任务代码是否已存在
+        TaskConfig existing = taskConfigMapper.findByCode(task.getTaskCode());
+        if (existing != null) {
+            return ApiResponse.fail("任务代码已存在");
+        }
+        taskConfigMapper.insert(task);
+        return ApiResponse.ok("ok");
+    }
+
+    @PutMapping("/tasks/{id}")
+    public ApiResponse<String> updateTask(@PathVariable Long id, @RequestBody TaskConfig task) {
+        TaskConfig existing = taskConfigMapper.findById(id);
+        if (existing == null) {
+            return ApiResponse.fail("任务不存在");
+        }
+        task.setId(id);
+        taskConfigMapper.update(task);
+        return ApiResponse.ok("ok");
+    }
+
+    @PutMapping("/tasks/{id}/status")
+    public ApiResponse<String> toggleTaskStatus(@PathVariable Long id, @RequestParam Boolean isActive) {
+        TaskConfig existing = taskConfigMapper.findById(id);
+        if (existing == null) {
+            return ApiResponse.fail("任务不存在");
+        }
+        taskConfigMapper.updateStatus(id, isActive);
+        return ApiResponse.ok("ok");
+    }
+
+    @DeleteMapping("/tasks/{id}")
+    public ApiResponse<String> deleteTask(@PathVariable Long id) {
+        TaskConfig existing = taskConfigMapper.findById(id);
+        if (existing == null) {
+            return ApiResponse.fail("任务不存在");
+        }
+        taskConfigMapper.deleteById(id);
         return ApiResponse.ok("ok");
     }
 }

@@ -54,6 +54,10 @@ public class BpHistoryService {
         return bpHistoryMapper.listByUserIdWithLimit(userId, limit);
     }
 
+    public List<BpHistory> listByUserIdWithPage(Long userId, int limit, int offset) {
+        return bpHistoryMapper.listByUserIdWithPage(userId, limit, offset);
+    }
+
     public int countByUserId(Long userId) {
         return bpHistoryMapper.countByUserId(userId);
     }

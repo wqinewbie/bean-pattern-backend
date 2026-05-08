@@ -50,15 +50,35 @@ public class BpBoxController {
 
     /**
      * GET /api/box/list
-     * 获取图纸箱列表
+     * 获取图纸箱列表（支持分页）
+     * @param page 页码，从1开始，默认1
+     * @param pageSize 每页数量，默认20
      */
     @GetMapping("/list")
-    public ApiResponse<List<BpBox>> list(HttpServletRequest request) {
+    public ApiResponse<java.util.Map<String, Object>> list(
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize,
+            HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
-        List<BpBox> list = bpBoxService.listByUserId(user.getId());
-        return ApiResponse.ok(list);
+        // 参数校验
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100; // 限制最大每页数量
+
+        int offset = (page - 1) * pageSize;
+        List<BpBox> list = bpBoxService.listByUserIdWithPage(user.getId(), pageSize, offset);
+        int total = bpBoxService.countByUserId(user.getId());
+        boolean hasMore = offset + list.size() < total;
+
+        return ApiResponse.ok(java.util.Map.of(
+                "list", list,
+                "total", total,
+                "page", page,
+                "pageSize", pageSize,
+                "hasMore", hasMore
+        ));
     }
 
     /**

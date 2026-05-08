@@ -35,6 +35,11 @@ public interface BpHistoryMapper {
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit}")
     List<BpHistory> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<BpHistory> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
+
     @Select("SELECT COUNT(*) FROM bp_history WHERE user_id=#{userId}")
     int countByUserId(@Param("userId") Long userId);
 

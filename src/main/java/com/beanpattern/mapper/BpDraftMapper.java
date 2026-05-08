@@ -47,6 +47,11 @@ public interface BpDraftMapper {
           + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC LIMIT #{limit}")
     List<BpDraft> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
+    @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
+          + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
+          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} ORDER BY updated_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<BpDraft> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
+
     @Select("SELECT COUNT(*) FROM bp_draft WHERE user_id=#{userId}")
     int countByUserId(@Param("userId") Long userId);
 

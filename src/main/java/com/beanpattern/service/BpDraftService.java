@@ -52,6 +52,10 @@ public class BpDraftService {
         return bpDraftMapper.listByUserIdWithLimit(userId, limit);
     }
 
+    public List<BpDraft> listByUserIdWithPage(Long userId, int limit, int offset) {
+        return bpDraftMapper.listByUserIdWithPage(userId, limit, offset);
+    }
+
     public int countByUserId(Long userId) {
         return bpDraftMapper.countByUserId(userId);
     }

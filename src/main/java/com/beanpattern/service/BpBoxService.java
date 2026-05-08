@@ -92,6 +92,10 @@ public class BpBoxService {
         return bpBoxMapper.listByUserIdWithLimit(userId, limit);
     }
 
+    public List<BpBox> listByUserIdWithPage(Long userId, int limit, int offset) {
+        return bpBoxMapper.listByUserIdWithPage(userId, limit, offset);
+    }
+
     public int countByUserId(Long userId) {
         return bpBoxMapper.countByUserId(userId);
     }
