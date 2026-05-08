@@ -17,7 +17,16 @@ public class OrderEntity {
     private Integer vipLevelPurchased; // 购买的VIP等级
     private Integer vipDays;          // VIP天数
     private String giftItems;         // 赠品JSON字符串
-    
+
+    // 会员系统新增字段
+    private String productType;       // 商品类型：vip/card/gift
+    private String packageCode;       // 套餐代码
+    private LocalDateTime expireAt;   // 订单过期时间（创建后10分钟）
+    private String deliverStatus;     // 发货状态：PENDING/SUCCESS/FAILED
+    private String deliverError;      // 发货失败原因
+    private LocalDateTime paidAt;     // 支付时间
+    private String transactionId;     // 微信支付交易号
+
     private LocalDateTime createdAt;
     
     public Long getId() { return id; }
@@ -44,4 +53,19 @@ public class OrderEntity {
     public void setVipDays(Integer vipDays) { this.vipDays = vipDays; }
     public String getGiftItems() { return giftItems; }
     public void setGiftItems(String giftItems) { this.giftItems = giftItems; }
+
+    public String getProductType() { return productType; }
+    public void setProductType(String productType) { this.productType = productType; }
+    public String getPackageCode() { return packageCode; }
+    public void setPackageCode(String packageCode) { this.packageCode = packageCode; }
+    public LocalDateTime getExpireAt() { return expireAt; }
+    public void setExpireAt(LocalDateTime expireAt) { this.expireAt = expireAt; }
+    public String getDeliverStatus() { return deliverStatus; }
+    public void setDeliverStatus(String deliverStatus) { this.deliverStatus = deliverStatus; }
+    public String getDeliverError() { return deliverError; }
+    public void setDeliverError(String deliverError) { this.deliverError = deliverError; }
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+    public String getTransactionId() { return transactionId; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
 }

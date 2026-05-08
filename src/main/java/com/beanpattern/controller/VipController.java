@@ -3,8 +3,14 @@ package com.beanpattern.controller;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.UserEntity;
 import com.beanpattern.entity.VipProduct;
+import com.beanpattern.entity.VipPackage;
+import com.beanpattern.entity.CardPackage;
+import com.beanpattern.entity.PrivilegeConfig;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.VipService;
+import com.beanpattern.service.VipPackageService;
+import com.beanpattern.service.CardPackageService;
+import com.beanpattern.service.PrivilegeConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,10 +31,20 @@ public class VipController {
 
     private final SessionHelper sessionHelper;
     private final VipService vipService;
+    private final VipPackageService vipPackageService;
+    private final CardPackageService cardPackageService;
+    private final PrivilegeConfigService privilegeConfigService;
 
-    public VipController(SessionHelper sessionHelper, VipService vipService) {
+    public VipController(SessionHelper sessionHelper,
+                        VipService vipService,
+                        VipPackageService vipPackageService,
+                        CardPackageService cardPackageService,
+                        PrivilegeConfigService privilegeConfigService) {
         this.sessionHelper = sessionHelper;
         this.vipService = vipService;
+        this.vipPackageService = vipPackageService;
+        this.cardPackageService = cardPackageService;
+        this.privilegeConfigService = privilegeConfigService;
     }
 
     /**
@@ -76,5 +92,44 @@ public class VipController {
     public ApiResponse<List<?>> getVipRecords(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         return ApiResponse.ok(vipService.getUserVipHistory(user.getId()));
+    }
+
+    /**
+     * 获取会员套餐列表（新版）
+     */
+    @GetMapping("/packages")
+    public ApiResponse<List<VipPackage>> getVipPackages() {
+        try {
+            List<VipPackage> packages = vipPackageService.listActivePackages();
+            return ApiResponse.ok(packages);
+        } catch (Exception e) {
+            return ApiResponse.fail("获取会员套餐失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取次卡套餐列表
+     */
+    @GetMapping("/card-packages")
+    public ApiResponse<List<CardPackage>> getCardPackages() {
+        try {
+            List<CardPackage> packages = cardPackageService.listActivePackages();
+            return ApiResponse.ok(packages);
+        } catch (Exception e) {
+            return ApiResponse.fail("获取次卡套餐失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取权益对比表
+     */
+    @GetMapping("/privileges")
+    public ApiResponse<List<PrivilegeConfig>> getPrivileges() {
+        try {
+            List<PrivilegeConfig> privileges = privilegeConfigService.listActiveConfigs();
+            return ApiResponse.ok(privileges);
+        } catch (Exception e) {
+            return ApiResponse.fail("获取权益配置失败: " + e.getMessage());
+        }
     }
 }

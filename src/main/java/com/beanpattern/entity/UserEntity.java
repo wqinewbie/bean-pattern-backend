@@ -24,6 +24,8 @@ public class UserEntity {
     private Integer magicCoins;
     private Integer aiQuota;
     private Integer status;
+    private LocalDateTime lastVipNotifyAt;  // 上次会员到期提醒时间
+    private LocalDateTime lastAiNotifyAt;   // 上次AI次数不足提醒时间
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -86,4 +88,10 @@ public class UserEntity {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDateTime getLastVipNotifyAt() { return lastVipNotifyAt; }
+    public void setLastVipNotifyAt(LocalDateTime lastVipNotifyAt) { this.lastVipNotifyAt = lastVipNotifyAt; }
+
+    public LocalDateTime getLastAiNotifyAt() { return lastAiNotifyAt; }
+    public void setLastAiNotifyAt(LocalDateTime lastAiNotifyAt) { this.lastAiNotifyAt = lastAiNotifyAt; }
 }
