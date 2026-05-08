@@ -31,15 +31,15 @@ public interface AiMagicStyleMapper {
     /**
      * 插入风格
      */
-    @Insert("INSERT INTO ai_magic_style (name, icon, category, tag, description, prompt_template, sort_order, enabled) " +
-            "VALUES (#{name}, #{icon}, #{category}, #{tag}, #{description}, #{promptTemplate}, #{sortOrder}, #{enabled})")
+    @Insert("INSERT INTO ai_magic_style (name, icon, tag, description, prompt_template, sort_order, enabled) " +
+            "VALUES (#{name}, #{icon}, #{tag}, #{description}, #{promptTemplate}, #{sortOrder}, #{enabled})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(AiMagicStyle style);
 
     /**
      * 更新风格
      */
-    @Update("UPDATE ai_magic_style SET name = #{name}, icon = #{icon}, category = #{category}, " +
+    @Update("UPDATE ai_magic_style SET name = #{name}, icon = #{icon}, " +
             "tag = #{tag}, description = #{description}, prompt_template = #{promptTemplate}, " +
             "sort_order = #{sortOrder}, enabled = #{enabled}, updated_at = NOW() WHERE id = #{id}")
     int update(AiMagicStyle style);

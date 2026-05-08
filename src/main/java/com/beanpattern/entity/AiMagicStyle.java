@@ -11,7 +11,6 @@ public class AiMagicStyle {
     private Long id;
     private String name;
     private String icon;
-    private String category;
     private String tag;
     private String description;
     private String promptTemplate;
