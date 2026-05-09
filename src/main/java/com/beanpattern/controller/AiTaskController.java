@@ -1,7 +1,10 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.config.SessionHelper;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.AiTaskService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,23 +20,26 @@ public class AiTaskController {
     @Autowired
     private AiTaskService aiTaskService;
 
+    @Autowired
+    private SessionHelper sessionHelper;
+
     /**
      * 创建AI生成任务
      *
      * @param request 请求参数
-     * @param sessionId 会话ID
+     * @param httpRequest HTTP请求
      * @return 任务信息
      */
     @PostMapping("/generate")
     public ApiResponse<Map<String, Object>> generate(
             @RequestBody AiGenerateRequest request,
-            @RequestHeader(value = "X-Session-Id", required = false) String sessionId) {
+            HttpServletRequest httpRequest) {
 
-        // 获取当前用户ID（从session或token）
-        Long userId = getCurrentUserId(sessionId);
+        // 从 X-Session-Id 获取真实用户
+        UserEntity user = sessionHelper.requireUser(httpRequest);
 
         // 创建Mock任务
-        String taskId = aiTaskService.createMockTask(request, userId);
+        String taskId = aiTaskService.createMockTask(request, user.getId());
 
         return ApiResponse.ok(Map.of(
             "taskId", taskId,
@@ -69,15 +75,6 @@ public class AiTaskController {
         aiTaskService.updateTaskStatus(taskId, status, aiImageUrl, errorMessage);
 
         return ApiResponse.ok(null);
-    }
-
-    /**
-     * 获取当前用户ID
-     */
-    private Long getCurrentUserId(String sessionId) {
-        // TODO: 从session或token获取真实的userId
-        // 临时返回固定值用于测试
-        return 1L;
     }
 
     /**

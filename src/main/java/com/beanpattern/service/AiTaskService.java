@@ -72,6 +72,15 @@ public class AiTaskService {
         try {
             System.out.println("[Mock] 开始处理任务: " + taskId);
 
+            // 先更新状态为 PROCESSING
+            AiGenerateTask task = taskMapper.findByTaskId(taskId);
+            if (task != null) {
+                task.setStatus("PROCESSING");
+                task.setUpdatedAt(new Date());
+                taskMapper.updateById(task);
+                System.out.println("[Mock] 任务状态更新为 PROCESSING: " + taskId);
+            }
+
             // 模拟AI生成耗时（2-3秒）
             Thread.sleep(2000 + new Random().nextInt(1000));
 
@@ -79,7 +88,7 @@ public class AiTaskService {
             String testImageUrl = TEST_IMAGES[new Random().nextInt(TEST_IMAGES.length)];
 
             // 更新任务状态为SUCCESS
-            AiGenerateTask task = taskMapper.findByTaskId(taskId);
+            task = taskMapper.findByTaskId(taskId);
             if (task != null) {
                 task.setStatus("SUCCESS");
                 task.setAiImageUrl(testImageUrl);
@@ -90,6 +99,19 @@ public class AiTaskService {
                 System.out.println("[Mock] 任务完成: " + taskId + ", URL: " + testImageUrl);
             }
 
+        } catch (InterruptedException e) {
+            System.err.println("[Mock] 任务被中断: " + taskId);
+            Thread.currentThread().interrupt();
+
+            // 更新任务状态为FAILED
+            AiGenerateTask task = taskMapper.findByTaskId(taskId);
+            if (task != null) {
+                task.setStatus("FAILED");
+                task.setErrorMessage("任务被中断");
+                task.setCompletedAt(new Date());
+                task.setUpdatedAt(new Date());
+                taskMapper.updateById(task);
+            }
         } catch (Exception e) {
             System.err.println("[Mock] 任务失败: " + taskId + ", 错误: " + e.getMessage());
 
@@ -97,7 +119,7 @@ public class AiTaskService {
             AiGenerateTask task = taskMapper.findByTaskId(taskId);
             if (task != null) {
                 task.setStatus("FAILED");
-                task.setErrorMessage(e.getMessage());
+                task.setErrorMessage(e.getMessage() != null ? e.getMessage() : "未知错误");
                 task.setCompletedAt(new Date());
                 task.setUpdatedAt(new Date());
                 taskMapper.updateById(task);
