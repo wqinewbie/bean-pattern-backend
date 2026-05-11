@@ -9,6 +9,8 @@ public class BannerEntity {
     private String imageUrl;
     private String linkType;
     private String linkValue;
+    private String actionType;
+    private String actionConfig;
     private String tagText;
     private String bgColor;
     private Integer sortOrder;
@@ -30,6 +32,10 @@ public class BannerEntity {
     public void setLinkType(String linkType) { this.linkType = linkType; }
     public String getLinkValue() { return linkValue; }
     public void setLinkValue(String linkValue) { this.linkValue = linkValue; }
+    public String getActionType() { return actionType; }
+    public void setActionType(String actionType) { this.actionType = actionType; }
+    public String getActionConfig() { return actionConfig; }
+    public void setActionConfig(String actionConfig) { this.actionConfig = actionConfig; }
     public String getTagText() { return tagText; }
     public void setTagText(String tagText) { this.tagText = tagText; }
     public String getBgColor() { return bgColor; }

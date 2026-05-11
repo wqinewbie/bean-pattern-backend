@@ -240,6 +240,8 @@ public class AdminController {
             m.put("bgColor", b.getBgColor() != null ? b.getBgColor() : "");
             m.put("linkType", b.getLinkType() != null ? b.getLinkType() : "NONE");
             m.put("linkValue", b.getLinkValue() != null ? b.getLinkValue() : "");
+            m.put("actionType", b.getActionType() != null ? b.getActionType() : "");
+            m.put("actionConfig", b.getActionConfig() != null ? b.getActionConfig() : "");
             m.put("sortOrder", b.getSortOrder());
             m.put("status", b.getStatus());
             return m;
@@ -256,6 +258,8 @@ public class AdminController {
         b.setBgColor((String) body.getOrDefault("bgColor", ""));
         b.setLinkType((String) body.getOrDefault("linkType", "NONE"));
         b.setLinkValue((String) body.getOrDefault("linkValue", ""));
+        b.setActionType((String) body.getOrDefault("actionType", ""));
+        b.setActionConfig((String) body.getOrDefault("actionConfig", ""));
         b.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 0);
         b.setStatus(1);
         bannerMapper.insert(b);
@@ -272,7 +276,9 @@ public class AdminController {
                 (String) body.getOrDefault("bgColor", ""),
                 body.get("sortOrder") instanceof Number n ? n.intValue() : 0,
                 (String) body.getOrDefault("linkType", "NONE"),
-                (String) body.getOrDefault("linkValue", ""));
+                (String) body.getOrDefault("linkValue", ""),
+                (String) body.getOrDefault("actionType", ""),
+                (String) body.getOrDefault("actionConfig", ""));
         return ApiResponse.ok("ok");
     }
 

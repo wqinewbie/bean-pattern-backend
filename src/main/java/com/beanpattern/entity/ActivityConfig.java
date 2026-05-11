@@ -19,6 +19,7 @@ public class ActivityConfig {
     private String activityCode;       // 活动编码
     private String title;              // 活动标题
     private String description;        // 活动描述
+    private String coverImage;         // 封面图片
     private Long bannerId;             // 关联Banner ID
     private String activityType;       // 活动类型：GIFT/DISCOUNT/TASK
     private String giftItems;          // 礼品配置（JSON）
@@ -29,6 +30,12 @@ public class ActivityConfig {
     private Integer remainQuota;       // 剩余名额
     private LocalDateTime startAt;     // 活动开始时间
     private LocalDateTime endAt;       // 活动结束时间
+    private String contentHtml;        // 富文本HTML内容
+    private String contentJson;        // 富文本JSON结构
+    private String pageType;           // 页面类型：RICH_TEXT/CUSTOM
+    private String buttonText;         // 按钮文案
+    private String buttonAction;       // 按钮动作：CLAIM/RECHARGE/JUMP
+    private String buttonUrl;          // 按钮跳转URL（当action为JUMP时使用）
     private Boolean status;            // 状态：0下线 1上线
     private LocalDateTime createdAt;   // 创建时间
     private LocalDateTime updatedAt;   // 更新时间
