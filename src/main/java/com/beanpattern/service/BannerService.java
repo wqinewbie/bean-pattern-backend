@@ -4,12 +4,12 @@ import com.beanpattern.entity.BannerClaimLog;
 import com.beanpattern.entity.BannerEntity;
 import com.beanpattern.mapper.BannerClaimLogMapper;
 import com.beanpattern.mapper.BannerMapper;
-import com.beanpattern.mapper.UserMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -20,15 +20,15 @@ public class BannerService {
 
     private final BannerMapper bannerMapper;
     private final BannerClaimLogMapper claimLogMapper;
-    private final UserMapper userMapper;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
     public BannerService(BannerMapper bannerMapper,
-                        BannerClaimLogMapper claimLogMapper,
-                        UserMapper userMapper) {
+                         BannerClaimLogMapper claimLogMapper,
+                         GiftPackageService giftPackageService) {
         this.bannerMapper = bannerMapper;
         this.claimLogMapper = claimLogMapper;
-        this.userMapper = userMapper;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -37,7 +37,6 @@ public class BannerService {
      */
     @Transactional
     public Map<String, Object> claimBannerGift(Long userId, Long bannerId) {
-        // 1. 查询Banner配置
         BannerEntity banner = bannerMapper.findById(bannerId);
         if (banner == null) {
             throw new IllegalArgumentException("Banner不存在");
@@ -47,13 +46,11 @@ public class BannerService {
             throw new IllegalArgumentException("该Banner不支持领取礼品");
         }
 
-        // 2. 解析礼品配置
         try {
             JsonNode config = objectMapper.readTree(banner.getActionConfig());
-            String limit = config.get("limit").asText();
-            String bannerCode = config.get("banner_code").asText();
+            String limit = readText(config, "limit", "ONCE");
+            String bannerCode = readText(config, "banner_code", "banner_" + bannerId);
 
-            // 3. 检查领取限制
             LocalDate today = LocalDate.now();
             if ("ONCE".equals(limit)) {
                 int count = claimLogMapper.countByUserAndBanner(userId, bannerCode);
@@ -67,33 +64,40 @@ public class BannerService {
                 }
             }
 
-            // 4. 发放礼品
-            JsonNode gifts = config.get("gifts");
-            for (JsonNode gift : gifts) {
-                String type = gift.get("type").asText();
-                int value = gift.get("value").asInt();
-
-                if ("AI_QUOTA".equals(type)) {
-                    userMapper.addAiQuota(userId, value);
-                } else if ("VIP_DAYS".equals(type)) {
-                    userMapper.addVipDays(userId, value);
-                } else if ("MAGIC_COINS".equals(type)) {
-                    userMapper.addCoins(userId, value);
-                }
-
-                // 5. 记录领取日志
+            String packageCode = readText(config, "giftPackageCode", readText(config, "packageCode", ""));
+            if (StringUtils.hasText(packageCode)) {
+                giftPackageService.grantPackageToUser(userId, packageCode);
                 BannerClaimLog log = new BannerClaimLog();
                 log.setUserId(userId);
                 log.setBannerId(bannerId);
                 log.setBannerCode(bannerCode);
-                log.setGiftType(type);
-                log.setGiftValue(value);
+                log.setGiftType("GIFT_PACKAGE");
+                log.setGiftValue(1);
                 log.setClaimDate(today);
+                claimLogMapper.insert(log);
+            } else {
+                JsonNode gifts = config.get("gifts");
+                if (gifts == null || !gifts.isArray()) {
+                    throw new IllegalArgumentException("Banner礼品配置无效");
+                }
+                for (JsonNode gift : gifts) {
+                    String type = readText(gift, "type", "");
+                    int value = gift.get("value").asInt();
+                    giftPackageService.grantItemsJsonToUser(userId, "[" + gift.toString() + "]");
 
-                try {
-                    claimLogMapper.insert(log);
-                } catch (DuplicateKeyException e) {
-                    throw new IllegalStateException("领取失败，请勿重复领取");
+                    BannerClaimLog log = new BannerClaimLog();
+                    log.setUserId(userId);
+                    log.setBannerId(bannerId);
+                    log.setBannerCode(bannerCode);
+                    log.setGiftType(type);
+                    log.setGiftValue(value);
+                    log.setClaimDate(today);
+
+                    try {
+                        claimLogMapper.insert(log);
+                    } catch (DuplicateKeyException e) {
+                        throw new IllegalStateException("领取失败，请勿重复领取");
+                    }
                 }
             }
 
@@ -107,5 +111,10 @@ public class BannerService {
         } catch (Exception e) {
             throw new RuntimeException("领取失败：" + e.getMessage());
         }
+    }
+
+    private String readText(JsonNode node, String field, String defaultValue) {
+        JsonNode value = node.get(field);
+        return value == null || value.isNull() ? defaultValue : value.asText();
     }
 }

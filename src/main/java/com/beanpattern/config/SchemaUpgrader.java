@@ -66,6 +66,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "start_at",   "ALTER TABLE `bp_banner` ADD COLUMN `start_at` DATETIME NULL AFTER `status`");
         addColumn(db, "bp_banner", "end_at",     "ALTER TABLE `bp_banner` ADD COLUMN `end_at` DATETIME NULL AFTER `start_at`");
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+        createGiftPackageTables(db);
         enforceBannerUtf8mb4();
 
         // bp_recharge_plan
@@ -111,6 +112,21 @@ public class SchemaUpgrader implements ApplicationRunner {
         enforceUserProfileRequired();
 
         log.info("[SchemaUpgrader] 字段兼容性检查完成");
+    }
+
+    private void createGiftPackageTables(String db) {
+        createTableIfNotExists(db, "bp_gift_package",
+                "CREATE TABLE bp_gift_package (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "package_code VARCHAR(64) NOT NULL UNIQUE COMMENT '礼品包编码'," +
+                        "name VARCHAR(128) NOT NULL COMMENT '礼品包名称'," +
+                        "description VARCHAR(255) NULL COMMENT '描述'," +
+                        "items_json TEXT NOT NULL COMMENT '礼品明细JSON'," +
+                        "status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1启用 0停用'," +
+                        "sort_order INT NOT NULL DEFAULT 0 COMMENT '排序'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='礼品包表'");
     }
 
     private void createBeadTables() {

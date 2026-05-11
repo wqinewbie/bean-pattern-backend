@@ -6,6 +6,7 @@ import com.beanpattern.mapper.*;
 import com.beanpattern.mapper.TutorialMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.ImageUploadResponse;
+import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.ImageStorageService;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -45,6 +46,7 @@ public class AdminController {
     private final BeadAdminMapper beadAdminMapper;
     private final TutorialMapper tutorialMapper;
     private final TaskConfigMapper taskConfigMapper;
+    private final GiftPackageService giftPackageService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
 
@@ -56,6 +58,7 @@ public class AdminController {
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
                            TaskConfigMapper taskConfigMapper,
+                           GiftPackageService giftPackageService,
                            PasswordEncoder passwordEncoder,
                            ImageStorageService imageStorageService) {
         this.adminMapper = adminMapper;
@@ -68,6 +71,7 @@ public class AdminController {
         this.beadAdminMapper = beadAdminMapper;
         this.tutorialMapper = tutorialMapper;
         this.taskConfigMapper = taskConfigMapper;
+        this.giftPackageService = giftPackageService;
         this.passwordEncoder = passwordEncoder;
         this.imageStorageService = imageStorageService;
     }
@@ -224,6 +228,39 @@ public class AdminController {
             @RequestParam(defaultValue = "") String isSaved) {
         // 旧任务表已废弃，返回空列表
         return ApiResponse.ok(Map.of("list", List.of(), "total", 0));
+    }
+
+    // ─── 礼品包管理 ──────────────────────────────────────
+
+    @GetMapping("/gift-packages")
+    public ApiResponse<List<GiftPackage>> giftPackages(@RequestParam(defaultValue = "false") boolean activeOnly) {
+        return ApiResponse.ok(activeOnly ? giftPackageService.listActive() : giftPackageService.listAll());
+    }
+
+    @PostMapping("/gift-packages")
+    public ApiResponse<GiftPackage> createGiftPackage(@RequestBody GiftPackage giftPackage) {
+        try {
+            giftPackage.setId(null);
+            return ApiResponse.ok(giftPackageService.save(giftPackage));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    @PutMapping("/gift-packages/{id}")
+    public ApiResponse<GiftPackage> updateGiftPackage(@PathVariable Long id, @RequestBody GiftPackage giftPackage) {
+        try {
+            giftPackage.setId(id);
+            return ApiResponse.ok(giftPackageService.save(giftPackage));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    @PostMapping("/gift-packages/{id}/toggle")
+    public ApiResponse<String> toggleGiftPackage(@PathVariable Long id) {
+        giftPackageService.toggleStatus(id);
+        return ApiResponse.ok("ok");
     }
 
     // ─── Banner管理 ──────────────────────────────────────
