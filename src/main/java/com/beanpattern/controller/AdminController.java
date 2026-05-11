@@ -7,6 +7,7 @@ import com.beanpattern.mapper.TutorialMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.ImageUploadResponse;
 import com.beanpattern.service.GiftPackageService;
+import com.beanpattern.service.GiftTypeConfigService;
 import com.beanpattern.service.ImageStorageService;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -47,6 +48,7 @@ public class AdminController {
     private final TutorialMapper tutorialMapper;
     private final TaskConfigMapper taskConfigMapper;
     private final GiftPackageService giftPackageService;
+    private final GiftTypeConfigService giftTypeConfigService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
 
@@ -59,6 +61,7 @@ public class AdminController {
                            TutorialMapper tutorialMapper,
                            TaskConfigMapper taskConfigMapper,
                            GiftPackageService giftPackageService,
+                           GiftTypeConfigService giftTypeConfigService,
                            PasswordEncoder passwordEncoder,
                            ImageStorageService imageStorageService) {
         this.adminMapper = adminMapper;
@@ -72,6 +75,7 @@ public class AdminController {
         this.tutorialMapper = tutorialMapper;
         this.taskConfigMapper = taskConfigMapper;
         this.giftPackageService = giftPackageService;
+        this.giftTypeConfigService = giftTypeConfigService;
         this.passwordEncoder = passwordEncoder;
         this.imageStorageService = imageStorageService;
     }
@@ -152,7 +156,6 @@ public class AdminController {
             m.put("id", u.getId());
             m.put("nickName", u.getNickName() != null ? u.getNickName() : "");
             m.put("phone", u.getPhone() != null ? u.getPhone() : "");
-            m.put("magicCoins", u.getMagicCoins() != null ? u.getMagicCoins() : 0);
             m.put("aiQuota", u.getAiQuota() != null ? u.getAiQuota() : 0);
             m.put("vipLevel", u.getVipLevel() != null ? u.getVipLevel() : 0);
             m.put("status", u.getStatus() != null ? u.getStatus() : 1);
@@ -228,6 +231,39 @@ public class AdminController {
             @RequestParam(defaultValue = "") String isSaved) {
         // 旧任务表已废弃，返回空列表
         return ApiResponse.ok(Map.of("list", List.of(), "total", 0));
+    }
+
+    // ─── 礼品类型管理 ──────────────────────────────────────
+
+    @GetMapping("/gift-types")
+    public ApiResponse<List<GiftTypeConfig>> giftTypes(@RequestParam(defaultValue = "false") boolean activeOnly) {
+        return ApiResponse.ok(activeOnly ? giftTypeConfigService.listActive() : giftTypeConfigService.listAll());
+    }
+
+    @PostMapping("/gift-types")
+    public ApiResponse<GiftTypeConfig> createGiftType(@RequestBody GiftTypeConfig giftTypeConfig) {
+        try {
+            giftTypeConfig.setId(null);
+            return ApiResponse.ok(giftTypeConfigService.save(giftTypeConfig));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    @PutMapping("/gift-types/{id}")
+    public ApiResponse<GiftTypeConfig> updateGiftType(@PathVariable Long id, @RequestBody GiftTypeConfig giftTypeConfig) {
+        try {
+            giftTypeConfig.setId(id);
+            return ApiResponse.ok(giftTypeConfigService.save(giftTypeConfig));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    @PostMapping("/gift-types/{id}/toggle")
+    public ApiResponse<String> toggleGiftType(@PathVariable Long id) {
+        giftTypeConfigService.toggleStatus(id);
+        return ApiResponse.ok("ok");
     }
 
     // ─── 礼品包管理 ──────────────────────────────────────

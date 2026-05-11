@@ -1,7 +1,11 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.GiftPackage;
+import com.beanpattern.entity.GiftTypeConfig;
+import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.GiftPackageMapper;
+import com.beanpattern.mapper.GiftTypeConfigMapper;
+import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,17 +13,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class GiftPackageService {
 
     private final GiftPackageMapper giftPackageMapper;
+    private final GiftTypeConfigMapper giftTypeConfigMapper;
+    private final UserGiftMapper userGiftMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
 
-    public GiftPackageService(GiftPackageMapper giftPackageMapper, UserMapper userMapper) {
+    public GiftPackageService(GiftPackageMapper giftPackageMapper,
+                              GiftTypeConfigMapper giftTypeConfigMapper,
+                              UserGiftMapper userGiftMapper,
+                              UserMapper userMapper) {
         this.giftPackageMapper = giftPackageMapper;
+        this.giftTypeConfigMapper = giftTypeConfigMapper;
+        this.userGiftMapper = userGiftMapper;
         this.userMapper = userMapper;
         this.objectMapper = new ObjectMapper();
     }
@@ -77,7 +89,7 @@ public class GiftPackageService {
             }
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
-                int value = readInt(item, "value", readInt(item, "gift_value", 0));
+                double value = readDouble(item, "value", readDouble(item, "gift_value", 0));
                 grantSingle(userId, type, value);
             }
         } catch (IllegalArgumentException e) {
@@ -98,9 +110,11 @@ public class GiftPackageService {
             }
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
-                int value = readInt(item, "value", readInt(item, "gift_value", 0));
+                double value = readDouble(item, "value", readDouble(item, "gift_value", 0));
                 if (!StringUtils.hasText(type)) throw new IllegalArgumentException("礼品类型不能为空");
                 if (value <= 0) throw new IllegalArgumentException("礼品数量必须大于0");
+                GiftTypeConfig typeConfig = giftTypeConfigMapper.findByCode(type);
+                if (typeConfig == null) throw new IllegalArgumentException("未配置的礼品类型: " + type);
             }
         } catch (IllegalArgumentException e) {
             throw e;
@@ -109,16 +123,32 @@ public class GiftPackageService {
         }
     }
 
-    private void grantSingle(Long userId, String type, int value) {
+    private void grantSingle(Long userId, String type, double value) {
         if ("AI_QUOTA".equals(type) || "AI_COUNT".equals(type)) {
-            userMapper.addAiQuota(userId, value);
-        } else if ("VIP_DAYS".equals(type)) {
-            userMapper.addVipDays(userId, value);
-        } else if ("MAGIC_COINS".equals(type)) {
-            userMapper.addCoins(userId, value);
-        } else {
+            userMapper.addAiQuota(userId, (int) value);
+            return;
+        }
+        if ("VIP_DAYS".equals(type)) {
+            userMapper.addVipDays(userId, (int) value);
+            return;
+        }
+
+        GiftTypeConfig typeConfig = giftTypeConfigMapper.findByCode(type);
+        if (typeConfig == null) {
             throw new IllegalArgumentException("不支持的礼品类型: " + type);
         }
+
+        UserGift gift = new UserGift();
+        gift.setUserId(userId);
+        gift.setGiftItemId(null);
+        gift.setGiftCode(typeConfig.getCode());
+        gift.setGiftName(typeConfig.getName());
+        gift.setGiftCategory(typeConfig.getGiftCategory());
+        gift.setValue((int) Math.round(value * 10));
+        gift.setSource("GIFT_PACKAGE");
+        gift.setExpireAt(LocalDateTime.now().plusDays("VIP_TRIAL_CARD".equals(type) ? (int) value : 30));
+        gift.setStatus(0);
+        userGiftMapper.insert(gift);
     }
 
     private String readText(JsonNode node, String field, String defaultValue) {
@@ -126,8 +156,8 @@ public class GiftPackageService {
         return value == null || value.isNull() ? defaultValue : value.asText();
     }
 
-    private int readInt(JsonNode node, String field, int defaultValue) {
+    private double readDouble(JsonNode node, String field, double defaultValue) {
         JsonNode value = node.get(field);
-        return value == null || value.isNull() ? defaultValue : value.asInt();
+        return value == null || value.isNull() ? defaultValue : value.asDouble();
     }
 }
