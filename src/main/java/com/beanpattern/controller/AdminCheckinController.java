@@ -10,7 +10,7 @@ import java.util.Map;
  * 签到管理后台 Controller
  */
 @RestController
-@RequestMapping("/admin/checkin")
+@RequestMapping("/api/admin/checkin")
 public class AdminCheckinController {
 
     private final CheckinService checkinService;

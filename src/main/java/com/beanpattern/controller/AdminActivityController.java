@@ -11,7 +11,7 @@ import java.util.List;
  * 活动中心管理 Controller（后台管理）
  */
 @RestController
-@RequestMapping("/admin/activities")
+@RequestMapping("/api/admin/activities")
 public class AdminActivityController {
 
     private final ActivityConfigMapper activityMapper;
