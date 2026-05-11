@@ -21,7 +21,6 @@ public class UserEntity {
     private Integer currentDraft;
     private LocalDateTime aiResetAt;
     private String availableBrands;
-    private Integer magicCoins;
     private Integer aiQuota;
     private Integer status;
     private LocalDateTime lastVipNotifyAt;  // 上次会员到期提醒时间
@@ -73,9 +72,6 @@ public class UserEntity {
 
     public String getAvailableBrands() { return availableBrands; }
     public void setAvailableBrands(String availableBrands) { this.availableBrands = availableBrands; }
-
-    public Integer getMagicCoins() { return magicCoins; }
-    public void setMagicCoins(Integer magicCoins) { this.magicCoins = magicCoins; }
 
     public Integer getAiQuota() { return aiQuota; }
     public void setAiQuota(Integer aiQuota) { this.aiQuota = aiQuota; }

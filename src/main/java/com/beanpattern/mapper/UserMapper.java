@@ -16,7 +16,7 @@ public interface UserMapper {
 
     @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
-            "vip_expire_at AS vipExpireAt, magic_coins AS magicCoins, ai_quota AS aiQuota, " +
+            "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
@@ -26,7 +26,7 @@ public interface UserMapper {
 
     @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
-            "vip_expire_at AS vipExpireAt, magic_coins AS magicCoins, ai_quota AS aiQuota, " +
+            "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
@@ -50,9 +50,6 @@ public interface UserMapper {
     @Update("UPDATE bp_user SET phone = #{phone}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updatePhone(@Param("id") Long id, @Param("phone") String phone);
 
-    @Update("UPDATE bp_user SET magic_coins = magic_coins + #{delta}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
-    int addCoins(@Param("id") Long id, @Param("delta") int delta);
-
     @Update("UPDATE bp_user SET ai_quota = ai_quota + #{delta}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int addAiQuota(@Param("id") Long id, @Param("delta") int delta);
 
@@ -67,7 +64,7 @@ public interface UserMapper {
 
     @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
-            "vip_expire_at AS vipExpireAt, magic_coins AS magicCoins, ai_quota AS aiQuota, " +
+            "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +

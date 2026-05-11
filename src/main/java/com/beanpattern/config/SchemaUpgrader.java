@@ -44,8 +44,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_user", "gender",        "ALTER TABLE `bp_user` ADD COLUMN `gender` TINYINT(1) NULL DEFAULT 0 COMMENT '0未知 1男 2女' AFTER `phone`");
         addColumn(db, "bp_user", "vip_level",     "ALTER TABLE `bp_user` ADD COLUMN `vip_level` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0普通 1高级' AFTER `gender`");
         addColumn(db, "bp_user", "vip_expire_at", "ALTER TABLE `bp_user` ADD COLUMN `vip_expire_at` DATETIME NULL COMMENT 'VIP到期时间' AFTER `vip_level`");
-        addColumn(db, "bp_user", "magic_coins",   "ALTER TABLE `bp_user` ADD COLUMN `magic_coins` INT NOT NULL DEFAULT 0 COMMENT '金币余额' AFTER `vip_expire_at`");
-        addColumn(db, "bp_user", "ai_quota",      "ALTER TABLE `bp_user` ADD COLUMN `ai_quota` INT NOT NULL DEFAULT 3 COMMENT 'AI剩余次数' AFTER `magic_coins`");
+        addColumn(db, "bp_user", "ai_quota",      "ALTER TABLE `bp_user` ADD COLUMN `ai_quota` INT NOT NULL DEFAULT 3 COMMENT 'AI剩余次数' AFTER `vip_expire_at`");
         addColumn(db, "bp_user", "status",        "ALTER TABLE `bp_user` ADD COLUMN `status` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '0禁用 1正常'");
         addColumn(db, "bp_user", "updated_at",    "ALTER TABLE `bp_user` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
