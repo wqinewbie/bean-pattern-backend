@@ -3,7 +3,9 @@ package com.beanpattern.controller;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.service.AiQuotaLogService;
 import com.beanpattern.service.AiTaskService;
+import com.beanpattern.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,12 @@ public class AiTaskController {
 
     @Autowired
     private AiTaskService aiTaskService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AiQuotaLogService aiQuotaLogService;
 
     @Autowired
     private SessionHelper sessionHelper;
@@ -38,8 +46,39 @@ public class AiTaskController {
         // 从 X-Session-Id 获取真实用户
         UserEntity user = sessionHelper.requireUser(httpRequest);
 
-        // 创建Mock任务
-        String taskId = aiTaskService.createMockTask(request, user.getId());
+        boolean success = userService.useAiQuota(user.getId());
+        if (!success) {
+            return ApiResponse.fail(40001, "AI次数不足");
+        }
+
+        String taskId;
+        try {
+            // 创建Mock任务
+            taskId = aiTaskService.createMockTask(request, user.getId());
+
+            boolean logged = aiQuotaLogService.tryLogChange(
+                user.getId(),
+                "USE",
+                -1,
+                "AI_GENERATE",
+                taskId,
+                "使用AI生成"
+            );
+            if (!logged) {
+                throw new IllegalStateException("AI次数扣减日志重复");
+            }
+        } catch (Exception e) {
+            userService.addAiQuota(user.getId(), 1);
+            aiQuotaLogService.tryLogChange(
+                user.getId(),
+                "REFUND",
+                1,
+                "AI_GENERATE_CREATE_FAILED",
+                String.valueOf(System.currentTimeMillis()),
+                "AI任务创建失败，返还次数"
+            );
+            throw e;
+        }
 
         return ApiResponse.ok(Map.of(
             "taskId", taskId,

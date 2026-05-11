@@ -65,6 +65,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "start_at",   "ALTER TABLE `bp_banner` ADD COLUMN `start_at` DATETIME NULL AFTER `status`");
         addColumn(db, "bp_banner", "end_at",     "ALTER TABLE `bp_banner` ADD COLUMN `end_at` DATETIME NULL AFTER `start_at`");
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+        createBannerClaimLogTable(db);
         createGiftPackageTables(db);
         enforceBannerUtf8mb4();
 
@@ -111,6 +112,23 @@ public class SchemaUpgrader implements ApplicationRunner {
         enforceUserProfileRequired();
 
         log.info("[SchemaUpgrader] 字段兼容性检查完成");
+    }
+
+    private void createBannerClaimLogTable(String db) {
+        createTableIfNotExists(db, "bp_banner_claim_log",
+                "CREATE TABLE bp_banner_claim_log (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键'," +
+                        "user_id BIGINT NOT NULL COMMENT '用户ID'," +
+                        "banner_id BIGINT NOT NULL COMMENT 'Banner ID'," +
+                        "banner_code VARCHAR(64) NOT NULL COMMENT 'Banner业务编码'," +
+                        "gift_type VARCHAR(64) NOT NULL COMMENT '礼品类型'," +
+                        "gift_value INT NOT NULL DEFAULT 0 COMMENT '礼品值'," +
+                        "claim_date DATE NOT NULL COMMENT '领取日期'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "KEY idx_user_banner(user_id, banner_code)," +
+                        "KEY idx_user_banner_date(user_id, banner_code, claim_date)," +
+                        "KEY idx_banner_id(banner_id)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='Banner领取记录表'");
     }
 
     private void createGiftPackageTables(String db) {

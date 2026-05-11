@@ -3,6 +3,7 @@ package com.beanpattern.service;
 import com.beanpattern.entity.AiQuotaLog;
 import com.beanpattern.mapper.AiQuotaLogMapper;
 import com.beanpattern.mapper.UserMapper;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,10 +42,9 @@ public class AiQuotaLogService {
             throw new IllegalArgumentException("用户不存在");
         }
 
-        Integer balanceBefore = user.getAiQuota();
-        Integer balanceAfter = balanceBefore + changeAmount;
+        Integer balanceAfter = user.getAiQuota() != null ? user.getAiQuota() : 0;
+        Integer balanceBefore = balanceAfter - changeAmount;
 
-        // 记录日志
         AiQuotaLog log = AiQuotaLog.builder()
                 .userId(userId)
                 .changeType(changeType)
@@ -60,6 +60,20 @@ public class AiQuotaLogService {
     }
 
     /**
+     * 尝试记录AI次数变动，重复业务日志返回 false
+     */
+    @Transactional
+    public boolean tryLogChange(Long userId, String changeType, Integer changeAmount,
+                                String bizType, String bizId, String description) {
+        try {
+            logChange(userId, changeType, changeAmount, bizType, bizId, description);
+            return true;
+        } catch (DuplicateKeyException ex) {
+            return false;
+        }
+    }
+
+    /**
      * 获取用户的AI次数变动记录
      */
     public List<AiQuotaLog> getUserLogs(Long userId, int page, int pageSize) {
@@ -72,5 +86,15 @@ public class AiQuotaLogService {
      */
     public int getUserLogsCount(Long userId) {
         return aiQuotaLogMapper.countByUserId(userId);
+    }
+
+    /**
+     * 检查业务是否已记录过次数扣减
+     */
+    public boolean hasLoggedBiz(Long userId, String changeType, String bizType, String bizId) {
+        if (userId == null || bizType == null || bizId == null || bizId.isEmpty()) {
+            return false;
+        }
+        return aiQuotaLogMapper.countByBiz(userId, changeType, bizType, bizId) > 0;
     }
 }

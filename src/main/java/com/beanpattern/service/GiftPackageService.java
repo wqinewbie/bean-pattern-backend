@@ -19,6 +19,9 @@ import java.util.List;
 @Service
 public class GiftPackageService {
 
+    private static final String GIFT_PACKAGE_CODE = "GIFT_PACKAGE";
+    private static final int DEFAULT_PACKAGE_EXPIRE_DAYS = 30;
+
     private final GiftPackageMapper giftPackageMapper;
     private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final UserGiftMapper userGiftMapper;
@@ -72,12 +75,41 @@ public class GiftPackageService {
     }
 
     @Transactional
-    public void grantPackageToUser(Long userId, String packageCode) {
+    public UserGift grantPackageToUser(Long userId, String packageCode) {
         GiftPackage giftPackage = getByCode(packageCode);
         if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
             throw new IllegalArgumentException("礼品包不存在或未启用");
         }
+        return createPackageGift(userId, giftPackage);
+    }
+
+    @Transactional
+    public void redeemPackageGift(Long userId, Long userGiftId) {
+        UserGift gift = userGiftMapper.findById(userGiftId);
+        if (gift == null || !userId.equals(gift.getUserId())) {
+            throw new IllegalArgumentException("礼品不存在");
+        }
+        if (gift.getStatus() == null || gift.getStatus() != 0) {
+            throw new IllegalStateException("礼品已使用或不可用");
+        }
+        if (!GIFT_PACKAGE_CODE.equals(gift.getGiftCode())) {
+            throw new IllegalArgumentException("该礼品不支持立即兑换");
+        }
+        if (gift.getExpireAt() != null && gift.getExpireAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("礼品已过期");
+        }
+
+        String packageCode = extractPackageCode(gift.getSource());
+        GiftPackage giftPackage = getByCode(packageCode);
+        if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
+            throw new IllegalStateException("礼品包不存在或未启用");
+        }
+
         grantItemsJsonToUser(userId, giftPackage.getItemsJson());
+        int updated = userGiftMapper.use(gift.getId());
+        if (updated <= 0) {
+            throw new IllegalStateException("礼品兑换失败，请稍后重试");
+        }
     }
 
     @Transactional
@@ -121,6 +153,29 @@ public class GiftPackageService {
         } catch (Exception e) {
             throw new IllegalArgumentException("礼品明细JSON格式错误: " + e.getMessage());
         }
+    }
+
+    private UserGift createPackageGift(Long userId, GiftPackage giftPackage) {
+        UserGift gift = new UserGift();
+        gift.setUserId(userId);
+        gift.setGiftItemId(giftPackage.getId());
+        gift.setGiftCode(GIFT_PACKAGE_CODE);
+        gift.setGiftName(giftPackage.getName());
+        gift.setGiftCategory("PACKAGE");
+        gift.setValue(1);
+        gift.setSource("GIFT_PACKAGE:" + giftPackage.getPackageCode());
+        gift.setExpireAt(LocalDateTime.now().plusDays(DEFAULT_PACKAGE_EXPIRE_DAYS));
+        gift.setStatus(0);
+        userGiftMapper.insert(gift);
+        return gift;
+    }
+
+    private String extractPackageCode(String source) {
+        if (!StringUtils.hasText(source)) {
+            return "";
+        }
+        String prefix = "GIFT_PACKAGE:";
+        return source.startsWith(prefix) ? source.substring(prefix.length()) : "";
     }
 
     private void grantSingle(Long userId, String type, double value) {

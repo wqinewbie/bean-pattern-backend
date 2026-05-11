@@ -21,13 +21,16 @@ public class GiftService {
     private final GiftTypeMapper giftTypeMapper;
     private final GiftItemMapper giftItemMapper;
     private final UserGiftMapper userGiftMapper;
+    private final GiftPackageService giftPackageService;
 
     public GiftService(GiftTypeMapper giftTypeMapper,
                        GiftItemMapper giftItemMapper,
-                       UserGiftMapper userGiftMapper) {
+                       UserGiftMapper userGiftMapper,
+                       GiftPackageService giftPackageService) {
         this.giftTypeMapper = giftTypeMapper;
         this.giftItemMapper = giftItemMapper;
         this.userGiftMapper = userGiftMapper;
+        this.giftPackageService = giftPackageService;
     }
 
     /**
@@ -77,6 +80,11 @@ public class GiftService {
      */
     @Transactional
     public boolean useGift(Long userId, Long giftId) {
+        return useGift(userId, giftId, false);
+    }
+
+    @Transactional
+    public boolean useGift(Long userId, Long giftId, boolean redeemNow) {
         UserGift gift = userGiftMapper.findById(giftId);
         if (gift == null) {
             return false;
@@ -89,6 +97,11 @@ public class GiftService {
         }
         if (gift.getExpireAt() != null && gift.getExpireAt().isBefore(LocalDateTime.now())) {
             return false;
+        }
+
+        if (redeemNow && "GIFT_PACKAGE".equals(gift.getGiftCode())) {
+            giftPackageService.redeemPackageGift(userId, giftId);
+            return true;
         }
 
         userGiftMapper.use(giftId);
@@ -106,12 +119,10 @@ public class GiftService {
      * 发放礼品给用户
      */
     @Transactional
-    public UserGift grantGift(Long userId, Long giftItemId, String source, 
+    public UserGift grantGift(Long userId, Long giftItemId, String source,
                               Long taskId, Long shareRecordId, Long orderId) {
-        // 直接按ID查找礼品项
         GiftItem item = giftItemMapper.findById(giftItemId);
         if (item == null) {
-            // 直接创建礼品记录（无库存管理）
             UserGift gift = new UserGift();
             gift.setUserId(userId);
             gift.setGiftItemId(giftItemId);
@@ -124,7 +135,6 @@ public class GiftService {
             return gift;
         }
 
-        // 扣减库存
         if (item.getTotalQuantity() > 0) {
             int updated = giftItemMapper.decrementQuantity(giftItemId);
             if (updated == 0) {
@@ -143,14 +153,13 @@ public class GiftService {
         gift.setTaskId(taskId);
         gift.setShareRecordId(shareRecordId);
         gift.setOrderId(orderId);
-        
-        // 计算过期时间（默认30天）
+
         if (item.getEndAt() != null) {
             gift.setExpireAt(item.getEndAt());
         } else {
             gift.setExpireAt(LocalDateTime.now().plusDays(30));
         }
-        
+
         gift.setStatus(0);
         userGiftMapper.insert(gift);
         return gift;

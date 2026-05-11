@@ -53,6 +53,9 @@ public interface UserMapper {
     @Update("UPDATE bp_user SET ai_quota = ai_quota + #{delta}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int addAiQuota(@Param("id") Long id, @Param("delta") int delta);
 
+    @Update("UPDATE bp_user SET ai_quota = ai_quota - 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND ai_quota > 0")
+    int consumeOneAiQuota(@Param("id") Long id);
+
     @Update("UPDATE bp_user SET vip_level = #{vipLevel}, vip_expire_at = #{vipExpireAt}, " +
             "updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateVip(@Param("id") Long id,

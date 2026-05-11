@@ -66,7 +66,7 @@ public class BannerService {
 
             String packageCode = readText(config, "giftPackageCode", readText(config, "packageCode", ""));
             if (StringUtils.hasText(packageCode)) {
-                giftPackageService.grantPackageToUser(userId, packageCode);
+                var packageGift = giftPackageService.grantPackageToUser(userId, packageCode);
                 BannerClaimLog log = new BannerClaimLog();
                 log.setUserId(userId);
                 log.setBannerId(bannerId);
@@ -75,6 +75,14 @@ public class BannerService {
                 log.setGiftValue(1);
                 log.setClaimDate(today);
                 claimLogMapper.insert(log);
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "领取成功，已放入我的礼品包");
+                result.put("giftId", packageGift.getId());
+                result.put("giftName", packageGift.getGiftName());
+                result.put("claimMode", "PACKAGE_STORED");
+                return result;
             } else {
                 JsonNode gifts = config.get("gifts");
                 if (gifts == null || !gifts.isArray()) {

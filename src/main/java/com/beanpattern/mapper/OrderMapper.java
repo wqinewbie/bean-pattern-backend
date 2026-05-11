@@ -30,6 +30,15 @@ public interface OrderMapper {
             "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
             "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
             "paid_at AS paidAt, transaction_id AS transactionId, " +
+            "created_at AS createdAt FROM bp_order WHERE user_id = #{userId} ORDER BY created_at DESC")
+    List<OrderEntity> listByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
+            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
+            "vip_days AS vipDays, gift_items AS giftItems, " +
+            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
+            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
+            "paid_at AS paidAt, transaction_id AS transactionId, " +
             "created_at AS createdAt FROM bp_order WHERE id = #{id}")
     OrderEntity findById(@Param("id") Long id);
 

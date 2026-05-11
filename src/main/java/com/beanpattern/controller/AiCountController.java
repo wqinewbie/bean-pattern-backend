@@ -43,6 +43,7 @@ public class AiCountController {
 
         Map<String, Object> result = new HashMap<>();
         result.put("aiQuota", aiQuota);
+        result.put("remainQuota", aiQuota);
         result.put("hasQuota", aiQuota > 0);
 
         return ApiResponse.ok(result);
@@ -58,6 +59,21 @@ public class AiCountController {
 
         UserEntity user = sessionHelper.requireUser(httpRequest);
 
+        String bizType = request.getBizType() != null ? request.getBizType() : "AI_GENERATE";
+        String bizId = request.getBizId() != null ? request.getBizId() : "";
+
+        if (aiQuotaLogService.hasLoggedBiz(user.getId(), "USE", bizType, bizId)) {
+            UserEntity updatedUser = userService.getUserById(user.getId());
+            Integer remainingQuota = updatedUser.getAiQuota() != null ? updatedUser.getAiQuota() : 0;
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("remainingQuota", remainingQuota);
+            result.put("aiQuota", remainingQuota);
+            result.put("duplicate", true);
+            return ApiResponse.ok(result);
+        }
+
         boolean success = userService.useAiQuota(user.getId());
 
         if (!success) {
@@ -65,14 +81,26 @@ public class AiCountController {
         }
 
         // 记录日志
-        aiQuotaLogService.logChange(
+        boolean logged = aiQuotaLogService.tryLogChange(
             user.getId(),
             "USE",
             -1,
-            request.getBizType() != null ? request.getBizType() : "AI_GENERATE",
-            request.getBizId() != null ? request.getBizId() : "",
+            bizType,
+            bizId,
             "使用AI生成"
         );
+        if (!logged) {
+            userService.addAiQuota(user.getId(), 1);
+            UserEntity updatedUser = userService.getUserById(user.getId());
+            Integer remainingQuota = updatedUser.getAiQuota() != null ? updatedUser.getAiQuota() : 0;
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("remainingQuota", remainingQuota);
+            result.put("aiQuota", remainingQuota);
+            result.put("duplicate", true);
+            return ApiResponse.ok(result);
+        }
 
         // 获取更新后的配额
         UserEntity updatedUser = userService.getUserById(user.getId());
@@ -81,6 +109,7 @@ public class AiCountController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("remainingQuota", remainingQuota);
+        result.put("aiQuota", remainingQuota);
 
         return ApiResponse.ok(result);
     }

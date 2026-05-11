@@ -2,6 +2,7 @@ package com.beanpattern.mapper;
 
 import com.beanpattern.entity.AiQuotaLog;
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -30,4 +31,10 @@ public interface AiQuotaLogMapper {
 
     @Select("SELECT COUNT(*) FROM bp_ai_quota_log WHERE user_id = #{userId}")
     int countByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT COUNT(*) FROM bp_ai_quota_log WHERE user_id = #{userId} AND change_type = #{changeType} AND biz_type = #{bizType} AND biz_id = #{bizId}")
+    int countByBiz(@Param("userId") Long userId,
+                   @Param("changeType") String changeType,
+                   @Param("bizType") String bizType,
+                   @Param("bizId") String bizId);
 }

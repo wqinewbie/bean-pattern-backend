@@ -1,8 +1,10 @@
 package com.beanpattern.service;
 
+import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.entity.UserCheckin;
 import com.beanpattern.entity.UserCheckinClaim;
 import com.beanpattern.entity.UserCheckinStatus;
+import com.beanpattern.mapper.CheckinConfigMapper;
 import com.beanpattern.mapper.UserCheckinClaimMapper;
 import com.beanpattern.mapper.UserCheckinMapper;
 import com.beanpattern.mapper.UserCheckinStatusMapper;
@@ -26,20 +28,78 @@ public class CheckinService {
     private final UserCheckinStatusMapper statusMapper;
     private final UserCheckinClaimMapper claimMapper;
     private final UserMapper userMapper;
+    private final CheckinConfigMapper checkinConfigMapper;
 
-    // 签到配置（后续可以从数据库读取）
-    private static final int CONTINUOUS_DAYS_REQUIRED = 3;  // 连续签到天数要求
-    private static final String REWARD_TYPE = "AI_COUNT";   // 奖励类型
-    private static final int REWARD_VALUE = 1;              // 奖励值
+    private static final int DEFAULT_CONTINUOUS_DAYS_REQUIRED = 3;
+    private static final String DEFAULT_REWARD_TYPE = "AI_COUNT";
+    private static final int DEFAULT_REWARD_VALUE = 1;
+    private static final boolean DEFAULT_IS_ACTIVE = true;
 
     public CheckinService(UserCheckinMapper checkinMapper,
                          UserCheckinStatusMapper statusMapper,
                          UserCheckinClaimMapper claimMapper,
-                         UserMapper userMapper) {
+                         UserMapper userMapper,
+                         CheckinConfigMapper checkinConfigMapper) {
         this.checkinMapper = checkinMapper;
         this.statusMapper = statusMapper;
         this.claimMapper = claimMapper;
         this.userMapper = userMapper;
+        this.checkinConfigMapper = checkinConfigMapper;
+    }
+
+    /**
+     * 获取有效签到配置
+     */
+    public CheckinConfig getActiveConfig() {
+        CheckinConfig config = checkinConfigMapper.findLatest();
+        if (config == null) {
+            return CheckinConfig.builder()
+                    .continuousDaysRequired(DEFAULT_CONTINUOUS_DAYS_REQUIRED)
+                    .rewardType(DEFAULT_REWARD_TYPE)
+                    .rewardValue(DEFAULT_REWARD_VALUE)
+                    .isActive(DEFAULT_IS_ACTIVE)
+                    .build();
+        }
+        if (config.getContinuousDaysRequired() == null || config.getContinuousDaysRequired() < 1) {
+            config.setContinuousDaysRequired(DEFAULT_CONTINUOUS_DAYS_REQUIRED);
+        }
+        if (config.getRewardType() == null || config.getRewardType().isBlank()) {
+            config.setRewardType(DEFAULT_REWARD_TYPE);
+        }
+        if (config.getRewardValue() == null || config.getRewardValue() < 1) {
+            config.setRewardValue(DEFAULT_REWARD_VALUE);
+        }
+        if (config.getIsActive() == null) {
+            config.setIsActive(DEFAULT_IS_ACTIVE);
+        }
+        return config;
+    }
+
+    /**
+     * 保存签到配置
+     */
+    @Transactional
+    public CheckinConfig saveConfig(CheckinConfig config) {
+        CheckinConfig target = CheckinConfig.builder()
+                .id(config.getId())
+                .continuousDaysRequired(config.getContinuousDaysRequired() == null || config.getContinuousDaysRequired() < 1
+                        ? DEFAULT_CONTINUOUS_DAYS_REQUIRED : config.getContinuousDaysRequired())
+                .rewardType(config.getRewardType() == null || config.getRewardType().isBlank()
+                        ? DEFAULT_REWARD_TYPE : config.getRewardType())
+                .rewardValue(config.getRewardValue() == null || config.getRewardValue() < 1
+                        ? DEFAULT_REWARD_VALUE : config.getRewardValue())
+                .isActive(config.getIsActive() == null ? DEFAULT_IS_ACTIVE : config.getIsActive())
+                .build();
+
+        CheckinConfig existing = checkinConfigMapper.findLatest();
+        if (existing == null) {
+            checkinConfigMapper.insert(target);
+            return target;
+        }
+
+        target.setId(existing.getId());
+        checkinConfigMapper.update(target);
+        return getActiveConfig();
     }
 
     /**
@@ -58,7 +118,7 @@ public class CheckinService {
             status.setCanClaim(false);
         }
 
-        // 获取最近7天的签到记录
+        CheckinConfig config = getActiveConfig();
         LocalDate startDate = LocalDate.now().minusDays(6);
         List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, startDate);
 
@@ -83,9 +143,10 @@ public class CheckinService {
         result.put("canClaim", status.getCanClaim());
         result.put("checkedInToday", checkedInToday);
         result.put("calendar", calendar);
-        result.put("requiredDays", CONTINUOUS_DAYS_REQUIRED);
-        result.put("rewardType", REWARD_TYPE);
-        result.put("rewardValue", REWARD_VALUE);
+        result.put("requiredDays", config.getContinuousDaysRequired());
+        result.put("rewardType", config.getRewardType());
+        result.put("rewardValue", config.getRewardValue());
+        result.put("isActive", config.getIsActive());
 
         return result;
     }
@@ -96,6 +157,10 @@ public class CheckinService {
     @Transactional
     public Map<String, Object> doCheckin(Long userId) {
         LocalDate today = LocalDate.now();
+        CheckinConfig config = getActiveConfig();
+        if (!Boolean.TRUE.equals(config.getIsActive())) {
+            throw new IllegalStateException("签到暂未开启");
+        }
 
         // 检查今天是否已签到（利用唯一索引防止重复）
         UserCheckin existingCheckin = checkinMapper.findByUserAndDate(userId, today);
@@ -134,7 +199,7 @@ public class CheckinService {
         }
 
         // 判断是否可以领取奖励
-        boolean canClaim = (newContinuousDays >= CONTINUOUS_DAYS_REQUIRED);
+        boolean canClaim = (newContinuousDays >= config.getContinuousDaysRequired());
 
         // 插入签到记录
         try {
@@ -170,6 +235,7 @@ public class CheckinService {
     @Transactional
     public Map<String, Object> claimReward(Long userId) {
         LocalDate today = LocalDate.now();
+        CheckinConfig config = getActiveConfig();
 
         // 检查签到状态
         UserCheckinStatus status = statusMapper.findByUserId(userId);
@@ -189,18 +255,18 @@ public class CheckinService {
             claim.setUserId(userId);
             claim.setClaimDate(today);
             claim.setContinuousDays(status.getContinuousDays());
-            claim.setRewardType(REWARD_TYPE);
-            claim.setRewardValue(REWARD_VALUE);
+            claim.setRewardType(config.getRewardType());
+            claim.setRewardValue(config.getRewardValue());
             claimMapper.insert(claim);
         } catch (DuplicateKeyException e) {
             throw new IllegalStateException("今天已经领取过奖励了");
         }
 
         // 发放奖励
-        if ("AI_COUNT".equals(REWARD_TYPE)) {
-            userMapper.addAiQuota(userId, REWARD_VALUE);
-        } else if ("VIP_DAYS".equals(REWARD_TYPE)) {
-            userMapper.addVipDays(userId, REWARD_VALUE);
+        if ("AI_COUNT".equals(config.getRewardType())) {
+            userMapper.addAiQuota(userId, config.getRewardValue());
+        } else if ("VIP_DAYS".equals(config.getRewardType())) {
+            userMapper.addVipDays(userId, config.getRewardValue());
         }
 
         // 重置连续天数和领取状态
@@ -208,9 +274,9 @@ public class CheckinService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
-        result.put("rewardType", REWARD_TYPE);
-        result.put("rewardValue", REWARD_VALUE);
-        result.put("message", "领取成功！获得" + REWARD_VALUE + "次AI生成");
+        result.put("rewardType", config.getRewardType());
+        result.put("rewardValue", config.getRewardValue());
+        result.put("message", "领取成功！获得" + config.getRewardValue() + getRewardName(config.getRewardType()));
 
         return result;
     }
@@ -219,10 +285,20 @@ public class CheckinService {
      * 获取签到配置
      */
     public Map<String, Object> getCheckinConfig() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("continuousDaysRequired", CONTINUOUS_DAYS_REQUIRED);
-        config.put("rewardType", REWARD_TYPE);
-        config.put("rewardValue", REWARD_VALUE);
-        return config;
+        CheckinConfig config = getActiveConfig();
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", config.getId());
+        result.put("continuousDaysRequired", config.getContinuousDaysRequired());
+        result.put("rewardType", config.getRewardType());
+        result.put("rewardValue", config.getRewardValue());
+        result.put("isActive", config.getIsActive());
+        return result;
+    }
+
+    private String getRewardName(String rewardType) {
+        if ("VIP_DAYS".equals(rewardType)) {
+            return "天会员";
+        }
+        return "次AI生成";
     }
 }

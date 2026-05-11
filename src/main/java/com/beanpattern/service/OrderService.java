@@ -40,6 +40,13 @@ public class OrderService {
     }
 
     /**
+     * 查询用户订单列表
+     */
+    public List<OrderEntity> getUserOrders(Long userId) {
+        return orderMapper.listByUserId(userId);
+    }
+
+    /**
      * 创建会员订单
      */
     @Transactional

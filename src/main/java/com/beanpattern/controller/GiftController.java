@@ -83,19 +83,33 @@ public class GiftController {
      * 使用礼品
      */
     @PostMapping("/use")
-    public ApiResponse<String> useGift(@RequestBody Map<String, Long> body,
+    public ApiResponse<String> useGift(@RequestBody Map<String, Object> body,
                                        HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
-        Long giftId = body.get("giftId");
+        Long giftId = toLong(body.get("giftId"));
         if (giftId == null) {
             return ApiResponse.fail("礼品ID不能为空");
         }
 
-        boolean success = giftService.useGift(user.getId(), giftId);
+        boolean redeemNow = Boolean.TRUE.equals(body.get("redeemNow"));
+        boolean success = giftService.useGift(user.getId(), giftId, redeemNow);
         if (success) {
-            return ApiResponse.ok("使用成功");
+            return ApiResponse.ok(redeemNow ? "兑换成功" : "使用成功");
         } else {
-            return ApiResponse.fail("使用失败");
+            return ApiResponse.fail(redeemNow ? "兑换失败" : "使用失败");
         }
+    }
+
+    private Long toLong(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            String text = (String) value;
+            if (!text.isBlank()) {
+                return Long.parseLong(text);
+            }
+        }
+        return null;
     }
 }

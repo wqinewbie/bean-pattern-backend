@@ -1,5 +1,6 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.CheckinService;
 import org.springframework.web.bind.annotation.*;
@@ -30,16 +31,11 @@ public class AdminCheckinController {
 
     /**
      * 保存签到配置
-     * 注意：当前配置是硬编码在 CheckinService 中的
-     * 如果需要动态配置，需要创建配置表并实现相应的保存逻辑
      */
     @PostMapping("/config")
-    public ApiResponse<String> saveConfig(@RequestBody Map<String, Object> config) {
-        // TODO: 实现配置保存逻辑
-        // 1. 创建 bp_checkin_config 表
-        // 2. 保存配置到数据库
-        // 3. CheckinService 从数据库读取配置
-        return ApiResponse.ok("配置保存成功（当前为演示模式，实际未保存）");
+    public ApiResponse<Map<String, Object>> saveConfig(@RequestBody CheckinConfig config) {
+        checkinService.saveConfig(config);
+        return ApiResponse.ok(checkinService.getCheckinConfig());
     }
 
     /**

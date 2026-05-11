@@ -8,6 +8,7 @@ import com.beanpattern.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,6 +24,20 @@ public class OrderController {
     public OrderController(SessionHelper sessionHelper, OrderService orderService) {
         this.sessionHelper = sessionHelper;
         this.orderService = orderService;
+    }
+
+    /**
+     * 获取当前用户订单列表
+     */
+    @GetMapping("/list")
+    public ApiResponse<List<OrderEntity>> getOrderList(HttpServletRequest request) {
+        try {
+            UserEntity user = sessionHelper.requireUser(request);
+            List<OrderEntity> orders = orderService.getUserOrders(user.getId());
+            return ApiResponse.ok(orders);
+        } catch (Exception e) {
+            return ApiResponse.fail("加载订单列表失败: " + e.getMessage());
+        }
     }
 
     /**

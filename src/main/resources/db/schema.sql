@@ -63,6 +63,21 @@ CREATE TABLE IF NOT EXISTS `bp_banner` (
   KEY `idx_status_sort` (`status`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Banner表';
 
+CREATE TABLE IF NOT EXISTS `bp_banner_claim_log` (
+  `id`          BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id`     BIGINT NOT NULL COMMENT '用户ID',
+  `banner_id`   BIGINT NOT NULL COMMENT 'Banner ID',
+  `banner_code` VARCHAR(64) NOT NULL COMMENT 'Banner业务编码',
+  `gift_type`   VARCHAR(64) NOT NULL COMMENT '礼品类型',
+  `gift_value`  INT NOT NULL DEFAULT 0 COMMENT '礼品值',
+  `claim_date`  DATE NOT NULL COMMENT '领取日期',
+  `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_banner` (`user_id`, `banner_code`),
+  KEY `idx_user_banner_date` (`user_id`, `banner_code`, `claim_date`),
+  KEY `idx_banner_id` (`banner_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Banner领取记录表';
+
 CREATE TABLE IF NOT EXISTS `bp_recharge_plan` (
   `id`             BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name`           VARCHAR(64) NOT NULL,

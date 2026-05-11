@@ -115,11 +115,16 @@ public class UserService {
      */
     @Transactional
     public boolean useAiQuota(Long userId) {
-        if (!hasAiQuota(userId)) {
-            return false;
-        }
-        userMapper.addAiQuota(userId, -1);
-        return true;
+        return userMapper.consumeOneAiQuota(userId) > 0;
+    }
+
+    /**
+     * 增加AI配额
+     */
+    @Transactional
+    public void addAiQuota(Long userId, int delta) {
+        if (userId == null || delta == 0) return;
+        userMapper.addAiQuota(userId, delta);
     }
     
     /**
