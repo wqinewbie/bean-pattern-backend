@@ -52,9 +52,9 @@ public class BannerController {
             Map<String, Object> result = bannerService.claimBannerGift(userId, bannerId);
             return ApiResponse.ok(result);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.fail(e.getMessage());
         } catch (Exception e) {
-            return ApiResponse.error("领取失败：" + e.getMessage());
+            return ApiResponse.fail("领取失败：" + e.getMessage());
         }
     }
 }

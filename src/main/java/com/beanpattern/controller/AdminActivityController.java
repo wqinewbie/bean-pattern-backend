@@ -46,7 +46,7 @@ public class AdminActivityController {
             activityMapper.insert(activity);
             return ApiResponse.ok("创建成功");
         } catch (Exception e) {
-            return ApiResponse.error("创建失败：" + e.getMessage());
+            return ApiResponse.fail("创建失败：" + e.getMessage());
         }
     }
 
@@ -60,7 +60,7 @@ public class AdminActivityController {
             activityMapper.update(activity);
             return ApiResponse.ok("更新成功");
         } catch (Exception e) {
-            return ApiResponse.error("更新失败：" + e.getMessage());
+            return ApiResponse.fail("更新失败：" + e.getMessage());
         }
     }
 
@@ -73,7 +73,7 @@ public class AdminActivityController {
             activityMapper.deleteById(id);
             return ApiResponse.ok("删除成功");
         } catch (Exception e) {
-            return ApiResponse.error("删除失败：" + e.getMessage());
+            return ApiResponse.fail("删除失败：" + e.getMessage());
         }
     }
 
@@ -86,7 +86,7 @@ public class AdminActivityController {
             activityMapper.updateStatus(id, status);
             return ApiResponse.ok("状态更新成功");
         } catch (Exception e) {
-            return ApiResponse.error("状态更新失败：" + e.getMessage());
+            return ApiResponse.fail("状态更新失败：" + e.getMessage());
         }
     }
 }

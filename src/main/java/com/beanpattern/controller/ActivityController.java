@@ -36,9 +36,9 @@ public class ActivityController {
             Map<String, Object> activity = activityService.getActivityDetail(code, userId);
             return ApiResponse.ok(activity);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.fail(e.getMessage());
         } catch (Exception e) {
-            return ApiResponse.error("获取活动详情失败：" + e.getMessage());
+            return ApiResponse.fail("获取活动详情失败：" + e.getMessage());
         }
     }
 
@@ -69,9 +69,9 @@ public class ActivityController {
             Map<String, Object> result = activityService.claimActivityGift(activityCode, user.getId());
             return ApiResponse.ok(result);
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.fail(e.getMessage());
         } catch (Exception e) {
-            return ApiResponse.error("领取失败：" + e.getMessage());
+            return ApiResponse.fail("领取失败：" + e.getMessage());
         }
     }
 }
