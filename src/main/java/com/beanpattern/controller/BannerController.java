@@ -1,10 +1,11 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.config.SessionHelper;
 import com.beanpattern.mapper.BannerMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.vo.BannerVO;
 import com.beanpattern.service.BannerService;
-import com.beanpattern.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,10 +23,12 @@ public class BannerController {
 
     private final BannerMapper bannerMapper;
     private final BannerService bannerService;
+    private final SessionHelper sessionHelper;
 
-    public BannerController(BannerMapper bannerMapper, BannerService bannerService) {
+    public BannerController(BannerMapper bannerMapper, BannerService bannerService, SessionHelper sessionHelper) {
         this.bannerMapper = bannerMapper;
         this.bannerService = bannerService;
+        this.sessionHelper = sessionHelper;
     }
 
     @GetMapping("/list")
@@ -40,10 +43,10 @@ public class BannerController {
      * 领取Banner礼品
      */
     @PostMapping("/claim")
-    public ApiResponse<Map<String, Object>> claimGift(@RequestHeader("Authorization") String token,
-                                                       @RequestBody Map<String, Object> params) {
+    public ApiResponse<Map<String, Object>> claimGift(@RequestBody Map<String, Object> params,
+                                                       HttpServletRequest request) {
         try {
-            Long userId = JwtUtil.getUserIdFromToken(token);
+            Long userId = sessionHelper.requireUser(request).getId();
             Long bannerId = Long.valueOf(params.get("bannerId").toString());
 
             Map<String, Object> result = bannerService.claimBannerGift(userId, bannerId);

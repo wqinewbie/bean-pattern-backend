@@ -7,7 +7,6 @@ import com.beanpattern.service.ActivityService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -31,7 +30,7 @@ public class ActivityController {
     @GetMapping("/{code}")
     public ApiResponse<Map<String, Object>> getActivity(@PathVariable String code, HttpServletRequest request) {
         try {
-            UserEntity user = sessionHelper.getUser(request);
+            UserEntity user = sessionHelper.resolveUser(request);
             Long userId = user != null ? user.getId() : null;
 
             Map<String, Object> activity = activityService.getActivityDetail(code, userId);
@@ -48,7 +47,7 @@ public class ActivityController {
      */
     @PostMapping("/view")
     public ApiResponse<String> recordView(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        UserEntity user = sessionHelper.getUser(request);
+        UserEntity user = sessionHelper.resolveUser(request);
         String activityCode = body.get("activityCode");
 
         // TODO: 实现浏览记录
