@@ -20,6 +20,7 @@ import java.util.List;
 public class GiftPackageService {
 
     private static final String GIFT_PACKAGE_CODE = "GIFT_PACKAGE";
+    private static final String GIFT_PACKAGE_SOURCE_PREFIX = "GIFT_PACKAGE:";
     private static final int DEFAULT_PACKAGE_EXPIRE_DAYS = 30;
 
     private final GiftPackageMapper giftPackageMapper;
@@ -108,7 +109,7 @@ public class GiftPackageService {
             throw new IllegalStateException("礼品已过期");
         }
 
-        String packageCode = extractPackageCode(gift.getSource());
+        String packageCode = resolvePackageCode(gift);
         GiftPackage giftPackage = getByCode(packageCode);
         if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
             throw new IllegalStateException("礼品包不存在或未启用");
@@ -179,12 +180,29 @@ public class GiftPackageService {
         return gift;
     }
 
+    private String resolvePackageCode(UserGift gift) {
+        String packageCode = extractPackageCode(gift.getSource());
+        if (StringUtils.hasText(packageCode)) {
+            return packageCode;
+        }
+
+        if (gift.getGiftItemId() != null) {
+            GiftPackage giftPackage = giftPackageMapper.findById(gift.getGiftItemId());
+            if (giftPackage != null && StringUtils.hasText(giftPackage.getPackageCode())) {
+                return giftPackage.getPackageCode();
+            }
+        }
+
+        return "";
+    }
+
     private String extractPackageCode(String source) {
         if (!StringUtils.hasText(source)) {
             return "";
         }
-        String prefix = "GIFT_PACKAGE:";
-        return source.startsWith(prefix) ? source.substring(prefix.length()) : "";
+        return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX)
+                ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length())
+                : "";
     }
 
     private void grantSingle(Long userId, String type, double value) {
