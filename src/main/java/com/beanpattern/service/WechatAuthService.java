@@ -1,6 +1,7 @@
 package com.beanpattern.service;
 
 import com.beanpattern.config.AppProperties;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.WxLoginResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

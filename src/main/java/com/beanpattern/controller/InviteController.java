@@ -35,7 +35,7 @@ public class InviteController {
     public ApiResponse<Map<String, Object>> records(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         String inviteCode = inviteCodeService.ensureInviteCode(user);
-        List<Map<String, Object>> records = inviteCodeService.listInvites(user.getId()).stream().map(item -> Map.of(
+        List<Map<String, Object>> records = inviteCodeService.listInvites(user.getId()).stream().map(item -> Map.<String, Object>of(
                 "id", item.getId(),
                 "inviteeUserId", item.getInviteeUserId(),
                 "nickName", item.getInviteeNickName() == null ? "新朋友" : item.getInviteeNickName(),
