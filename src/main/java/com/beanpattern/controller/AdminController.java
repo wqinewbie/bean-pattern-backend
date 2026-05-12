@@ -9,6 +9,7 @@ import com.beanpattern.model.ImageUploadResponse;
 import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.GiftTypeConfigService;
 import com.beanpattern.service.ImageStorageService;
+import com.beanpattern.service.ReviewTaskService;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +50,7 @@ public class AdminController {
     private final TaskConfigMapper taskConfigMapper;
     private final GiftPackageService giftPackageService;
     private final GiftTypeConfigService giftTypeConfigService;
+    private final ReviewTaskService reviewTaskService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
 
@@ -62,6 +64,7 @@ public class AdminController {
                            TaskConfigMapper taskConfigMapper,
                            GiftPackageService giftPackageService,
                            GiftTypeConfigService giftTypeConfigService,
+                           ReviewTaskService reviewTaskService,
                            PasswordEncoder passwordEncoder,
                            ImageStorageService imageStorageService) {
         this.adminMapper = adminMapper;
@@ -76,6 +79,7 @@ public class AdminController {
         this.taskConfigMapper = taskConfigMapper;
         this.giftPackageService = giftPackageService;
         this.giftTypeConfigService = giftTypeConfigService;
+        this.reviewTaskService = reviewTaskService;
         this.passwordEncoder = passwordEncoder;
         this.imageStorageService = imageStorageService;
     }
@@ -794,5 +798,33 @@ public class AdminController {
         }
         taskConfigMapper.deleteById(id);
         return ApiResponse.ok("ok");
+    }
+
+    // ─── 审核型任务管理 ───────────────────────────────────
+
+    @GetMapping("/review-tasks/submissions")
+    public ApiResponse<List<ReviewTaskSubmission>> reviewTaskSubmissions(
+            @RequestParam(defaultValue = "100") int limit) {
+        return ApiResponse.ok(reviewTaskService.listLatest(limit));
+    }
+
+    @PostMapping("/review-tasks/submissions/{id}/approve")
+    public ApiResponse<ReviewTaskSubmission> approveReviewTask(@PathVariable Long id,
+                                                               @RequestBody(required = false) Map<String, String> body) {
+        try {
+            return ApiResponse.ok(reviewTaskService.review(id, 1, body == null ? "" : body.getOrDefault("reviewRemark", "")));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    @PostMapping("/review-tasks/submissions/{id}/reject")
+    public ApiResponse<ReviewTaskSubmission> rejectReviewTask(@PathVariable Long id,
+                                                              @RequestBody Map<String, String> body) {
+        try {
+            return ApiResponse.ok(reviewTaskService.review(id, 2, body.getOrDefault("reviewRemark", "")));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
     }
 }

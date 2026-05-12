@@ -80,7 +80,16 @@ public class GiftPackageService {
         if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
             throw new IllegalArgumentException("礼品包不存在或未启用");
         }
-        return createPackageGift(userId, giftPackage);
+        return createPackageGift(userId, giftPackage, "GIFT_PACKAGE:" + giftPackage.getPackageCode());
+    }
+
+    @Transactional
+    public UserGift grantPackageToUser(Long userId, String packageCode, String source) {
+        GiftPackage giftPackage = getByCode(packageCode);
+        if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
+            throw new IllegalArgumentException("礼品包不存在或未启用");
+        }
+        return createPackageGift(userId, giftPackage, source);
     }
 
     @Transactional
@@ -155,7 +164,7 @@ public class GiftPackageService {
         }
     }
 
-    private UserGift createPackageGift(Long userId, GiftPackage giftPackage) {
+    private UserGift createPackageGift(Long userId, GiftPackage giftPackage, String source) {
         UserGift gift = new UserGift();
         gift.setUserId(userId);
         gift.setGiftItemId(giftPackage.getId());
@@ -163,7 +172,7 @@ public class GiftPackageService {
         gift.setGiftName(giftPackage.getName());
         gift.setGiftCategory("PACKAGE");
         gift.setValue(1);
-        gift.setSource("GIFT_PACKAGE:" + giftPackage.getPackageCode());
+        gift.setSource(source);
         gift.setExpireAt(LocalDateTime.now().plusDays(DEFAULT_PACKAGE_EXPIRE_DAYS));
         gift.setStatus(0);
         userGiftMapper.insert(gift);

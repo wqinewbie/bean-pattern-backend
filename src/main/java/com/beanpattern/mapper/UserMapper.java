@@ -14,7 +14,7 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface UserMapper {
 
-    @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
+    @Select("SELECT id, open_id AS openId, invite_code AS inviteCode, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
             "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
@@ -24,7 +24,7 @@ public interface UserMapper {
             "FROM bp_user WHERE open_id = #{openId}")
     UserEntity findByOpenId(@Param("openId") String openId);
 
-    @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
+    @Select("SELECT id, open_id AS openId, invite_code AS inviteCode, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
             "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
@@ -34,12 +34,28 @@ public interface UserMapper {
             "FROM bp_user WHERE id = #{id}")
     UserEntity findById(@Param("id") Long id);
 
-    @Insert("INSERT INTO bp_user(open_id, nick_name, avatar_url) VALUES(#{openId}, #{nickName}, #{avatarUrl})")
+    @Select("SELECT id FROM bp_user WHERE open_id = #{openId}")
+    Long findUserIdByOpenId(@Param("openId") String openId);
+
+    @Select("SELECT id, open_id AS openId, invite_code AS inviteCode, union_id AS unionId, nick_name AS nickName, " +
+            "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
+            "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
+            "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
+            "current_storage AS currentStorage, current_draft AS currentDraft, " +
+            "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
+            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_user WHERE invite_code = #{inviteCode} LIMIT 1")
+    UserEntity findByInviteCode(@Param("inviteCode") String inviteCode);
+
+    @Insert("INSERT INTO bp_user(open_id, invite_code, nick_name, avatar_url) VALUES(#{openId}, #{inviteCode}, #{nickName}, #{avatarUrl})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserEntity user);
 
     @Update("UPDATE bp_user SET updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int touch(@Param("id") Long id);
+
+    @Update("UPDATE bp_user SET invite_code = #{inviteCode}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
+    int updateInviteCode(@Param("id") Long id, @Param("inviteCode") String inviteCode);
 
     @Update("UPDATE bp_user SET nick_name = #{nickName}, avatar_url = #{avatarUrl}, " +
             "updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
@@ -65,7 +81,7 @@ public interface UserMapper {
     @Select("SELECT COUNT(*) FROM bp_user")
     int count();
 
-    @Select("SELECT id, open_id AS openId, union_id AS unionId, nick_name AS nickName, " +
+    @Select("SELECT id, open_id AS openId, invite_code AS inviteCode, union_id AS unionId, nick_name AS nickName, " +
             "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
             "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +

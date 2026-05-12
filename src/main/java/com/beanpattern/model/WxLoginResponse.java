@@ -8,13 +8,15 @@ public class WxLoginResponse {
 
     private String token;
     private String openId;
+    private String inviteCode;
 
     public WxLoginResponse() {
     }
 
-    public WxLoginResponse(String token, String openId) {
+    public WxLoginResponse(String token, String openId, String inviteCode) {
         this.token = token;
         this.openId = openId;
+        this.inviteCode = inviteCode;
     }
 
     public String getToken() { return token; }
@@ -25,4 +27,7 @@ public class WxLoginResponse {
 
     public String getOpenId() { return openId; }
     public void setOpenId(String openId) { this.openId = openId; }
+
+    public String getInviteCode() { return inviteCode; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
 }

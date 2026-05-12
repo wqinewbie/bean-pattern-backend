@@ -40,6 +40,7 @@ public class SchemaUpgrader implements ApplicationRunner {
 
         // bp_user
         addColumn(db, "bp_user", "union_id",      "ALTER TABLE `bp_user` ADD COLUMN `union_id` VARCHAR(64) NULL COMMENT 'UnionID' AFTER `open_id`");
+        addColumn(db, "bp_user", "invite_code",   "ALTER TABLE `bp_user` ADD COLUMN `invite_code` VARCHAR(32) NULL COMMENT '用户邀请码' AFTER `open_id`");
         addColumn(db, "bp_user", "phone",         "ALTER TABLE `bp_user` ADD COLUMN `phone` VARCHAR(20) NULL COMMENT '手机号' AFTER `avatar_url`");
         addColumn(db, "bp_user", "gender",        "ALTER TABLE `bp_user` ADD COLUMN `gender` TINYINT(1) NULL DEFAULT 0 COMMENT '0未知 1男 2女' AFTER `phone`");
         addColumn(db, "bp_user", "vip_level",     "ALTER TABLE `bp_user` ADD COLUMN `vip_level` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0普通 1高级' AFTER `gender`");
@@ -67,6 +68,8 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
         createBannerClaimLogTable(db);
         createGiftPackageTables(db);
+        createReviewTaskSubmissionTable(db);
+        createUserInviteRelationTable(db);
         enforceBannerUtf8mb4();
 
         // bp_recharge_plan
@@ -161,6 +164,43 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                         "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='礼品包表'");
+    }
+
+    private void createReviewTaskSubmissionTable(String db) {
+        createTableIfNotExists(db, "review_task_submission",
+                "CREATE TABLE review_task_submission (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "user_id BIGINT NOT NULL COMMENT '用户ID'," +
+                        "task_id BIGINT NOT NULL COMMENT '任务ID'," +
+                        "task_code VARCHAR(64) NOT NULL COMMENT '任务编码'," +
+                        "submission_text VARCHAR(500) NULL COMMENT '提交说明'," +
+                        "proof_images TEXT NULL COMMENT '凭证图片JSON数组'," +
+                        "status TINYINT NOT NULL DEFAULT 0 COMMENT '0待审核 1审核通过 2审核驳回'," +
+                        "review_remark VARCHAR(500) NULL COMMENT '审核备注'," +
+                        "reviewed_at DATETIME NULL COMMENT '审核时间'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "KEY idx_user_task(user_id, task_code)," +
+                        "KEY idx_status(status)," +
+                        "KEY idx_task_code(task_code)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='审核型任务提交表'");
+    }
+
+    private void createUserInviteRelationTable(String db) {
+        createTableIfNotExists(db, "user_invite_relation",
+                "CREATE TABLE user_invite_relation (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "inviter_user_id BIGINT NOT NULL COMMENT '邀请人用户ID'," +
+                        "invitee_user_id BIGINT NOT NULL COMMENT '被邀请人用户ID'," +
+                        "invite_code VARCHAR(32) NOT NULL COMMENT '邀请码'," +
+                        "status TINYINT NOT NULL DEFAULT 1 COMMENT '1已注册 2已首充'," +
+                        "first_paid_at DATETIME NULL COMMENT '首次充值时间'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "UNIQUE KEY uk_invitee(invitee_user_id)," +
+                        "KEY idx_inviter(inviter_user_id)," +
+                        "KEY idx_invite_code(invite_code)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='用户邀请关系表'");
     }
 
     private void seedGiftTypes() {

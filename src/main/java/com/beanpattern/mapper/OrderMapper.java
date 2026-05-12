@@ -12,6 +12,9 @@ public interface OrderMapper {
     @Select("SELECT COUNT(*) FROM bp_order")
     int count();
 
+    @Select("SELECT COUNT(*) > 0 FROM bp_order WHERE user_id = #{userId} AND status = 'PAID'")
+    boolean existsPaidOrderByUserId(@Param("userId") Long userId);
+
     @Select("SELECT COALESCE(SUM(amount), 0) FROM bp_order WHERE DATE(created_at) = CURDATE() AND status = 'PAID'")
     BigDecimal todayIncome();
 

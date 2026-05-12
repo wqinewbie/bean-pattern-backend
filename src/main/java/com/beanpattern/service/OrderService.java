@@ -23,6 +23,7 @@ public class OrderService {
     private final VipPackageService vipPackageService;
     private final CardPackageService cardPackageService;
     private final AiQuotaLogService aiQuotaLogService;
+    private final InviteCodeService inviteCodeService;
     private final StringRedisTemplate redisTemplate;
 
     public OrderService(OrderMapper orderMapper,
@@ -30,12 +31,14 @@ public class OrderService {
                        VipPackageService vipPackageService,
                        CardPackageService cardPackageService,
                        AiQuotaLogService aiQuotaLogService,
+                       InviteCodeService inviteCodeService,
                        StringRedisTemplate redisTemplate) {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
         this.vipPackageService = vipPackageService;
         this.cardPackageService = cardPackageService;
         this.aiQuotaLogService = aiQuotaLogService;
+        this.inviteCodeService = inviteCodeService;
         this.redisTemplate = redisTemplate;
     }
 
@@ -251,6 +254,7 @@ public class OrderService {
             // 5. 同步发货
             try {
                 deliverGoods(order);
+                inviteCodeService.markInviteeFirstPaid(order.getUserId());
                 orderMapper.updateDeliverStatus(order.getId(), "SUCCESS", null);
             } catch (Exception e) {
                 // 发货失败，标记状态

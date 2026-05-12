@@ -27,6 +27,10 @@ public interface ShareVisitorMapper {
             "FROM share_visitor WHERE share_record_id = #{shareRecordId} AND visitor_openid = #{visitorOpenid}")
     ShareVisitor findByRecordAndVisitor(@Param("shareRecordId") Long shareRecordId, @Param("visitorOpenid") String visitorOpenid);
 
+    @Select("SELECT DISTINCT visitor_openid AS visitorOpenid " +
+            "FROM share_visitor WHERE share_user_id = #{shareUserId} AND is_new_user = 1")
+    List<String> findDistinctNewVisitorOpenIdsByShareUserId(@Param("shareUserId") Long shareUserId);
+
     @Insert("INSERT INTO share_visitor(share_record_id, share_user_id, visitor_openid, is_new_user, visit_at) " +
             "VALUES(#{shareRecordId}, #{shareUserId}, #{visitorOpenid}, #{isNewUser}, #{visitAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")

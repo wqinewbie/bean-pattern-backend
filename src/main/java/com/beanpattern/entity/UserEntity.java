@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class UserEntity {
     private Long id;
     private String openId;
+    private String inviteCode;
     private String unionId;
     private String nickName;
     private String avatarUrl;
@@ -33,6 +34,9 @@ public class UserEntity {
 
     public String getOpenId() { return openId; }
     public void setOpenId(String openId) { this.openId = openId; }
+
+    public String getInviteCode() { return inviteCode; }
+    public void setInviteCode(String inviteCode) { this.inviteCode = inviteCode; }
 
     public String getUnionId() { return unionId; }
     public void setUnionId(String unionId) { this.unionId = unionId; }

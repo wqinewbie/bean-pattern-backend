@@ -25,29 +25,33 @@ public class WechatAuthService {
 
     private final AppProperties appProperties;
     private final UserService userService;
+    private final InviteCodeService inviteCodeService;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private volatile String cachedAccessToken;
     private volatile long cachedAccessTokenExpireAt;
 
-    public WechatAuthService(AppProperties appProperties, UserService userService) {
+    public WechatAuthService(AppProperties appProperties, UserService userService, InviteCodeService inviteCodeService) {
         this.appProperties = appProperties;
         this.userService = userService;
+        this.inviteCodeService = inviteCodeService;
     }
 
-    public WxLoginResponse wxLogin(String code) {
+    public WxLoginResponse wxLogin(String code, String inviteCode) {
         try {
             String openId = fetchOpenIdFromWechat(code);
             if (!StringUtils.hasText(openId)) {
                 throw new IllegalStateException("无法获取微信 openid，请检查 appId/appSecret 与 code 是否有效");
             }
 
-            userService.getOrCreateByOpenId(openId);
+            UserEntity user = userService.getOrCreateByOpenId(openId);
+            String selfInviteCode = inviteCodeService.ensureInviteCode(user);
+            inviteCodeService.bindInviteRelationIfNeeded(user.getId(), inviteCode);
 
             String token = Base64.getUrlEncoder()
                     .withoutPadding()
                     .encodeToString((openId + ":" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
-            return new WxLoginResponse(token, openId);
+            return new WxLoginResponse(token, openId, selfInviteCode);
         } catch (Exception e) {
             log.warn("[wxLogin][failed] msg={}, codeLen={}", e.getMessage(), code == null ? 0 : code.length());
             throw new RuntimeException("wxLogin failed: " + e.getMessage(), e);

@@ -22,11 +22,11 @@ public class AuthController {
 
     @PostMapping({"/wx-login", "/wechat-login"})
     public ApiResponse<WxLoginResponse> wxLogin(@Valid @RequestBody WxLoginRequest request) {
-        return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode()));
+        return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode(), request.getInviteCode()));
     }
 
     @PostMapping("/login")
     public ApiResponse<WxLoginResponse> login(@Valid @RequestBody WxLoginRequest request) {
-        return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode()));
+        return ApiResponse.ok(wechatAuthService.wxLogin(request.getCode(), request.getInviteCode()));
     }
 }
