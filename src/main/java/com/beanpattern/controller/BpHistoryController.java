@@ -152,6 +152,7 @@ public class BpHistoryController {
         box.setGridSize(history.getGridSize());
         box.setMappedPixelData(history.getMappedPixelData());
         box.setSourceUrl(history.getSourceUrl());
+        box.setHistoryId(historyId);
         box.setStatus(1); // 已完成
         box.setFocusCompletedCells(0);
         box.setFocusTotalCells(Math.max(1, (history.getGridSize() == null ? 1 : history.getGridSize()) * (history.getGridSize() == null ? 1 : history.getGridSize())));

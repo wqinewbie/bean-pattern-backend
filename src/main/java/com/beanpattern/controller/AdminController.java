@@ -37,6 +37,7 @@ public class AdminController {
     private static final String MSG_CANNOT_DELETE_CURRENT = "不能删除当前登录账号";
     private static final String MSG_ONLY_DELETE_ADMIN = "仅可删除普通管理员";
     private static final String MSG_DEFAULT_ADMIN_PROTECTED = "默认管理员不可删除";
+    private static final String DEFAULT_BANNER_TITLE = "Banner图片";
 
     private final AdminMapper adminMapper;
     private final UserMapper userMapper;
@@ -328,7 +329,7 @@ public class AdminController {
     @PostMapping("/banners")
     public ApiResponse<String> createBanner(@RequestBody Map<String, Object> body) {
         BannerEntity b = new BannerEntity();
-        b.setTitle(cleanBannerText((String) body.getOrDefault("title", "")));
+        b.setTitle(defaultBannerTitle(body.get("title")));
         b.setSubTitle(cleanBannerText((String) body.getOrDefault("subTitle", "")));
         b.setImageUrl((String) body.getOrDefault("imageUrl", ""));
         b.setTagText(cleanBannerText((String) body.getOrDefault("tagText", "")));
@@ -346,7 +347,7 @@ public class AdminController {
     @PutMapping("/banners/{id}")
     public ApiResponse<String> updateBanner(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         bannerMapper.update(id,
-                cleanBannerText((String) body.getOrDefault("title", "")),
+                defaultBannerTitle(body.get("title")),
                 cleanBannerText((String) body.getOrDefault("subTitle", "")),
                 (String) body.getOrDefault("imageUrl", ""),
                 cleanBannerText((String) body.getOrDefault("tagText", "")),
@@ -363,6 +364,15 @@ public class AdminController {
     public ApiResponse<String> toggleBanner(@PathVariable Long id) {
         bannerMapper.toggleStatus(id);
         return ApiResponse.ok("ok");
+    }
+
+    private String defaultBannerTitle(Object value) {
+        String cleaned = cleanBannerText(value instanceof String ? (String) value : "");
+        return StringUtils.hasText(cleaned) ? cleaned : DEFAULT_BANNER_TITLE;
+    }
+
+    private String cleanBannerText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     // ─── 教程管理 ────────────────────────────────────────

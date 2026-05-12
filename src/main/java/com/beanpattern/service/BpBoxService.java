@@ -20,10 +20,7 @@ public class BpBoxService {
             return bpBoxMapper.update(box);
         }
 
-        if (box.getSourceType() == null || box.getSourceType().isBlank() ||
-            (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
-            box.setSourceType("LOCAL");
-        }
+        normalizeSourceType(box);
         if (box.getStatus() == null) {
             box.setStatus(1);
         }
@@ -45,10 +42,7 @@ public class BpBoxService {
     }
 
     public int insert(BpBox box) {
-        if (box.getSourceType() == null || box.getSourceType().isBlank() ||
-            (!box.getSourceType().equals("LOCAL") && !box.getSourceType().equals("AI") && !box.getSourceType().equals("DRAW"))) {
-            box.setSourceType("LOCAL");
-        }
+        normalizeSourceType(box);
         if (box.getStatus() == null) {
             box.setStatus(1);
         }
@@ -98,5 +92,16 @@ public class BpBoxService {
 
     public int countByUserId(Long userId) {
         return bpBoxMapper.countByUserId(userId);
+    }
+
+    private void normalizeSourceType(BpBox box) {
+        String sourceType = box.getSourceType();
+        if (sourceType != null) {
+            sourceType = sourceType.trim().toUpperCase();
+        }
+        if (!"LOCAL".equals(sourceType) && !"AI".equals(sourceType) && !"DRAW".equals(sourceType)) {
+            sourceType = "LOCAL";
+        }
+        box.setSourceType(sourceType);
     }
 }

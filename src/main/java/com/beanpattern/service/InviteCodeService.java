@@ -63,6 +63,36 @@ public class InviteCodeService {
     }
 
     @Transactional
+    public void bindInviteRelation(Long inviteeUserId, String inviteCode) {
+        if (inviteeUserId == null) {
+            throw new IllegalArgumentException("用户信息异常");
+        }
+        if (!StringUtils.hasText(inviteCode)) {
+            throw new IllegalArgumentException("请输入邀请码");
+        }
+        UserInviteRelation existing = userInviteRelationMapper.findByInviteeUserId(inviteeUserId);
+        if (existing != null) {
+            throw new IllegalArgumentException("你已绑定过邀请关系");
+        }
+
+        String normalizedCode = inviteCode.trim().toUpperCase(Locale.ROOT);
+        UserEntity inviter = userMapper.findByInviteCode(normalizedCode);
+        if (inviter == null || inviter.getId() == null) {
+            throw new IllegalArgumentException("邀请码不存在");
+        }
+        if (inviter.getId().equals(inviteeUserId)) {
+            throw new IllegalArgumentException("不能填写自己的邀请码");
+        }
+
+        UserInviteRelation relation = new UserInviteRelation();
+        relation.setInviterUserId(inviter.getId());
+        relation.setInviteeUserId(inviteeUserId);
+        relation.setInviteCode(normalizedCode);
+        relation.setStatus(1);
+        userInviteRelationMapper.insert(relation);
+    }
+
+    @Transactional
     public void markInviteeFirstPaid(Long inviteeUserId) {
         UserInviteRelation relation = userInviteRelationMapper.findByInviteeUserId(inviteeUserId);
         if (relation == null || relation.getFirstPaidAt() != null) return;
