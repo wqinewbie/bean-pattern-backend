@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 任务服务。
+ * 浠诲姟鏈嶅姟銆?
  *
- * 重新定位为任务中心聚合层：
- * - 任务展示状态由 TaskHandler 按业务能力计算
- * - 通用进度型任务仍兼容旧的 bp_task_config + user_task_progress 模型
- * - 签到等独立玩法通过 handler 聚合进任务中心展示
+ * 閲嶆柊瀹氫綅涓轰换鍔′腑蹇冭仛鍚堝眰锛?
+ * - 浠诲姟灞曠ず鐘舵€佺敱 TaskHandler 鎸変笟鍔¤兘鍔涜绠?
+ * - 閫氱敤杩涘害鍨嬩换鍔′粛鍏煎鏃х殑 bp_task_config + user_task_progress 妯″瀷
+ * - 绛惧埌绛夌嫭绔嬬帺娉曢€氳繃 handler 鑱氬悎杩涗换鍔′腑蹇冨睍绀?
  */
 @Service
 public class TaskService {
@@ -66,14 +66,14 @@ public class TaskService {
     }
 
     /**
-     * 获取所有启用的任务配置。
+     * 鑾峰彇鎵€鏈夊惎鐢ㄧ殑浠诲姟閰嶇疆銆?
      */
     public List<TaskConfig> getAllActiveTasks() {
         return taskConfigMapper.findAllActive();
     }
 
     /**
-     * 获取任务中心聚合列表。
+     * 鑾峰彇浠诲姟涓績鑱氬悎鍒楄〃銆?
      */
     public List<TaskCenterItem> getTaskCenterItems(Long userId) {
         return getAllActiveTasks().stream()
@@ -83,15 +83,15 @@ public class TaskService {
     }
 
     /**
-     * 获取用户任务进度。
-     * 仅返回仍然使用旧 progress 模型的任务进度，供兼容接口使用。
+     * 鑾峰彇鐢ㄦ埛浠诲姟杩涘害銆?
+     * 浠呰繑鍥炰粛鐒朵娇鐢ㄦ棫 progress 妯″瀷鐨勪换鍔¤繘搴︼紝渚涘吋瀹规帴鍙ｄ娇鐢ㄣ€?
      */
     public List<UserTaskProgress> getUserTaskProgress(Long userId) {
         return userTaskProgressMapper.findByUserId(userId);
     }
 
     /**
-     * 获取用户任务进度Map（taskCode -> progress）。
+     * 鑾峰彇鐢ㄦ埛浠诲姟杩涘害Map锛坱askCode -> progress锛夈€?
      */
     public Map<String, UserTaskProgress> getUserTaskProgressMap(Long userId) {
         List<UserTaskProgress> list = userTaskProgressMapper.findByUserId(userId);
@@ -103,17 +103,17 @@ public class TaskService {
     }
 
     /**
-     * 增加任务进度。
-     * 当前只允许通用进度型任务走该入口，避免把签到等独立玩法再次塞回统一逻辑。
+     * 澧炲姞浠诲姟杩涘害銆?
+     * 褰撳墠鍙厑璁搁€氱敤杩涘害鍨嬩换鍔¤蛋璇ュ叆鍙ｏ紝閬垮厤鎶婄鍒扮瓑鐙珛鐜╂硶鍐嶆濉炲洖缁熶竴閫昏緫銆?
      */
     @Transactional
     public UserTaskProgress incrementTaskProgress(Long userId, String taskCode) {
         TaskConfig config = taskConfigMapper.findByCode(taskCode);
         if (config == null) {
-            throw new IllegalArgumentException("任务不存在: " + taskCode);
+            throw new IllegalArgumentException("浠诲姟涓嶅瓨鍦? " + taskCode);
         }
         if (!isGenericProgressTask(config)) {
-            throw new IllegalArgumentException("该任务不支持通过统一进度接口完成，请走对应业务接口");
+            throw new IllegalArgumentException("璇ヤ换鍔′笉鏀寔閫氳繃缁熶竴杩涘害鎺ュ彛瀹屾垚锛岃璧板搴斾笟鍔℃帴鍙?);
         }
 
         int targetCount = readExtraInt(config, "targetCount", 1);
@@ -161,28 +161,28 @@ public class TaskService {
     }
 
     /**
-     * 领取任务奖励。
-     * 目前仍兼容通用进度型任务的领取逻辑。
+     * 棰嗗彇浠诲姟濂栧姳銆?
+     * 鐩墠浠嶅吋瀹归€氱敤杩涘害鍨嬩换鍔＄殑棰嗗彇閫昏緫銆?
      */
     @Transactional
     public UserGift claimTaskReward(Long userId, Long progressId) {
         UserTaskProgress progress = userTaskProgressMapper.findById(progressId);
         if (progress == null) {
-            throw new IllegalArgumentException("任务进度不存在");
+            throw new IllegalArgumentException("浠诲姟杩涘害涓嶅瓨鍦?);
         }
         if (!progress.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("无权操作");
+            throw new IllegalArgumentException("鏃犳潈鎿嶄綔");
         }
         if (progress.getStatus() != 1) {
-            throw new IllegalArgumentException("任务未完成或已领取");
+            throw new IllegalArgumentException("浠诲姟鏈畬鎴愭垨宸查鍙?);
         }
 
         TaskConfig config = taskConfigMapper.findByCode(progress.getTaskCode());
         if (config == null) {
-            throw new IllegalArgumentException("任务配置不存在");
+            throw new IllegalArgumentException("浠诲姟閰嶇疆涓嶅瓨鍦?);
         }
         if (!isGenericProgressTask(config)) {
-            throw new IllegalArgumentException("该任务奖励需通过对应业务接口领取");
+            throw new IllegalArgumentException("璇ヤ换鍔″鍔遍渶閫氳繃瀵瑰簲涓氬姟鎺ュ彛棰嗗彇");
         }
 
         userTaskProgressMapper.claim(progressId);
@@ -190,13 +190,13 @@ public class TaskService {
     }
 
     /**
-     * 领取资格型礼包。
+     * 棰嗗彇璧勬牸鍨嬬ぜ鍖呫€?
      */
     @Transactional
     public UserGift claimBenefitGift(Long userId, String taskCode) {
         TaskConfig config = taskConfigMapper.findByCode(taskCode);
         if (config == null) {
-            throw new IllegalArgumentException("任务配置不存在");
+            throw new IllegalArgumentException("浠诲姟閰嶇疆涓嶅瓨鍦?);
         }
         String handlerType = readExtraText(config, "handlerType", "");
         if ("FIRST_RECHARGE_GIFT".equals(handlerType)
@@ -218,41 +218,43 @@ public class TaskService {
                 || "invite_recharge".equals(config.getTaskCode())) {
             return claimInviteRechargeGift(userId, config);
         }
-        throw new IllegalArgumentException("该任务不是可领取的资格礼包");
+        throw new IllegalArgumentException("璇ヤ换鍔′笉鏄彲棰嗗彇鐨勮祫鏍肩ぜ鍖?);
     }
 
     private UserGift claimFirstRechargeGift(Long userId, TaskConfig config) {
         boolean hasPaidOrder = orderMapper.listByUserId(userId).stream()
                 .anyMatch(order -> "PAID".equalsIgnoreCase(order.getStatus()));
         if (!hasPaidOrder) {
-            throw new IllegalStateException("完成首次充值后才可领取");
+            throw new IllegalStateException("瀹屾垚棣栨鍏呭€煎悗鎵嶅彲棰嗗彇");
         }
-        return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "首冲礼包已领取");
+        return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "棣栧啿绀煎寘宸查鍙?);
     }
 
     private UserGift claimRegisterGift(Long userId, TaskConfig config) {
         if (userMapper.findById(userId) == null) {
-            throw new IllegalStateException("注册后才可领取");
+            throw new IllegalStateException("娉ㄥ唽鍚庢墠鍙鍙?);
         }
-        return claimPackageGift(userId, config, "REGISTER_GIFT", "注册礼包已领取");
-    }
-
-    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
+        return claimPackageGift(userId, config, "REGISTER_GIFT", "娉ㄥ唽绀煎寘宸查鍙?);
+    }    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = countInviteRegister(userId);
-        if (currentCount < targetCount) {
+        int availableRounds = currentCount / targetCount;
+        int claimedRounds = countClaimedRounds(userId, "INVITE_REGISTER_GIFT", config);
+        if (availableRounds <= claimedRounds) {
             throw new IllegalStateException("邀请注册人数未达标");
         }
-        return claimPackageGift(userId, config, "INVITE_REGISTER_GIFT", "邀请注册礼包已领取");
+        return claimPackageGift(userId, config, "INVITE_REGISTER_GIFT", null);
     }
 
     private UserGift claimInviteRechargeGift(Long userId, TaskConfig config) {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = countInviteRecharge(userId);
-        if (currentCount < targetCount) {
+        int availableRounds = currentCount / targetCount;
+        int claimedRounds = countClaimedRounds(userId, "INVITE_RECHARGE_GIFT", config);
+        if (availableRounds <= claimedRounds) {
             throw new IllegalStateException("邀请首充人数未达标");
         }
-        return claimPackageGift(userId, config, "INVITE_RECHARGE_GIFT", "邀请充值礼包已领取");
+        return claimPackageGift(userId, config, "INVITE_RECHARGE_GIFT", null);
     }
 
     private UserGift claimPackageGift(Long userId, TaskConfig config, String sourcePrefix, String duplicateMessage) {
@@ -260,13 +262,21 @@ public class TaskService {
         if (!StringUtils.hasText(packageCode)) {
             throw new IllegalArgumentException("未配置礼包 giftPackageCode");
         }
-        String source = sourcePrefix + ":" + packageCode;
-        boolean claimed = userGiftMapper.findByUserId(userId).stream()
-                .anyMatch(gift -> source.equals(gift.getSource()));
-        if (claimed) {
+        String sourcePrefixWithCode = sourcePrefix + ":" + packageCode + ":";
+        int claimedRounds = userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefixWithCode);
+        if (StringUtils.hasText(duplicateMessage) && claimedRounds > 0) {
             throw new IllegalStateException(duplicateMessage);
         }
+        String source = sourcePrefixWithCode + (claimedRounds + 1);
         return giftPackageService.grantPackageToUser(userId, packageCode, source);
+    }
+
+    private int countClaimedRounds(Long userId, String sourcePrefix, TaskConfig config) {
+        String packageCode = readExtraText(config, "giftPackageCode", "");
+        if (!StringUtils.hasText(packageCode)) {
+            return 0;
+        }
+        return userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix + ":" + packageCode + ":");
     }
 
     private int countInviteRegister(Long userId) {
@@ -278,7 +288,7 @@ public class TaskService {
     }
 
     /**
-     * 发放奖励。
+     * 鍙戞斁濂栧姳銆?
      */
     @Transactional
     public UserGift grantReward(Long userId, String rewardType, Integer rewardValue,
@@ -294,23 +304,23 @@ public class TaskService {
         switch (rewardType) {
             case "VIP_DAYS" -> {
                 gift.setGiftCode("VIP_DAYS_" + rewardValue);
-                gift.setGiftName(rewardValue + "天VIP会员");
+                gift.setGiftName(rewardValue + "澶￢IP浼氬憳");
                 gift.setGiftCategory("VIP_DAYS");
                 userMapper.addVipDays(userId, rewardValue);
             }
             case "AI_COUNT", "AI_QUOTA" -> {
                 gift.setGiftCode("AI_COUNT_" + rewardValue);
-                gift.setGiftName(rewardValue + "次AI生成");
+                gift.setGiftName(rewardValue + "娆I鐢熸垚");
                 gift.setGiftCategory("AI_COUNT");
                 userMapper.addAiQuota(userId, rewardValue);
             }
             case "COUPON" -> {
                 gift.setGiftCode("COUPON_" + rewardValue);
-                gift.setGiftName(rewardValue + "元优惠券");
+                gift.setGiftName(rewardValue + "鍏冧紭鎯犲埜");
                 gift.setGiftCategory("COUPON");
                 gift.setExpireAt(LocalDateTime.now().plusDays(30));
             }
-            default -> throw new IllegalArgumentException("未知奖励类型: " + rewardType);
+            default -> throw new IllegalArgumentException("鏈煡濂栧姳绫诲瀷: " + rewardType);
         }
 
         userGiftMapper.insert(gift);
@@ -321,7 +331,7 @@ public class TaskService {
         return taskHandlers.stream()
                 .filter(handler -> handler.supports(config))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("未找到任务处理器: " + config.getTaskCode()));
+                .orElseThrow(() -> new IllegalStateException("鏈壘鍒颁换鍔″鐞嗗櫒: " + config.getTaskCode()));
     }
 
     private boolean isGenericProgressTask(TaskConfig config) {
@@ -354,7 +364,7 @@ public class TaskService {
     }
 
     /**
-     * 获取周期开始日期。
+     * 鑾峰彇鍛ㄦ湡寮€濮嬫棩鏈熴€?
      */
     private LocalDate getPeriodStart(String taskType) {
         LocalDate now = LocalDate.now();

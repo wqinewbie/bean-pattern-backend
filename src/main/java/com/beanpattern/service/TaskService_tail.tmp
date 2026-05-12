@@ -1,0 +1,161 @@
+        throw new IllegalArgumentException("该任务不是可领取的资格礼包");
+    }
+
+    private UserGift claimFirstRechargeGift(Long userId, TaskConfig config) {
+        boolean hasPaidOrder = orderMapper.listByUserId(userId).stream()
+                .anyMatch(order -> "PAID".equalsIgnoreCase(order.getStatus()));
+        if (!hasPaidOrder) {
+            throw new IllegalStateException("完成首次充值后才可领取");
+        }
+        return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "首冲礼包已领取");
+    }
+
+    private UserGift claimRegisterGift(Long userId, TaskConfig config) {
+        if (userMapper.findById(userId) == null) {
+            throw new IllegalStateException("注册后才可领取");
+        }
+        return claimPackageGift(userId, config, "REGISTER_GIFT", "注册礼包已领取");
+    }
+
+    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
+        int targetCount = readExtraInt(config, "targetCount", 1);
+        int currentCount = countInviteRegister(userId);
+        int availableRounds = currentCount / targetCount;
+        int claimedRounds = countClaimedRounds(userId, "INVITE_REGISTER_GIFT", config);
+        if (availableRounds <= claimedRounds) {
+            throw new IllegalStateException("邀请注册人数未达标");
+        }
+        return claimPackageGift(userId, config, "INVITE_REGISTER_GIFT", null);
+    }
+
+    private UserGift claimInviteRechargeGift(Long userId, TaskConfig config) {
+        int targetCount = readExtraInt(config, "targetCount", 1);
+        int currentCount = countInviteRecharge(userId);
+        int availableRounds = currentCount / targetCount;
+        int claimedRounds = countClaimedRounds(userId, "INVITE_RECHARGE_GIFT", config);
+        if (availableRounds <= claimedRounds) {
+            throw new IllegalStateException("邀请首充人数未达标");
+        }
+        return claimPackageGift(userId, config, "INVITE_RECHARGE_GIFT", null);
+    }
+
+    private UserGift claimPackageGift(Long userId, TaskConfig config, String sourcePrefix, String duplicateMessage) {
+        String packageCode = readExtraText(config, "giftPackageCode", "");
+        if (!StringUtils.hasText(packageCode)) {
+            throw new IllegalArgumentException("未配置礼包 giftPackageCode");
+        }
+        String sourcePrefixWithCode = sourcePrefix + ":" + packageCode + ":";
+        int claimedRounds = userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefixWithCode);
+        if (StringUtils.hasText(duplicateMessage) && claimedRounds > 0) {
+            throw new IllegalStateException(duplicateMessage);
+        }
+        String source = sourcePrefixWithCode + (claimedRounds + 1);
+        return giftPackageService.grantPackageToUser(userId, packageCode, source);
+    }
+
+    private int countClaimedRounds(Long userId, String sourcePrefix, TaskConfig config) {
+        String packageCode = readExtraText(config, "giftPackageCode", "");
+        if (!StringUtils.hasText(packageCode)) {
+            return 0;
+        }
+        return userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix + ":" + packageCode + ":");
+    }
+
+    private int countInviteRegister(Long userId) {
+        return inviteCodeService.countInvitedRegistered(userId);
+    }
+
+    private int countInviteRecharge(Long userId) {
+        return inviteCodeService.countInvitedPaid(userId);
+    }
+
+    /**
+     * 发放奖励。
+     */
+    @Transactional
+    public UserGift grantReward(Long userId, String rewardType, Integer rewardValue,
+                                String source, Long taskId, Long shareRecordId, Long orderId) {
+        UserGift gift = new UserGift();
+        gift.setUserId(userId);
+        gift.setTaskId(taskId);
+        gift.setShareRecordId(shareRecordId);
+        gift.setOrderId(orderId);
+        gift.setSource(source);
+        gift.setValue(rewardValue);
+
+        switch (rewardType) {
+            case "VIP_DAYS" -> {
+                gift.setGiftCode("VIP_DAYS_" + rewardValue);
+                gift.setGiftName(rewardValue + "天VIP会员");
+                gift.setGiftCategory("VIP_DAYS");
+                userMapper.addVipDays(userId, rewardValue);
+            }
+            case "AI_COUNT", "AI_QUOTA" -> {
+                gift.setGiftCode("AI_COUNT_" + rewardValue);
+                gift.setGiftName(rewardValue + "次AI生成");
+                gift.setGiftCategory("AI_COUNT");
+                userMapper.addAiQuota(userId, rewardValue);
+            }
+            case "COUPON" -> {
+                gift.setGiftCode("COUPON_" + rewardValue);
+                gift.setGiftName(rewardValue + "元优惠券");
+                gift.setGiftCategory("COUPON");
+                gift.setExpireAt(LocalDateTime.now().plusDays(30));
+            }
+            default -> throw new IllegalArgumentException("未知奖励类型: " + rewardType);
+        }
+
+        userGiftMapper.insert(gift);
+        return gift;
+    }
+
+    private TaskHandler resolveHandler(TaskConfig config) {
+        return taskHandlers.stream()
+                .filter(handler -> handler.supports(config))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("未找到任务处理器: " + config.getTaskCode()));
+    }
+
+    private boolean isGenericProgressTask(TaskConfig config) {
+        String handlerType = readExtraText(config, "handlerType", "GENERIC_PROGRESS");
+        return "GENERIC_PROGRESS".equals(handlerType) || "EVENT_TASK".equals(handlerType);
+    }
+
+    private int readExtraInt(TaskConfig config, String field, int defaultValue) {
+        JsonNode value = readExtraNode(config, field);
+        return value == null || value.isNull() ? defaultValue : value.asInt(defaultValue);
+    }
+
+    private String readExtraText(TaskConfig config, String field, String defaultValue) {
+        JsonNode value = readExtraNode(config, field);
+        return value == null || value.isNull() ? defaultValue : value.asText(defaultValue);
+    }
+
+    private JsonNode readExtraNode(TaskConfig config, String field) {
+        if (config == null || !StringUtils.hasText(config.getExtraConfig())) return null;
+        try {
+            JsonNode root = objectMapper.readTree(config.getExtraConfig());
+            return root.get(field);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    /**
+     * 获取周期开始日期。
+     */
+    private LocalDate getPeriodStart(String taskType) {
+        LocalDate now = LocalDate.now();
+        if (taskType == null) return now;
+        return switch (taskType) {
+            case "DAILY" -> now;
+            case "WEEKLY" -> now.minusDays(now.getDayOfWeek().getValue() - 1L);
+            case "ONCE", "SHARE" -> null;
+            default -> now;
+        };
+    }
+}

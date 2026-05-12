@@ -2,7 +2,6 @@ package com.beanpattern.service.task;
 
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.service.InviteCodeService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,18 +36,16 @@ public class InviteRechargeTaskHandler implements TaskHandler {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = inviteCodeService.countInvitedPaid(userId);
         String packageCode = readExtraText(config, "giftPackageCode", "");
-        boolean claimed = hasClaimed(userId, packageCode);
+        int claimedRounds = countClaimedRounds(userId, packageCode);
+        int availableRounds = targetCount > 0 ? currentCount / targetCount : 0;
+        int pendingRounds = Math.max(availableRounds - claimedRounds, 0);
+        int nextTarget = (claimedRounds + 1) * targetCount;
+        int nextNeed = Math.max(nextTarget - currentCount, 0);
 
-        int status;
-        if (claimed) status = 2;
-        else if (currentCount >= targetCount) status = 1;
-        else status = 0;
-
-        String progressText = claimed
-                ? "已领取邀请充值礼包"
-                : currentCount >= targetCount
-                    ? "已达标，可领取礼包"
-                    : "已邀请首充 " + currentCount + "/" + targetCount + " 人";
+        int status = pendingRounds > 0 ? 1 : 0;
+        String progressText = pendingRounds > 0
+                ? "已达标，可领取第" + (claimedRounds + 1) + "份礼包"
+                : "已邀请首充 " + currentCount + " 人，还差 " + nextNeed + " 人可再领";
 
         return TaskCenterItem.builder()
                 .taskId(config.getId())
@@ -67,17 +64,14 @@ public class InviteRechargeTaskHandler implements TaskHandler {
                 .currentCount(currentCount)
                 .targetCount(targetCount)
                 .progressId(null)
-                .done(claimed)
-                .canClaim(currentCount >= targetCount && !claimed)
+                .done(false)
+                .canClaim(pendingRounds > 0)
                 .build();
     }
 
-    private boolean hasClaimed(Long userId, String packageCode) {
-        if (!StringUtils.hasText(packageCode)) return false;
-        return userGiftMapper.findByUserId(userId).stream()
-                .map(UserGift::getSource)
-                .filter(StringUtils::hasText)
-                .anyMatch(source -> source.equals(CLAIM_SOURCE_PREFIX + packageCode));
+    private int countClaimedRounds(Long userId, String packageCode) {
+        if (!StringUtils.hasText(packageCode)) return 0;
+        return userGiftMapper.countByUserIdAndSourcePrefix(userId, CLAIM_SOURCE_PREFIX + packageCode + ":");
     }
 
     private int readExtraInt(TaskConfig config, String field, int defaultValue) {

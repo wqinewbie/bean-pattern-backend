@@ -45,6 +45,9 @@ public interface UserGiftMapper {
     @Update("UPDATE user_gift SET status = 2, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int expire(@Param("id") Long id);
     
+    @Select("SELECT COUNT(1) FROM user_gift WHERE user_id = #{userId} AND source LIKE CONCAT(#{sourcePrefix}, '%')")
+    int countByUserIdAndSourcePrefix(@Param("userId") Long userId, @Param("sourcePrefix") String sourcePrefix);
+
     @Select("SELECT id, user_id AS userId, gift_item_id AS giftItemId, gift_code AS giftCode, gift_name AS giftName, " +
             "gift_category AS giftCategory, value, source, task_id AS taskId, share_record_id AS shareRecordId, " +
             "order_id AS orderId, used_at AS usedAt, expire_at AS expireAt, status, " +
