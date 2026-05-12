@@ -113,7 +113,7 @@ public class TaskService {
             throw new IllegalArgumentException("浠诲姟涓嶅瓨鍦? " + taskCode);
         }
         if (!isGenericProgressTask(config)) {
-            throw new IllegalArgumentException("璇ヤ换鍔′笉鏀寔閫氳繃缁熶竴杩涘害鎺ュ彛瀹屾垚锛岃璧板搴斾笟鍔℃帴鍙?);
+            throw new IllegalArgumentException("Task does not support generic progress completion");
         }
 
         int targetCount = readExtraInt(config, "targetCount", 1);
@@ -168,18 +168,18 @@ public class TaskService {
     public UserGift claimTaskReward(Long userId, Long progressId) {
         UserTaskProgress progress = userTaskProgressMapper.findById(progressId);
         if (progress == null) {
-            throw new IllegalArgumentException("浠诲姟杩涘害涓嶅瓨鍦?);
+            throw new IllegalArgumentException("Task progress not found");
         }
         if (!progress.getUserId().equals(userId)) {
             throw new IllegalArgumentException("鏃犳潈鎿嶄綔");
         }
         if (progress.getStatus() != 1) {
-            throw new IllegalArgumentException("浠诲姟鏈畬鎴愭垨宸查鍙?);
+            throw new IllegalArgumentException("Task is not completed or already claimed");
         }
 
         TaskConfig config = taskConfigMapper.findByCode(progress.getTaskCode());
         if (config == null) {
-            throw new IllegalArgumentException("浠诲姟閰嶇疆涓嶅瓨鍦?);
+            throw new IllegalArgumentException("Task config not found");
         }
         if (!isGenericProgressTask(config)) {
             throw new IllegalArgumentException("璇ヤ换鍔″鍔遍渶閫氳繃瀵瑰簲涓氬姟鎺ュ彛棰嗗彇");
@@ -196,7 +196,7 @@ public class TaskService {
     public UserGift claimBenefitGift(Long userId, String taskCode) {
         TaskConfig config = taskConfigMapper.findByCode(taskCode);
         if (config == null) {
-            throw new IllegalArgumentException("浠诲姟閰嶇疆涓嶅瓨鍦?);
+            throw new IllegalArgumentException("Task config not found");
         }
         String handlerType = readExtraText(config, "handlerType", "");
         if ("FIRST_RECHARGE_GIFT".equals(handlerType)
@@ -218,24 +218,26 @@ public class TaskService {
                 || "invite_recharge".equals(config.getTaskCode())) {
             return claimInviteRechargeGift(userId, config);
         }
-        throw new IllegalArgumentException("璇ヤ换鍔′笉鏄彲棰嗗彇鐨勮祫鏍肩ぜ鍖?);
+        throw new IllegalArgumentException("Task benefit is not claimable");
     }
 
     private UserGift claimFirstRechargeGift(Long userId, TaskConfig config) {
         boolean hasPaidOrder = orderMapper.listByUserId(userId).stream()
                 .anyMatch(order -> "PAID".equalsIgnoreCase(order.getStatus()));
         if (!hasPaidOrder) {
-            throw new IllegalStateException("瀹屾垚棣栨鍏呭€煎悗鎵嶅彲棰嗗彇");
+            throw new IllegalStateException("Complete first recharge before claiming");
         }
-        return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "棣栧啿绀煎寘宸查鍙?);
+        return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "First recharge gift already claimed");
     }
 
     private UserGift claimRegisterGift(Long userId, TaskConfig config) {
         if (userMapper.findById(userId) == null) {
-            throw new IllegalStateException("娉ㄥ唽鍚庢墠鍙鍙?);
+            throw new IllegalStateException("Register before claiming");
         }
-        return claimPackageGift(userId, config, "REGISTER_GIFT", "娉ㄥ唽绀煎寘宸查鍙?);
-    }    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
+        return claimPackageGift(userId, config, "REGISTER_GIFT", "Register gift already claimed");
+    }
+
+    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = countInviteRegister(userId);
         int availableRounds = currentCount / targetCount;
@@ -304,13 +306,13 @@ public class TaskService {
         switch (rewardType) {
             case "VIP_DAYS" -> {
                 gift.setGiftCode("VIP_DAYS_" + rewardValue);
-                gift.setGiftName(rewardValue + "澶￢IP浼氬憳");
+                gift.setGiftName(rewardValue + " VIP days");
                 gift.setGiftCategory("VIP_DAYS");
                 userMapper.addVipDays(userId, rewardValue);
             }
             case "AI_COUNT", "AI_QUOTA" -> {
                 gift.setGiftCode("AI_COUNT_" + rewardValue);
-                gift.setGiftName(rewardValue + "娆I鐢熸垚");
+                gift.setGiftName(rewardValue + " AI quota");
                 gift.setGiftCategory("AI_COUNT");
                 userMapper.addAiQuota(userId, rewardValue);
             }
