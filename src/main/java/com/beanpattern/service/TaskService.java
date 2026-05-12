@@ -40,6 +40,7 @@ public class TaskService {
     private final OrderMapper orderMapper;
     private final GiftPackageService giftPackageService;
     private final InviteCodeService inviteCodeService;
+    private final TaskRewardService taskRewardService;
     private final List<TaskHandler> taskHandlers;
     private final ObjectMapper objectMapper;
 
@@ -50,6 +51,7 @@ public class TaskService {
                        OrderMapper orderMapper,
                        GiftPackageService giftPackageService,
                        InviteCodeService inviteCodeService,
+                       TaskRewardService taskRewardService,
                        List<TaskHandler> taskHandlers) {
         this.taskConfigMapper = taskConfigMapper;
         this.userTaskProgressMapper = userTaskProgressMapper;
@@ -58,6 +60,7 @@ public class TaskService {
         this.orderMapper = orderMapper;
         this.giftPackageService = giftPackageService;
         this.inviteCodeService = inviteCodeService;
+        this.taskRewardService = taskRewardService;
         this.taskHandlers = taskHandlers;
         this.objectMapper = new ObjectMapper();
     }
@@ -183,7 +186,7 @@ public class TaskService {
         }
 
         userTaskProgressMapper.claim(progressId);
-        return grantReward(userId, config.getRewardType(), config.getRewardValue(), "TASK", progress.getTaskId(), null, null);
+        return taskRewardService.grantReward(userId, config.getRewardType(), config.getRewardValue(), "TASK", progress.getTaskId(), null, null);
     }
 
     /**

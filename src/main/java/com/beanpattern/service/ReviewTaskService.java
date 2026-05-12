@@ -19,14 +19,14 @@ public class ReviewTaskService {
 
     private final ReviewTaskSubmissionMapper reviewTaskSubmissionMapper;
     private final TaskConfigMapper taskConfigMapper;
-    private final TaskService taskService;
+    private final TaskRewardService taskRewardService;
 
     public ReviewTaskService(ReviewTaskSubmissionMapper reviewTaskSubmissionMapper,
                              TaskConfigMapper taskConfigMapper,
-                             TaskService taskService) {
+                             TaskRewardService taskRewardService) {
         this.reviewTaskSubmissionMapper = reviewTaskSubmissionMapper;
         this.taskConfigMapper = taskConfigMapper;
-        this.taskService = taskService;
+        this.taskRewardService = taskRewardService;
     }
 
     public ReviewTaskSubmission getLatestSubmission(Long userId, String taskCode) {
@@ -80,7 +80,7 @@ public class ReviewTaskService {
         if (status == 1) {
             TaskConfig config = taskConfigMapper.findByCode(submission.getTaskCode());
             if (config != null) {
-                taskService.grantReward(submission.getUserId(), config.getRewardType(), config.getRewardValue(), "REVIEW_TASK", config.getId(), null, null);
+                taskRewardService.grantReward(submission.getUserId(), config.getRewardType(), config.getRewardValue(), "REVIEW_TASK", config.getId(), null, null);
             }
         }
         return reviewTaskSubmissionMapper.findById(submissionId);
