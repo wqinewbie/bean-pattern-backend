@@ -170,7 +170,7 @@ public class GiftPackageService {
         gift.setGiftItemId(giftPackage.getId());
         gift.setGiftCode(GIFT_PACKAGE_CODE);
         gift.setGiftName(giftPackage.getName());
-        gift.setGiftCategory("PACKAGE");
+        gift.setGiftCategory("COUPON");
         gift.setValue(1);
         gift.setSource(source);
         gift.setExpireAt(LocalDateTime.now().plusDays(DEFAULT_PACKAGE_EXPIRE_DAYS));
