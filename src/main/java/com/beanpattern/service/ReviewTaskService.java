@@ -57,7 +57,6 @@ public class ReviewTaskService {
 
         ReviewTaskSubmission submission = new ReviewTaskSubmission();
         submission.setUserId(userId);
-        submission.setTaskId(config.getId());
         submission.setTaskCode(taskCode);
         submission.setSubmissionText(submissionText);
         submission.setProofImages(proofImages);

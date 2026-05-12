@@ -16,27 +16,25 @@ import java.util.List;
 @Mapper
 public interface ReviewTaskSubmissionMapper {
 
-    @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
+    String BASE_COLUMNS = "id, user_id AS userId, task_code AS taskCode, " +
             "submission_text AS submissionText, proof_images AS proofImages, status, " +
-            "review_remark AS reviewRemark, reviewed_at AS reviewedAt, created_at AS createdAt, updated_at AS updatedAt " +
+            "review_remark AS reviewRemark, reviewed_at AS reviewedAt, created_at AS createdAt, updated_at AS updatedAt";
+
+    @Select("SELECT " + BASE_COLUMNS + " " +
             "FROM review_task_submission WHERE user_id = #{userId} AND task_code = #{taskCode} " +
             "ORDER BY created_at DESC LIMIT 1")
     ReviewTaskSubmission findLatestByUserAndTask(@Param("userId") Long userId, @Param("taskCode") String taskCode);
 
-    @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
-            "submission_text AS submissionText, proof_images AS proofImages, status, " +
-            "review_remark AS reviewRemark, reviewed_at AS reviewedAt, created_at AS createdAt, updated_at AS updatedAt " +
+    @Select("SELECT " + BASE_COLUMNS + " " +
             "FROM review_task_submission WHERE id = #{id}")
     ReviewTaskSubmission findById(@Param("id") Long id);
 
-    @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
-            "submission_text AS submissionText, proof_images AS proofImages, status, " +
-            "review_remark AS reviewRemark, reviewed_at AS reviewedAt, created_at AS createdAt, updated_at AS updatedAt " +
+    @Select("SELECT " + BASE_COLUMNS + " " +
             "FROM review_task_submission ORDER BY created_at DESC LIMIT #{limit}")
     List<ReviewTaskSubmission> listLatest(@Param("limit") int limit);
 
-    @Insert("INSERT INTO review_task_submission(user_id, task_id, task_code, submission_text, proof_images, status) " +
-            "VALUES(#{userId}, #{taskId}, #{taskCode}, #{submissionText}, #{proofImages}, #{status})")
+    @Insert("INSERT INTO review_task_submission(user_id, task_code, submission_text, proof_images, status) " +
+            "VALUES(#{userId}, #{taskCode}, #{submissionText}, #{proofImages}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ReviewTaskSubmission submission);
 

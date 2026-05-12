@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 public class ReviewTaskSubmission {
     private Long id;
     private Long userId;
-    private Long taskId;
     private String taskCode;
     private String submissionText;
     private String proofImages;
@@ -22,8 +21,6 @@ public class ReviewTaskSubmission {
     public void setId(Long id) { this.id = id; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
-    public Long getTaskId() { return taskId; }
-    public void setTaskId(Long taskId) { this.taskId = taskId; }
     public String getTaskCode() { return taskCode; }
     public void setTaskCode(String taskCode) { this.taskCode = taskCode; }
     public String getSubmissionText() { return submissionText; }
