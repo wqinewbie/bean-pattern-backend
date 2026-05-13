@@ -1,4 +1,4 @@
-package com.beanpattern.service;
+﻿package com.beanpattern.service;
 
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
@@ -287,46 +287,6 @@ public class TaskService {
 
     private int countInviteRecharge(Long userId) {
         return inviteCodeService.countInvitedPaid(userId);
-    }
-
-    /**
-     * 鍙戞斁濂栧姳銆?
-     */
-    @Transactional
-    public UserGift grantReward(Long userId, String rewardType, Integer rewardValue,
-                                String source, Long taskId, Long shareRecordId, Long orderId) {
-        UserGift gift = new UserGift();
-        gift.setUserId(userId);
-        gift.setTaskId(taskId);
-        gift.setShareRecordId(shareRecordId);
-        gift.setOrderId(orderId);
-        gift.setSource(source);
-        gift.setValue(rewardValue);
-
-        switch (rewardType) {
-            case "VIP_DAYS" -> {
-                gift.setGiftCode("VIP_DAYS_" + rewardValue);
-                gift.setGiftName(rewardValue + " VIP days");
-                gift.setGiftCategory("VIP_DAYS");
-                userMapper.addVipDays(userId, rewardValue);
-            }
-            case "AI_COUNT", "AI_QUOTA" -> {
-                gift.setGiftCode("AI_COUNT_" + rewardValue);
-                gift.setGiftName(rewardValue + " AI quota");
-                gift.setGiftCategory("AI_COUNT");
-                userMapper.addAiQuota(userId, rewardValue);
-            }
-            case "COUPON" -> {
-                gift.setGiftCode("COUPON_" + rewardValue);
-                gift.setGiftName(rewardValue + "鍏冧紭鎯犲埜");
-                gift.setGiftCategory("COUPON");
-                gift.setExpireAt(LocalDateTime.now().plusDays(30));
-            }
-            default -> throw new IllegalArgumentException("鏈煡濂栧姳绫诲瀷: " + rewardType);
-        }
-
-        userGiftMapper.insert(gift);
-        return gift;
     }
 
     private TaskHandler resolveHandler(TaskConfig config) {
