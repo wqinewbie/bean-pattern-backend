@@ -23,16 +23,16 @@ public class ShareService {
     private final ShareRecordMapper shareRecordMapper;
     private final ShareVisitorMapper shareVisitorMapper;
     private final UserMapper userMapper;
-    private final TaskService taskService;
+    private final TaskRewardService taskRewardService;
 
     public ShareService(ShareRecordMapper shareRecordMapper,
                        ShareVisitorMapper shareVisitorMapper,
                        UserMapper userMapper,
-                       TaskService taskService) {
+                       TaskRewardService taskRewardService) {
         this.shareRecordMapper = shareRecordMapper;
         this.shareVisitorMapper = shareVisitorMapper;
         this.userMapper = userMapper;
-        this.taskService = taskService;
+        this.taskRewardService = taskRewardService;
     }
 
     /**
@@ -104,8 +104,8 @@ public class ShareService {
         // 标记已领取
         shareRecordMapper.updateRewardStatus(shareRecordId, 2);
 
-        // 发放奖励（通过任务服务）
-        return taskService.grantReward(userId, "AI_COUNT", 3, "SHARE", null, shareRecordId, null);
+        // 发放分享奖励
+        return taskRewardService.grantReward(userId, "AI_COUNT", 3, "SHARE", null, shareRecordId, null);
     }
 
     /**
