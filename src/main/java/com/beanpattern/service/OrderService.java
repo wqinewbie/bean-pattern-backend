@@ -3,6 +3,8 @@ package com.beanpattern.service;
 import com.beanpattern.entity.*;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserMapper;
+import com.beanpattern.model.PageResult;
+import com.beanpattern.model.vo.OrderVO;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 订单服务
@@ -51,6 +54,47 @@ public class OrderService {
     }
 
     /**
+     * 分页查询用户订单列表
+     */
+    public PageResult<OrderVO> getUserOrdersPaged(Long userId, String productType, int page, int pageSize) {
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.min(Math.max(pageSize, 1), 50);
+        int offset = (safePage - 1) * safePageSize;
+        long total = orderMapper.countByUserId(userId, productType);
+        List<OrderVO> list = orderMapper.listByUserIdPaged(userId, productType, offset, safePageSize)
+                .stream()
+                .map(OrderVO::from)
+                .collect(Collectors.toList());
+        return PageResult.of(list, safePage, safePageSize, total);
+    }
+
+    /**
+     * 查询当前用户单个订单
+     */
+    public OrderEntity getUserOrder(Long userId, String orderNo) {
+        OrderEntity order = orderMapper.findByOrderNo(orderNo);
+        if (order == null || !userId.equals(order.getUserId())) {
+            return null;
+        }
+        return order;
+    }
+
+    /**
+     * 取消当前用户待支付订单
+     */
+    @Transactional
+    public void cancelUserOrder(Long userId, String orderNo) {
+        OrderEntity order = getUserOrder(userId, orderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("订单不存在");
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new IllegalArgumentException("当前订单状态不可取消");
+        }
+        orderMapper.updateStatus(order.getId(), "CANCELLED");
+    }
+
+    /**
      * 创建会员订单
      */
     @Transactional
@@ -70,6 +114,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("vip");
         order.setPackageCode(packageCode);
+        order.setPlanId(0L);
         order.setPlanName(vipPackage.getPackageName());
         order.setAmount(vipPackage.getPrice());
         order.setStatus("PENDING");
@@ -109,6 +154,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("card");
         order.setPackageCode(packageCode);
+        order.setPlanId(0L);
         order.setPlanName(cardPackage.getPackageName());
         order.setAmount(price);
         order.setStatus("PENDING");
@@ -250,7 +296,7 @@ public class OrderService {
             order.setStatus("PAID");
             order.setTransactionId(transactionId);
             order.setPaidAt(LocalDateTime.now());
-            orderMapper.updateStatus(order.getId(), "PAID");
+            orderMapper.updatePaymentSuccess(order.getId(), transactionId);
 
             // 5. 同步发货
             try {

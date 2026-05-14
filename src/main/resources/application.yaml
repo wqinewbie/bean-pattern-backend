@@ -14,6 +14,18 @@ server:
   # 后端端口，小程序里 API_BASE_URL 要和这里一致
   port: 8081
 
+payment:
+  provider: ${PAYMENT_PROVIDER:mock}
+  mock:
+    auto-paid: ${PAYMENT_MOCK_AUTO_PAID:true}
+  wechat:
+    app-id: ${WECHAT_PAY_APP_ID:${WECHAT_APP_ID:}}
+    mch-id: ${WECHAT_PAY_MCH_ID:}
+    api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
+    private-key-path: ${WECHAT_PAY_PRIVATE_KEY_PATH:}
+    merchant-serial-no: ${WECHAT_PAY_MERCHANT_SERIAL_NO:}
+    notify-url: ${WECHAT_PAY_NOTIFY_URL:}
+
 app:
   # 本地上传目录（相对项目根目录）
   upload-dir: ./uploads

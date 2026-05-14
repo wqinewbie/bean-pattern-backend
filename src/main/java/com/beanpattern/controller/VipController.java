@@ -1,16 +1,22 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
-import com.beanpattern.entity.UserEntity;
-import com.beanpattern.entity.VipProduct;
-import com.beanpattern.entity.VipPackage;
 import com.beanpattern.entity.CardPackage;
+import com.beanpattern.entity.OrderEntity;
 import com.beanpattern.entity.PrivilegeConfig;
+import com.beanpattern.entity.UserEntity;
+import com.beanpattern.entity.VipPackage;
+import com.beanpattern.entity.VipProduct;
 import com.beanpattern.model.ApiResponse;
-import com.beanpattern.service.VipService;
-import com.beanpattern.service.VipPackageService;
+import com.beanpattern.model.OrderPaymentResponse;
+import com.beanpattern.model.PaymentCreateResult;
+import com.beanpattern.model.vo.VipInfoVO;
 import com.beanpattern.service.CardPackageService;
+import com.beanpattern.service.OrderService;
 import com.beanpattern.service.PrivilegeConfigService;
+import com.beanpattern.service.VipPackageService;
+import com.beanpattern.service.VipService;
+import com.beanpattern.service.payment.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,17 +40,23 @@ public class VipController {
     private final VipPackageService vipPackageService;
     private final CardPackageService cardPackageService;
     private final PrivilegeConfigService privilegeConfigService;
+    private final OrderService orderService;
+    private final PaymentService paymentService;
 
     public VipController(SessionHelper sessionHelper,
-                        VipService vipService,
-                        VipPackageService vipPackageService,
-                        CardPackageService cardPackageService,
-                        PrivilegeConfigService privilegeConfigService) {
+                         VipService vipService,
+                         VipPackageService vipPackageService,
+                         CardPackageService cardPackageService,
+                         PrivilegeConfigService privilegeConfigService,
+                         OrderService orderService,
+                         PaymentService paymentService) {
         this.sessionHelper = sessionHelper;
         this.vipService = vipService;
         this.vipPackageService = vipPackageService;
         this.cardPackageService = cardPackageService;
         this.privilegeConfigService = privilegeConfigService;
+        this.orderService = orderService;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -72,24 +84,17 @@ public class VipController {
      * 获取当前用户VIP状态
      */
     @GetMapping("/status")
-    public ApiResponse<Map<String, Object>> getVipStatus(HttpServletRequest request) {
+    public ApiResponse<VipInfoVO> getVipStatus(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         int vipLevel = vipService.getUserVipLevel(user.getId());
-        return ApiResponse.ok(Map.of(
-                "vipLevel", vipLevel,
-                "vipExpireAt", user.getVipExpireAt() != null ? user.getVipExpireAt().toString() : "",
-                "storageQuota", user.getStorageQuota() != null ? user.getStorageQuota() : 10,
-                "draftQuota", user.getDraftQuota() != null ? user.getDraftQuota() : 20,
-                "aiQuota", user.getAiQuota() != null ? user.getAiQuota() : 3,
-                "availableBrands", user.getAvailableBrands() != null ? user.getAvailableBrands() : "[]"
-        ));
+        return ApiResponse.ok(VipInfoVO.from(user, vipLevel));
     }
 
     /**
      * 获取用户会员信息（前端兼容路径）
      */
     @GetMapping("/info")
-    public ApiResponse<Map<String, Object>> getVipInfo(HttpServletRequest request) {
+    public ApiResponse<VipInfoVO> getVipInfo(HttpServletRequest request) {
         return getVipStatus(request);
     }
 
@@ -100,6 +105,29 @@ public class VipController {
     public ApiResponse<List<?>> getVipRecords(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         return ApiResponse.ok(vipService.getUserVipHistory(user.getId()));
+    }
+
+    /**
+     * 购买会员（兼容小程序旧路径）
+     */
+    @PostMapping("/purchase")
+    public ApiResponse<OrderPaymentResponse> purchaseVip(HttpServletRequest request,
+                                                         @RequestBody Map<String, String> params) {
+        try {
+            UserEntity user = sessionHelper.requireUser(request);
+            String packageCode = params.get("packageCode");
+            if (packageCode == null || packageCode.isEmpty()) {
+                return ApiResponse.fail("套餐代码不能为空");
+            }
+            OrderEntity order = orderService.createVipOrder(user.getId(), packageCode);
+            PaymentCreateResult payment = paymentService.createPayment(order);
+            OrderEntity currentOrder = orderService.getUserOrder(user.getId(), order.getOrderNo());
+            return ApiResponse.ok(OrderPaymentResponse.from(currentOrder != null ? currentOrder : order, payment));
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        } catch (Exception e) {
+            return ApiResponse.fail("创建订单失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -127,7 +155,6 @@ public class VipController {
             return ApiResponse.fail("获取次卡套餐失败: " + e.getMessage());
         }
     }
-
 
     /**
      * 获取权益对比表

@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `bp_order` (
   `id`                   BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `order_no`             VARCHAR(64) NOT NULL,
   `user_id`              BIGINT NOT NULL,
-  `plan_id`              BIGINT NOT NULL,
+  `plan_id`              BIGINT NOT NULL DEFAULT 0 COMMENT '旧版充值套餐ID，会员/次卡订单默认为0',
   `plan_name`            VARCHAR(64) NOT NULL DEFAULT '',
   `product_id`           BIGINT NULL COMMENT '商品ID',
   `vip_level_purchased`  TINYINT(1) NULL COMMENT '购买的VIP等级',

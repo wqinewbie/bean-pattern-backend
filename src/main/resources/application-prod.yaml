@@ -1,4 +1,16 @@
-﻿server:
+payment:
+  provider: ${PAYMENT_PROVIDER:mock}
+  mock:
+    auto-paid: ${PAYMENT_MOCK_AUTO_PAID:false}
+  wechat:
+    app-id: ${WECHAT_PAY_APP_ID:${WECHAT_APP_ID:}}
+    mch-id: ${WECHAT_PAY_MCH_ID:}
+    api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
+    private-key-path: ${WECHAT_PAY_PRIVATE_KEY_PATH:}
+    merchant-serial-no: ${WECHAT_PAY_MERCHANT_SERIAL_NO:}
+    notify-url: ${WECHAT_PAY_NOTIFY_URL:}
+
+server:
   port: 8081
 
 spring:
