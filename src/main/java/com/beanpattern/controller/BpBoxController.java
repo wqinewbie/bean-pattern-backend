@@ -2,8 +2,10 @@ package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.BpBox;
+import com.beanpattern.entity.BpHistory;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
+import com.beanpattern.service.BpHistoryService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +20,12 @@ import java.util.List;
 public class BpBoxController {
 
     private final BpBoxService bpBoxService;
+    private final BpHistoryService bpHistoryService;
     private final SessionHelper sessionHelper;
 
-    public BpBoxController(BpBoxService bpBoxService, SessionHelper sessionHelper) {
+    public BpBoxController(BpBoxService bpBoxService, BpHistoryService bpHistoryService, SessionHelper sessionHelper) {
         this.bpBoxService = bpBoxService;
+        this.bpHistoryService = bpHistoryService;
         this.sessionHelper = sessionHelper;
     }
 
@@ -43,6 +47,12 @@ public class BpBoxController {
         System.out.println("设置的 userId: " + box.getUserId());
         
         bpBoxService.save(box);
+        if (box.getHistoryId() != null && box.getId() != null) {
+            BpHistory history = bpHistoryService.getById(box.getHistoryId());
+            if (history != null && user.getId().equals(history.getUserId())) {
+                bpHistoryService.linkBoxId(box.getHistoryId(), box.getId());
+            }
+        }
         System.out.println("保存后的图纸ID: " + box.getId());
         
         return ApiResponse.ok(box);
