@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
 public class CheckinConfig {
     private Long id;
     private Integer continuousDaysRequired;
-    private String rewardType;
-    private Integer rewardValue;
+    private String giftPackageCode;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

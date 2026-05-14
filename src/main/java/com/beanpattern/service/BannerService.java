@@ -65,53 +65,26 @@ public class BannerService {
             }
 
             String packageCode = readText(config, "giftPackageCode", readText(config, "packageCode", ""));
-            if (StringUtils.hasText(packageCode)) {
-                var packageGift = giftPackageService.grantPackageToUser(userId, packageCode);
-                BannerClaimLog log = new BannerClaimLog();
-                log.setUserId(userId);
-                log.setBannerId(bannerId);
-                log.setBannerCode(bannerCode);
-                log.setGiftType("GIFT_PACKAGE");
-                log.setGiftValue(1);
-                log.setClaimDate(today);
-                claimLogMapper.insert(log);
-
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("message", "领取成功，已放入我的礼品包");
-                result.put("giftId", packageGift.getId());
-                result.put("giftName", packageGift.getGiftName());
-                result.put("claimMode", "PACKAGE_STORED");
-                return result;
-            } else {
-                JsonNode gifts = config.get("gifts");
-                if (gifts == null || !gifts.isArray()) {
-                    throw new IllegalArgumentException("Banner礼品配置无效");
-                }
-                for (JsonNode gift : gifts) {
-                    String type = readText(gift, "type", "");
-                    int value = gift.get("value").asInt();
-                    giftPackageService.grantItemsJsonToUser(userId, "[" + gift.toString() + "]");
-
-                    BannerClaimLog log = new BannerClaimLog();
-                    log.setUserId(userId);
-                    log.setBannerId(bannerId);
-                    log.setBannerCode(bannerCode);
-                    log.setGiftType(type);
-                    log.setGiftValue(value);
-                    log.setClaimDate(today);
-
-                    try {
-                        claimLogMapper.insert(log);
-                    } catch (DuplicateKeyException e) {
-                        throw new IllegalStateException("领取失败，请勿重复领取");
-                    }
-                }
+            if (!StringUtils.hasText(packageCode)) {
+                throw new IllegalArgumentException("Banner必须绑定礼品包");
             }
+
+            var packageGift = giftPackageService.grantPackageToUser(userId, packageCode, "BANNER:" + bannerCode);
+            BannerClaimLog log = new BannerClaimLog();
+            log.setUserId(userId);
+            log.setBannerId(bannerId);
+            log.setBannerCode(bannerCode);
+            log.setGiftType("GIFT_PACKAGE");
+            log.setGiftValue(1);
+            log.setClaimDate(today);
+            claimLogMapper.insert(log);
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("message", "领取成功！");
+            result.put("message", "领取成功，已放入我的礼品包");
+            result.put("giftId", packageGift.getId());
+            result.put("giftName", packageGift.getGiftName());
+            result.put("claimMode", "PACKAGE_STORED");
             return result;
 
         } catch (IllegalStateException e) {

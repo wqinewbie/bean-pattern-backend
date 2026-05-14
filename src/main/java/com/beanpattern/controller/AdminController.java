@@ -705,6 +705,10 @@ public class AdminController {
         if (existing != null) {
             return ApiResponse.fail("任务代码已存在");
         }
+        String validationError = validateTaskConfig(task);
+        if (validationError != null) {
+            return ApiResponse.fail(validationError);
+        }
         taskConfigMapper.insert(task);
         return ApiResponse.ok("ok");
     }
@@ -716,6 +720,10 @@ public class AdminController {
             return ApiResponse.fail("任务不存在");
         }
         task.setId(id);
+        String validationError = validateTaskConfig(task);
+        if (validationError != null) {
+            return ApiResponse.fail(validationError);
+        }
         taskConfigMapper.update(task);
         return ApiResponse.ok("ok");
     }
@@ -738,6 +746,24 @@ public class AdminController {
         }
         taskConfigMapper.deleteById(id);
         return ApiResponse.ok("ok");
+    }
+
+    private String validateTaskConfig(TaskConfig task) {
+        if (task.getExtraConfig() == null || task.getExtraConfig().trim().isEmpty()) {
+            return "任务必须配置奖励礼品包";
+        }
+        try {
+            var node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(task.getExtraConfig());
+            String handlerType = node.path("handlerType").asText("GENERIC_PROGRESS");
+            boolean needsPackage = !"CHECKIN".equals(handlerType);
+            String packageCode = node.path("giftPackageCode").asText("").trim();
+            if (needsPackage && packageCode.isEmpty()) {
+                return "奖励型任务必须绑定礼品包";
+            }
+        } catch (Exception e) {
+            return "任务扩展配置不是有效JSON";
+        }
+        return null;
     }
 
     // ─── 审核型任务管理 ───────────────────────────────────

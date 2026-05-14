@@ -23,11 +23,8 @@ public class ActivityConfig {
     private String title;              // 活动标题
     private String description;        // 活动描述
     private String coverImage;         // 封面图片
-    private Long bannerId;             // 关联Banner ID
-    private String activityType;       // 活动类型：GIFT/DISCOUNT/TASK
-    private String giftItems;          // 礼品配置（JSON）
-    private String discountConfig;     // 折扣配置（JSON）
-    private String taskConfig;         // 任务配置（JSON）
+    private String activityType;       // 活动类型：CONTENT/GIFT
+    private String giftPackageCode;    // 绑定礼品包编码
     private String limitType;          // 限制类型：ONCE/DAILY/UNLIMITED
     private Integer totalQuota;        // 总名额
     private Integer remainQuota;       // 剩余名额

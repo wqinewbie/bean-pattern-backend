@@ -18,7 +18,7 @@ public class UserService {
     // 默认配额（非VIP用户）
     public static final int DEFAULT_STORAGE_QUOTA = 10;
     public static final int DEFAULT_DRAFT_QUOTA = 5;
-    public static final int DEFAULT_AI_QUOTA = 5;
+    public static final int DEFAULT_AI_QUOTA = 0;
 
     private final UserMapper userMapper;
 

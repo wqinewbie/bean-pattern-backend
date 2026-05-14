@@ -6,6 +6,7 @@ import com.beanpattern.entity.BpHistory;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpHistoryService;
+import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,11 +22,16 @@ public class BpBoxController {
 
     private final BpBoxService bpBoxService;
     private final BpHistoryService bpHistoryService;
+    private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
-    public BpBoxController(BpBoxService bpBoxService, BpHistoryService bpHistoryService, SessionHelper sessionHelper) {
+    public BpBoxController(BpBoxService bpBoxService,
+                           BpHistoryService bpHistoryService,
+                           PrivilegeService privilegeService,
+                           SessionHelper sessionHelper) {
         this.bpBoxService = bpBoxService;
         this.bpHistoryService = bpHistoryService;
+        this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
 
@@ -43,6 +49,17 @@ public class BpBoxController {
         System.out.println("图纸名称: " + box.getName());
         System.out.println("来源类型: " + box.getSourceType());
         
+        if (box.getId() != null) {
+            BpBox existing = bpBoxService.getById(box.getId());
+            if (existing == null) return ApiResponse.fail("图纸不存在");
+            if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
+        } else {
+            PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
+            if (!status.canAdd()) {
+                return ApiResponse.fail("图纸箱容量已满（" + status.current() + "/" + status.limit() + "），请删除图纸或升级会员");
+            }
+        }
+
         box.setUserId(user.getId());
         System.out.println("设置的 userId: " + box.getUserId());
         

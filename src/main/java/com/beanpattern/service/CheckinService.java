@@ -4,11 +4,11 @@ import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.entity.UserCheckin;
 import com.beanpattern.entity.UserCheckinClaim;
 import com.beanpattern.entity.UserCheckinStatus;
+import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.CheckinConfigMapper;
 import com.beanpattern.mapper.UserCheckinClaimMapper;
 import com.beanpattern.mapper.UserCheckinMapper;
 import com.beanpattern.mapper.UserCheckinStatusMapper;
-import com.beanpattern.mapper.UserMapper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,24 +27,22 @@ public class CheckinService {
     private final UserCheckinMapper checkinMapper;
     private final UserCheckinStatusMapper statusMapper;
     private final UserCheckinClaimMapper claimMapper;
-    private final UserMapper userMapper;
     private final CheckinConfigMapper checkinConfigMapper;
+    private final GiftPackageService giftPackageService;
 
     private static final int DEFAULT_CONTINUOUS_DAYS_REQUIRED = 3;
-    private static final String DEFAULT_REWARD_TYPE = "AI_COUNT";
-    private static final int DEFAULT_REWARD_VALUE = 1;
     private static final boolean DEFAULT_IS_ACTIVE = true;
 
     public CheckinService(UserCheckinMapper checkinMapper,
                          UserCheckinStatusMapper statusMapper,
                          UserCheckinClaimMapper claimMapper,
-                         UserMapper userMapper,
-                         CheckinConfigMapper checkinConfigMapper) {
+                         CheckinConfigMapper checkinConfigMapper,
+                         GiftPackageService giftPackageService) {
         this.checkinMapper = checkinMapper;
         this.statusMapper = statusMapper;
         this.claimMapper = claimMapper;
-        this.userMapper = userMapper;
         this.checkinConfigMapper = checkinConfigMapper;
+        this.giftPackageService = giftPackageService;
     }
 
     /**
@@ -55,19 +53,15 @@ public class CheckinService {
         if (config == null) {
             return CheckinConfig.builder()
                     .continuousDaysRequired(DEFAULT_CONTINUOUS_DAYS_REQUIRED)
-                    .rewardType(DEFAULT_REWARD_TYPE)
-                    .rewardValue(DEFAULT_REWARD_VALUE)
+                    .giftPackageCode("")
                     .isActive(DEFAULT_IS_ACTIVE)
                     .build();
         }
         if (config.getContinuousDaysRequired() == null || config.getContinuousDaysRequired() < 1) {
             config.setContinuousDaysRequired(DEFAULT_CONTINUOUS_DAYS_REQUIRED);
         }
-        if (config.getRewardType() == null || config.getRewardType().isBlank()) {
-            config.setRewardType(DEFAULT_REWARD_TYPE);
-        }
-        if (config.getRewardValue() == null || config.getRewardValue() < 1) {
-            config.setRewardValue(DEFAULT_REWARD_VALUE);
+        if (config.getGiftPackageCode() == null) {
+            config.setGiftPackageCode("");
         }
         if (config.getIsActive() == null) {
             config.setIsActive(DEFAULT_IS_ACTIVE);
@@ -84,12 +78,12 @@ public class CheckinService {
                 .id(config.getId())
                 .continuousDaysRequired(config.getContinuousDaysRequired() == null || config.getContinuousDaysRequired() < 1
                         ? DEFAULT_CONTINUOUS_DAYS_REQUIRED : config.getContinuousDaysRequired())
-                .rewardType(config.getRewardType() == null || config.getRewardType().isBlank()
-                        ? DEFAULT_REWARD_TYPE : config.getRewardType())
-                .rewardValue(config.getRewardValue() == null || config.getRewardValue() < 1
-                        ? DEFAULT_REWARD_VALUE : config.getRewardValue())
+                .giftPackageCode(config.getGiftPackageCode() == null ? "" : config.getGiftPackageCode().trim())
                 .isActive(config.getIsActive() == null ? DEFAULT_IS_ACTIVE : config.getIsActive())
                 .build();
+        if (target.getGiftPackageCode().isBlank()) {
+            throw new IllegalArgumentException("签到奖励必须绑定礼品包");
+        }
 
         CheckinConfig existing = checkinConfigMapper.findLatest();
         if (existing == null) {
@@ -144,8 +138,9 @@ public class CheckinService {
         result.put("checkedInToday", checkedInToday);
         result.put("calendar", calendar);
         result.put("requiredDays", config.getContinuousDaysRequired());
-        result.put("rewardType", config.getRewardType());
-        result.put("rewardValue", config.getRewardValue());
+        result.put("giftPackageCode", config.getGiftPackageCode());
+        result.put("rewardType", "GIFT_PACKAGE");
+        result.put("rewardValue", 1);
         result.put("isActive", config.getIsActive());
 
         return result;
@@ -249,24 +244,22 @@ public class CheckinService {
             throw new IllegalStateException("今天已经领取过奖励了");
         }
 
-        // 插入领取记录
+        if (config.getGiftPackageCode() == null || config.getGiftPackageCode().isBlank()) {
+            throw new IllegalStateException("签到奖励未配置礼品包");
+        }
+
+        UserGift packageGift;
         try {
             UserCheckinClaim claim = new UserCheckinClaim();
             claim.setUserId(userId);
             claim.setClaimDate(today);
             claim.setContinuousDays(status.getContinuousDays());
-            claim.setRewardType(config.getRewardType());
-            claim.setRewardValue(config.getRewardValue());
+            claim.setRewardType("GIFT_PACKAGE");
+            claim.setRewardValue(1);
             claimMapper.insert(claim);
+            packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), "CHECKIN:" + today);
         } catch (DuplicateKeyException e) {
             throw new IllegalStateException("今天已经领取过奖励了");
-        }
-
-        // 发放奖励
-        if ("AI_COUNT".equals(config.getRewardType())) {
-            userMapper.addAiQuota(userId, config.getRewardValue());
-        } else if ("VIP_DAYS".equals(config.getRewardType())) {
-            userMapper.addVipDays(userId, config.getRewardValue());
         }
 
         // 重置连续天数和领取状态
@@ -274,9 +267,11 @@ public class CheckinService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
-        result.put("rewardType", config.getRewardType());
-        result.put("rewardValue", config.getRewardValue());
-        result.put("message", "领取成功！获得" + config.getRewardValue() + getRewardName(config.getRewardType()));
+        result.put("rewardType", "GIFT_PACKAGE");
+        result.put("rewardValue", 1);
+        result.put("giftId", packageGift.getId());
+        result.put("giftName", packageGift.getGiftName());
+        result.put("message", "领取成功，礼品包已放入我的礼品包");
 
         return result;
     }
@@ -289,16 +284,10 @@ public class CheckinService {
         Map<String, Object> result = new HashMap<>();
         result.put("id", config.getId());
         result.put("continuousDaysRequired", config.getContinuousDaysRequired());
-        result.put("rewardType", config.getRewardType());
-        result.put("rewardValue", config.getRewardValue());
+        result.put("giftPackageCode", config.getGiftPackageCode());
+        result.put("rewardType", "GIFT_PACKAGE");
+        result.put("rewardValue", 1);
         result.put("isActive", config.getIsActive());
         return result;
-    }
-
-    private String getRewardName(String rewardType) {
-        if ("VIP_DAYS".equals(rewardType)) {
-            return "天会员";
-        }
-        return "次AI生成";
     }
 }

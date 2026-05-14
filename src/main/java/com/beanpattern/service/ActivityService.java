@@ -2,11 +2,9 @@ package com.beanpattern.service;
 
 import com.beanpattern.entity.ActivityConfig;
 import com.beanpattern.entity.UserActivityLog;
+import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.ActivityConfigMapper;
 import com.beanpattern.mapper.UserActivityLogMapper;
-import com.beanpattern.mapper.UserMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,21 +20,15 @@ public class ActivityService {
     private final ActivityConfigMapper activityMapper;
     private final UserActivityLogMapper logMapper;
     private final GiftPackageService giftPackageService;
-    private final ObjectMapper objectMapper;
 
     public ActivityService(ActivityConfigMapper activityMapper,
                            UserActivityLogMapper logMapper,
-                           UserMapper userMapper,
                            GiftPackageService giftPackageService) {
         this.activityMapper = activityMapper;
         this.logMapper = logMapper;
         this.giftPackageService = giftPackageService;
-        this.objectMapper = new ObjectMapper();
     }
 
-    /**
-     * 获取活动详情
-     */
     public Map<String, Object> getActivityDetail(String activityCode, Long userId) {
         ActivityConfig activity = activityMapper.findByCode(activityCode);
         if (activity == null) {
@@ -50,10 +42,7 @@ public class ActivityService {
 
         boolean participated = false;
         if (userId != null) {
-            UserActivityLog log = logMapper.findByUserAndActivityAndAction(
-                userId, activity.getId(), "CLAIM"
-            );
-            participated = (log != null);
+            participated = hasClaimed(userId, activity);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -66,23 +55,26 @@ public class ActivityService {
         result.put("buttonAction", activity.getButtonAction());
         result.put("buttonUrl", activity.getButtonUrl());
         result.put("activityType", activity.getActivityType());
+        result.put("giftPackageCode", activity.getGiftPackageCode());
         result.put("totalQuota", activity.getTotalQuota());
         result.put("remainQuota", activity.getRemainQuota());
         result.put("startAt", activity.getStartAt());
         result.put("endAt", activity.getEndAt());
         result.put("participated", participated);
-
         return result;
     }
 
-    /**
-     * 领取活动礼品
-     */
     @Transactional
     public Map<String, Object> claimActivityGift(String activityCode, Long userId) {
         ActivityConfig activity = activityMapper.findByCode(activityCode);
         if (activity == null) {
             throw new IllegalArgumentException("活动不存在");
+        }
+        if (!"GIFT".equals(activity.getActivityType())) {
+            throw new IllegalStateException("该活动不支持领取礼品包");
+        }
+        if (!StringUtils.hasText(activity.getGiftPackageCode())) {
+            throw new IllegalStateException("活动未绑定礼品包");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -92,11 +84,13 @@ public class ActivityService {
         if (now.isAfter(activity.getEndAt())) {
             throw new IllegalStateException("活动已结束");
         }
-        if (!activity.getStatus()) {
+        if (!Boolean.TRUE.equals(activity.getStatus())) {
             throw new IllegalStateException("活动已下线");
         }
 
-        if (activity.getTotalQuota() > 0) {
+        enforceClaimLimit(userId, activity);
+
+        if (activity.getTotalQuota() != null && activity.getTotalQuota() > 0) {
             int affected = activityMapper.decrementQuota(activity.getId());
             if (affected == 0) {
                 throw new IllegalStateException("名额已抢完");
@@ -104,46 +98,48 @@ public class ActivityService {
         }
 
         try {
+            UserGift packageGift = giftPackageService.grantPackageToUser(
+                    userId,
+                    activity.getGiftPackageCode(),
+                    "ACTIVITY:" + activity.getActivityCode()
+            );
+
             UserActivityLog log = new UserActivityLog();
             log.setUserId(userId);
             log.setActivityId(activity.getId());
             log.setActivityCode(activityCode);
             log.setActionType("CLAIM");
+            log.setRewardType("GIFT_PACKAGE");
+            log.setRewardValue(1);
+            log.setGiftId(packageGift.getId());
             logMapper.insert(log);
-
-            if ("GIFT".equals(activity.getActivityType()) && StringUtils.hasText(activity.getGiftItems())) {
-                grantActivityGift(userId, activity.getGiftItems());
-            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("message", "领取成功！");
+            result.put("message", "领取成功，已放入我的礼品包");
+            result.put("giftId", packageGift.getId());
+            result.put("giftName", packageGift.getGiftName());
+            result.put("claimMode", "PACKAGE_STORED");
             return result;
-
         } catch (DuplicateKeyException e) {
-            if (activity.getTotalQuota() > 0) {
-                activityMapper.update(activity);
-            }
             throw new IllegalStateException("您已领取过该活动");
-        } catch (Exception e) {
-            throw new RuntimeException("领取失败：" + e.getMessage());
         }
     }
 
-    private void grantActivityGift(Long userId, String giftItems) throws Exception {
-        JsonNode root = objectMapper.readTree(giftItems);
-        if (root.isObject()) {
-            String packageCode = readText(root, "giftPackageCode", readText(root, "packageCode", ""));
-            if (StringUtils.hasText(packageCode)) {
-                giftPackageService.grantPackageToUser(userId, packageCode);
-                return;
-            }
+    private boolean hasClaimed(Long userId, ActivityConfig activity) {
+        String limitType = activity.getLimitType() == null ? "ONCE" : activity.getLimitType();
+        if ("UNLIMITED".equals(limitType)) {
+            return false;
         }
-        giftPackageService.grantItemsJsonToUser(userId, giftItems);
+        if ("DAILY".equals(limitType)) {
+            return logMapper.countTodayByUserAndActivityAndAction(userId, activity.getId(), "CLAIM") > 0;
+        }
+        return logMapper.countByUserAndActivityAndAction(userId, activity.getId(), "CLAIM") > 0;
     }
 
-    private String readText(JsonNode node, String field, String defaultValue) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? defaultValue : value.asText();
+    private void enforceClaimLimit(Long userId, ActivityConfig activity) {
+        if (hasClaimed(userId, activity)) {
+            throw new IllegalStateException("DAILY".equals(activity.getLimitType()) ? "今日已领取，明天再来吧" : "您已领取过该活动");
+        }
     }
 }

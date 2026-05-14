@@ -214,10 +214,8 @@ CREATE TABLE IF NOT EXISTS `bp_activity_config` (
   `description`     VARCHAR(512) NULL COMMENT '活动描述',
   `cover_image`     VARCHAR(1024) NULL COMMENT '封面图片URL',
   `banner_id`       BIGINT NULL COMMENT '关联Banner ID',
-  `activity_type`   VARCHAR(32) NOT NULL DEFAULT 'GIFT' COMMENT '活动类型：GIFT/DISCOUNT/TASK',
-  `gift_items`      TEXT NULL COMMENT '礼品配置JSON',
-  `discount_config` TEXT NULL COMMENT '折扣配置JSON',
-  `task_config`     TEXT NULL COMMENT '任务配置JSON',
+  `activity_type`   VARCHAR(32) NOT NULL DEFAULT 'CONTENT' COMMENT '活动类型：CONTENT/GIFT',
+  `gift_package_code` VARCHAR(64) NULL COMMENT '活动绑定礼品包编码',
   `limit_type`      VARCHAR(32) NOT NULL DEFAULT 'ONCE' COMMENT '限制类型：ONCE/DAILY/UNLIMITED',
   `total_quota`     INT NOT NULL DEFAULT 0 COMMENT '总名额，0表示不限量',
   `remain_quota`    INT NOT NULL DEFAULT 0 COMMENT '剩余名额',
@@ -234,8 +232,7 @@ CREATE TABLE IF NOT EXISTS `bp_activity_config` (
   `updated_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_activity_code` (`activity_code`),
-  KEY `idx_status_time` (`status`, `start_at`, `end_at`),
-  KEY `idx_banner_id` (`banner_id`)
+  KEY `idx_status_time` (`status`, `start_at`, `end_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='活动配置表';
 
 CREATE TABLE IF NOT EXISTS `bp_user_activity_log` (
@@ -249,10 +246,10 @@ CREATE TABLE IF NOT EXISTS `bp_user_activity_log` (
   `gift_id`       BIGINT NULL COMMENT '礼品ID',
   `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_activity_action` (`user_id`, `activity_id`, `action_type`),
   KEY `idx_user_time` (`user_id`, `created_at`),
   KEY `idx_activity_time` (`activity_id`, `created_at`),
-  KEY `idx_activity_code` (`activity_code`)
+  KEY `idx_activity_code` (`activity_code`),
+  KEY `idx_user_activity_action` (`user_id`, `activity_id`, `action_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户活动参与记录表';
 
 -- =========================

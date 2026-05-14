@@ -6,6 +6,7 @@ import com.beanpattern.entity.BpDraft;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpDraftService;
+import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +23,16 @@ public class BpDraftController {
 
     private final BpDraftService bpDraftService;
     private final BpBoxService bpBoxService;
+    private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
     public BpDraftController(BpDraftService bpDraftService,
                               BpBoxService bpBoxService,
+                              PrivilegeService privilegeService,
                               SessionHelper sessionHelper) {
         this.bpDraftService = bpDraftService;
         this.bpBoxService = bpBoxService;
+        this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
 
@@ -40,6 +44,17 @@ public class BpDraftController {
     public ApiResponse<BpDraft> save(@RequestBody BpDraft draft, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
+
+        if (draft.getId() != null) {
+            BpDraft existing = bpDraftService.getById(draft.getId());
+            if (existing == null) return ApiResponse.fail("草稿不存在");
+            if (!existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
+        } else {
+            PrivilegeService.LimitStatus status = privilegeService.getDraftBoxLimitStatus(user.getId());
+            if (!status.canAdd()) {
+                return ApiResponse.fail("草稿箱容量已满（" + status.current() + "/" + status.limit() + "），请删除草稿或升级会员");
+            }
+        }
 
         draft.setUserId(user.getId());
         bpDraftService.save(draft);
@@ -155,6 +170,17 @@ public class BpDraftController {
         if (!draft.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
 
         // 获取传入的名称，如果没有就用草稿的名称或默认名称
+        if (draft.getBoxId() != null) {
+            return ApiResponse.ok(Map.of(
+                    "boxId", draft.getBoxId(),
+                    "message", "已保存到图纸箱"
+            ));
+        }
+        PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
+        if (!status.canAdd()) {
+            return ApiResponse.fail("图纸箱容量已满（" + status.current() + "/" + status.limit() + "），请删除图纸或升级会员");
+        }
+
         String name = body.get("name") != null ? (String) body.get("name") : draft.getName();
         if (name == null || name.isEmpty()) {
             name = "草稿#" + System.currentTimeMillis();

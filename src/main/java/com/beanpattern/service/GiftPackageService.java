@@ -27,16 +27,19 @@ public class GiftPackageService {
     private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final UserGiftMapper userGiftMapper;
     private final UserMapper userMapper;
+    private final AiQuotaLogService aiQuotaLogService;
     private final ObjectMapper objectMapper;
 
     public GiftPackageService(GiftPackageMapper giftPackageMapper,
                               GiftTypeConfigMapper giftTypeConfigMapper,
                               UserGiftMapper userGiftMapper,
-                              UserMapper userMapper) {
+                              UserMapper userMapper,
+                              AiQuotaLogService aiQuotaLogService) {
         this.giftPackageMapper = giftPackageMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.userGiftMapper = userGiftMapper;
         this.userMapper = userMapper;
+        this.aiQuotaLogService = aiQuotaLogService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -115,7 +118,7 @@ public class GiftPackageService {
             throw new IllegalStateException("礼品包不存在或未启用");
         }
 
-        grantItemsJsonToUser(userId, giftPackage.getItemsJson());
+        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
         int updated = userGiftMapper.use(gift.getId());
         if (updated <= 0) {
             throw new IllegalStateException("礼品兑换失败，请稍后重试");
@@ -124,6 +127,11 @@ public class GiftPackageService {
 
     @Transactional
     public void grantItemsJsonToUser(Long userId, String itemsJson) {
+        grantItemsJsonToUser(userId, itemsJson, "GIFT_PACKAGE", "", "发放礼品包权益");
+    }
+
+    @Transactional
+    public void grantItemsJsonToUser(Long userId, String itemsJson, String bizType, String bizId, String description) {
         try {
             JsonNode items = objectMapper.readTree(itemsJson);
             if (!items.isArray()) {
@@ -132,7 +140,7 @@ public class GiftPackageService {
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
                 double value = readDouble(item, "value", readDouble(item, "gift_value", 0));
-                grantSingle(userId, type, value);
+                grantSingle(userId, type, value, bizType, bizId, description);
             }
         } catch (IllegalArgumentException e) {
             throw e;
@@ -205,9 +213,14 @@ public class GiftPackageService {
                 : "";
     }
 
-    private void grantSingle(Long userId, String type, double value) {
+    private void grantSingle(Long userId, String type, double value, String bizType, String bizId, String description) {
         if ("AI_QUOTA".equals(type) || "AI_COUNT".equals(type)) {
-            userMapper.addAiQuota(userId, (int) value);
+            int amount = (int) value;
+            userMapper.addAiQuota(userId, amount);
+            aiQuotaLogService.logChange(userId, "GIFT", amount,
+                    StringUtils.hasText(bizType) ? bizType : "GIFT_PACKAGE",
+                    StringUtils.hasText(bizId) ? bizId : "",
+                    StringUtils.hasText(description) ? description : "兑换礼品包获得AI次数");
             return;
         }
         if ("VIP_DAYS".equals(type)) {

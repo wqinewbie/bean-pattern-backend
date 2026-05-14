@@ -79,7 +79,7 @@ public class ReviewTaskService {
         if (status == 1) {
             TaskConfig config = taskConfigMapper.findByCode(submission.getTaskCode());
             if (config != null) {
-                taskRewardService.grantReward(submission.getUserId(), config.getRewardType(), config.getRewardValue(), "REVIEW_TASK", config.getId(), null, null);
+                taskRewardService.grantTaskPackage(submission.getUserId(), config, "REVIEW_TASK");
             }
         }
         return reviewTaskSubmissionMapper.findById(submissionId);

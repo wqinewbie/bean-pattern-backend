@@ -186,7 +186,7 @@ public class TaskService {
         }
 
         userTaskProgressMapper.claim(progressId);
-        return taskRewardService.grantReward(userId, config.getRewardType(), config.getRewardValue(), "TASK", progress.getTaskId(), null, null);
+        return taskRewardService.grantTaskPackage(userId, config, "TASK");
     }
 
     /**

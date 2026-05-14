@@ -59,6 +59,11 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_image_task", "title",       "ALTER TABLE `bp_image_task` ADD COLUMN `title` VARCHAR(128) NULL AFTER `is_public`");
 
         // bp_banner
+        addColumn(db, "bp_checkin_config", "gift_package_code", "ALTER TABLE `bp_checkin_config` ADD COLUMN `gift_package_code` VARCHAR(64) NULL COMMENT '签到奖励礼品包编码' AFTER `continuous_days_required`");
+        addColumn(db, "bp_activity_config", "gift_package_code", "ALTER TABLE `bp_activity_config` ADD COLUMN `gift_package_code` VARCHAR(64) NULL COMMENT '活动绑定礼品包编码' AFTER `activity_type`");
+        relaxActivityClaimUniqueIndex();
+
+        // bp_banner
         addColumn(db, "bp_banner", "bg_color",   "ALTER TABLE `bp_banner` ADD COLUMN `bg_color` VARCHAR(32) NULL DEFAULT '' AFTER `tag_text`");
         addColumn(db, "bp_banner", "action_type", "ALTER TABLE `bp_banner` ADD COLUMN `action_type` VARCHAR(32) NULL DEFAULT 'NONE' AFTER `link_value`");
         addColumn(db, "bp_banner", "action_config", "ALTER TABLE `bp_banner` ADD COLUMN `action_config` TEXT NULL AFTER `action_type`");
@@ -116,6 +121,14 @@ public class SchemaUpgrader implements ApplicationRunner {
         enforceUserProfileRequired();
 
         log.info("[SchemaUpgrader] 字段兼容性检查完成");
+    }
+
+    private void relaxActivityClaimUniqueIndex() {
+        try {
+            jdbc.execute("ALTER TABLE bp_user_activity_log DROP INDEX uk_user_activity_action");
+            log.info("[SchemaUpgrader] 已移除活动领取 ONCE 唯一索引，改由业务按 limit_type 控制");
+        } catch (Exception ignored) {
+        }
     }
 
     private void createBannerClaimLogTable(String db) {

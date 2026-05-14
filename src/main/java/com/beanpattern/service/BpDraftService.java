@@ -22,7 +22,7 @@ public class BpDraftService {
         if (draft.getId() != null) {
             return bpDraftMapper.update(draft);
         }
-        return bpDraftMapper.insert(draft);
+        return insert(draft);
     }
 
     public int insert(BpDraft draft) {

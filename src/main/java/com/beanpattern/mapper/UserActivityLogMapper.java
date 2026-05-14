@@ -33,6 +33,16 @@ public interface UserActivityLogMapper {
                                                     @Param("activityId") Long activityId,
                                                     @Param("actionType") String actionType);
 
+    @Select("SELECT COUNT(*) FROM bp_user_activity_log WHERE user_id = #{userId} AND activity_id = #{activityId} AND action_type = #{actionType}")
+    int countByUserAndActivityAndAction(@Param("userId") Long userId,
+                                         @Param("activityId") Long activityId,
+                                         @Param("actionType") String actionType);
+
+    @Select("SELECT COUNT(*) FROM bp_user_activity_log WHERE user_id = #{userId} AND activity_id = #{activityId} AND action_type = #{actionType} AND DATE(created_at) = CURDATE()")
+    int countTodayByUserAndActivityAndAction(@Param("userId") Long userId,
+                                              @Param("activityId") Long activityId,
+                                              @Param("actionType") String actionType);
+
     /**
      * 查询用户的活动参与记录
      */

@@ -19,7 +19,7 @@ public class BpHistoryService {
     }
 
     public int save(BpHistory history) {
-        return bpHistoryMapper.insert(history);
+        return insert(history);
     }
 
     public int insert(BpHistory history) {

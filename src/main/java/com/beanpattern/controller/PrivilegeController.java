@@ -5,13 +5,13 @@ import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * 权益校验接口（用户端）
- */
 @RestController
 @RequestMapping("/api/privilege")
 public class PrivilegeController {
@@ -24,45 +24,64 @@ public class PrivilegeController {
         this.privilegeService = privilegeService;
     }
 
-    /**
-     * 获取用户权益信息
-     */
     @GetMapping("/info")
     public ApiResponse<Map<String, Object>> getPrivilegeInfo(HttpServletRequest request) {
         try {
             UserEntity user = sessionHelper.requireUser(request);
-            Map<String, Object> privileges = privilegeService.getUserPrivileges(user.getId());
-            return ApiResponse.ok(privileges);
+            return ApiResponse.ok(privilegeService.getUserPrivileges(user.getId()));
         } catch (Exception e) {
             return ApiResponse.fail("获取权益信息失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 检查图纸箱容量
-     */
     @GetMapping("/check/pattern-box")
     public ApiResponse<Map<String, Object>> checkPatternBox(HttpServletRequest request) {
         try {
             UserEntity user = sessionHelper.requireUser(request);
-            boolean canAdd = privilegeService.checkPatternBoxLimit(user.getId());
-            return ApiResponse.ok(Map.of("canAdd", canAdd));
+            return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
         } catch (Exception e) {
             return ApiResponse.fail("检查图纸箱容量失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 检查草稿箱容量
-     */
     @GetMapping("/check/draft-box")
     public ApiResponse<Map<String, Object>> checkDraftBox(HttpServletRequest request) {
         try {
             UserEntity user = sessionHelper.requireUser(request);
-            boolean canAdd = privilegeService.checkDraftBoxLimit(user.getId());
-            return ApiResponse.ok(Map.of("canAdd", canAdd));
+            return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
         } catch (Exception e) {
             return ApiResponse.fail("检查草稿箱容量失败: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/check")
+    public ApiResponse<Map<String, Object>> checkByKey(@RequestParam String key, HttpServletRequest request) {
+        try {
+            UserEntity user = sessionHelper.requireUser(request);
+            if ("pattern_box_limit".equals(key)) {
+                return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
+            }
+            if ("draft_box_limit".equals(key)) {
+                return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
+            }
+            if ("history_expire_days".equals(key)) {
+                return ApiResponse.ok(Map.of("value", privilegeService.getHistoryExpireDays(user.getId())));
+            }
+            if ("watermark_control".equals(key)) {
+                return ApiResponse.ok(Map.of("value", privilegeService.canControlWatermark(user.getId())));
+            }
+            return ApiResponse.fail("未知权益: " + key);
+        } catch (Exception e) {
+            return ApiResponse.fail("检查权益失败: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> toLimitMap(PrivilegeService.LimitStatus status) {
+        return Map.of(
+                "canAdd", status.canAdd(),
+                "current", status.current(),
+                "limit", status.limit(),
+                "vip", status.vip()
+        );
     }
 }

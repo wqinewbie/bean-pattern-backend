@@ -6,9 +6,11 @@ import com.beanpattern.entity.BpHistory;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpHistoryService;
+import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -22,13 +24,16 @@ public class BpHistoryController {
 
     private final BpHistoryService bpHistoryService;
     private final BpBoxService bpBoxService;
+    private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
     public BpHistoryController(BpHistoryService bpHistoryService,
                                 BpBoxService bpBoxService,
+                                PrivilegeService privilegeService,
                                 SessionHelper sessionHelper) {
         this.bpHistoryService = bpHistoryService;
         this.bpBoxService = bpBoxService;
+        this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
 
@@ -42,6 +47,7 @@ public class BpHistoryController {
         if (user == null) return ApiResponse.fail("请先登录");
 
         history.setUserId(user.getId());
+        history.setExpiresAt(LocalDateTime.now().plusDays(privilegeService.getHistoryExpireDays(user.getId())));
         bpHistoryService.save(history);
         return ApiResponse.ok(history);
     }
@@ -143,6 +149,17 @@ public class BpHistoryController {
         if (history.getUserId() == null || !history.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
 
         // 复制到图纸箱
+        if (history.getBoxId() != null) {
+            return ApiResponse.ok(Map.of(
+                    "boxId", history.getBoxId(),
+                    "message", "已保存到图纸箱"
+            ));
+        }
+        PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
+        if (!status.canAdd()) {
+            return ApiResponse.fail("图纸箱容量已满（" + status.current() + "/" + status.limit() + "），请删除图纸或升级会员");
+        }
+
         BpBox box = new BpBox();
         box.setUserId(user.getId());
         box.setSourceType(history.getSourceType());

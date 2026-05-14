@@ -94,7 +94,8 @@ public interface UserMapper {
     @Update("UPDATE bp_user SET status = #{status}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateStatus(@Param("id") Long id, @Param("status") int status);
 
-    @Update("UPDATE bp_user SET vip_expire_at = DATE_ADD(vip_expire_at, INTERVAL #{days} DAY), " +
+    @Update("UPDATE bp_user SET vip_level = 1, " +
+            "vip_expire_at = DATE_ADD(IF(vip_expire_at IS NULL OR vip_expire_at < NOW(), NOW(), vip_expire_at), INTERVAL #{days} DAY), " +
             "updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int addVipDays(@Param("id") Long id, @Param("days") int days);
 
