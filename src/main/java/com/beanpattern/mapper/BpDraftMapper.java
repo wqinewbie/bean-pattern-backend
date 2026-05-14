@@ -39,20 +39,20 @@ public interface BpDraftMapper {
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY updated_at DESC")
+          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY updated_at DESC")
     List<BpDraft> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY updated_at DESC LIMIT #{limit}")
+          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY updated_at DESC LIMIT #{limit}")
     List<BpDraft> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY updated_at DESC LIMIT #{limit} OFFSET #{offset}")
+          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY updated_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<BpDraft> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
 
-    @Select("SELECT COUNT(*) FROM bp_draft WHERE user_id=#{userId} AND expires_at > NOW()")
+    @Select("SELECT COUNT(*) FROM bp_draft WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW())")
     int countByUserId(@Param("userId") Long userId);
 
     @Update("UPDATE bp_draft SET box_id=#{boxId}, updated_at=CURRENT_TIMESTAMP WHERE id=#{id}")
@@ -60,9 +60,9 @@ public interface BpDraftMapper {
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE expires_at < NOW()")
+          + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     List<BpDraft> listExpired();
 
-    @Delete("DELETE FROM bp_draft WHERE expires_at < NOW()")
+    @Delete("DELETE FROM bp_draft WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     int deleteExpired();
 }

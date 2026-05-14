@@ -27,20 +27,20 @@ public interface BpHistoryMapper {
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY created_at DESC")
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC")
     List<BpHistory> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY created_at DESC LIMIT #{limit}")
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT #{limit}")
     List<BpHistory> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND expires_at > NOW() ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<BpHistory> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
 
-    @Select("SELECT COUNT(*) FROM bp_history WHERE user_id=#{userId} AND expires_at > NOW()")
+    @Select("SELECT COUNT(*) FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW())")
     int countByUserId(@Param("userId") Long userId);
 
     @Update("UPDATE bp_history SET box_id=#{boxId} WHERE id=#{id}")
@@ -48,9 +48,9 @@ public interface BpHistoryMapper {
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
-          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE expires_at < NOW()")
+          + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     List<BpHistory> listExpired();
 
-    @Delete("DELETE FROM bp_history WHERE expires_at < NOW()")
+    @Delete("DELETE FROM bp_history WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     int deleteExpired();
 }
