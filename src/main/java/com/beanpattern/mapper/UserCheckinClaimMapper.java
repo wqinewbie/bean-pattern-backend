@@ -42,4 +42,10 @@ public interface UserCheckinClaimMapper {
             "WHERE user_id = #{userId} " +
             "ORDER BY claim_date DESC LIMIT #{limit}")
     List<UserCheckinClaim> findRecentByUser(@Param("userId") Long userId, @Param("limit") int limit);
+
+    @Select("SELECT COUNT(1) FROM bp_user_checkin_claim WHERE claim_date = #{date}")
+    int countByDate(@Param("date") LocalDate date);
+
+    @Select("SELECT COALESCE(SUM(reward_value), 0) FROM bp_user_checkin_claim")
+    int sumRewardValue();
 }

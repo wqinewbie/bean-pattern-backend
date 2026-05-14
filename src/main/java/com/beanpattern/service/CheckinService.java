@@ -277,6 +277,39 @@ public class CheckinService {
     }
 
     /**
+     * 获取后台签到统计
+     */
+    public Map<String, Object> getAdminStatistics() {
+        LocalDate today = LocalDate.now();
+        Map<String, Object> result = new HashMap<>();
+        result.put("todayCheckinCount", checkinMapper.countByDate(today));
+        result.put("totalCheckinUsers", checkinMapper.countDistinctUsers());
+        result.put("todayClaimCount", claimMapper.countByDate(today));
+        result.put("totalRewardValue", claimMapper.sumRewardValue());
+        return result;
+    }
+
+    /**
+     * 获取后台签到记录列表
+     */
+    public Map<String, Object> getAdminRecentCheckins(int page, int pageSize, LocalDate startDate, LocalDate endDate, String keyword) {
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.min(Math.max(pageSize, 1), 100);
+        int offset = (safePage - 1) * safePageSize;
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+
+        List<Map<String, Object>> list = checkinMapper.findAdminRecent(startDate, endDate, normalizedKeyword, safePageSize, offset);
+        int total = checkinMapper.countAdminRecent(startDate, endDate, normalizedKeyword);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        result.put("page", safePage);
+        result.put("pageSize", safePageSize);
+        return result;
+    }
+
+    /**
      * 获取签到配置
      */
     public Map<String, Object> getCheckinConfig() {

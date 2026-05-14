@@ -5,6 +5,7 @@ import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.CheckinService;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -42,21 +43,8 @@ public class AdminCheckinController {
      * 获取签到统计
      */
     @GetMapping("/statistics")
-    public ApiResponse<Map<String, Object>> getStatistics(
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
-        // TODO: 实现统计逻辑
-        // 1. 统计今日签到人数
-        // 2. 统计累计签到用户数
-        // 3. 统计今日领取奖励次数
-        // 4. 统计累计发放奖励
-        Map<String, Object> statistics = Map.of(
-            "todayCheckinCount", 0,
-            "totalCheckinUsers", 0,
-            "todayClaimCount", 0,
-            "totalRewardValue", 0
-        );
-        return ApiResponse.ok(statistics);
+    public ApiResponse<Map<String, Object>> getStatistics() {
+        return ApiResponse.ok(checkinService.getAdminStatistics());
     }
 
     /**
@@ -65,15 +53,24 @@ public class AdminCheckinController {
     @GetMapping("/recent")
     public ApiResponse<Map<String, Object>> getRecentCheckins(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int pageSize) {
-        // TODO: 实现分页查询逻辑
-        // 1. 查询最近的签到记录
-        // 2. 关联用户信息
-        // 3. 返回分页数据
-        Map<String, Object> result = Map.of(
-            "list", java.util.Collections.emptyList(),
-            "total", 0
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String keyword) {
+        Map<String, Object> result = checkinService.getAdminRecentCheckins(
+                page,
+                pageSize,
+                parseDate(startDate),
+                parseDate(endDate),
+                keyword
         );
         return ApiResponse.ok(result);
+    }
+
+    private LocalDate parseDate(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return LocalDate.parse(value.trim());
     }
 }

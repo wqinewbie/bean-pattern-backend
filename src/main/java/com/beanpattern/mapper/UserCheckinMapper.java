@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户签到记录 Mapper（bp_user_checkin）
@@ -48,4 +49,54 @@ public interface UserCheckinMapper {
             "WHERE user_id = #{userId} " +
             "ORDER BY checkin_date DESC LIMIT 1")
     UserCheckin findLastByUser(@Param("userId") Long userId);
+
+    @Select("<script>" +
+            "SELECT c.id, c.user_id AS userId, c.checkin_date AS checkinDate, " +
+            "c.continuous_days AS continuousDays, c.created_at AS createdAt, " +
+            "u.nick_name AS nickName, u.avatar_url AS avatarUrl, u.phone AS phone, u.open_id AS openId " +
+            "FROM bp_user_checkin c " +
+            "LEFT JOIN bp_user u ON u.id = c.user_id " +
+            "<where> " +
+            "<if test='startDate != null'>AND c.checkin_date &gt;= #{startDate}</if> " +
+            "<if test='endDate != null'>AND c.checkin_date &lt;= #{endDate}</if> " +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (u.nick_name LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR u.phone LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR u.open_id LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR CAST(c.user_id AS CHAR) = #{keyword})" +
+            "</if> " +
+            "</where> " +
+            "ORDER BY c.checkin_date DESC, c.created_at DESC " +
+            "LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Map<String, Object>> findAdminRecent(@Param("startDate") LocalDate startDate,
+                                               @Param("endDate") LocalDate endDate,
+                                               @Param("keyword") String keyword,
+                                               @Param("limit") int limit,
+                                               @Param("offset") int offset);
+
+    @Select("<script>" +
+            "SELECT COUNT(1) " +
+            "FROM bp_user_checkin c " +
+            "LEFT JOIN bp_user u ON u.id = c.user_id " +
+            "<where> " +
+            "<if test='startDate != null'>AND c.checkin_date &gt;= #{startDate}</if> " +
+            "<if test='endDate != null'>AND c.checkin_date &lt;= #{endDate}</if> " +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (u.nick_name LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR u.phone LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR u.open_id LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR CAST(c.user_id AS CHAR) = #{keyword})" +
+            "</if> " +
+            "</where>" +
+            "</script>")
+    int countAdminRecent(@Param("startDate") LocalDate startDate,
+                         @Param("endDate") LocalDate endDate,
+                         @Param("keyword") String keyword);
+
+    @Select("SELECT COUNT(1) FROM bp_user_checkin WHERE checkin_date = #{date}")
+    int countByDate(@Param("date") LocalDate date);
+
+    @Select("SELECT COUNT(DISTINCT user_id) FROM bp_user_checkin")
+    int countDistinctUsers();
 }
