@@ -1,4 +1,4 @@
-﻿package com.beanpattern.service;
+package com.beanpattern.service;
 
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;

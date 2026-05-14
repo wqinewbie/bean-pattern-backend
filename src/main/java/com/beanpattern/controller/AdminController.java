@@ -45,7 +45,6 @@ public class AdminController {
     private final FeedbackMapper feedbackMapper;
     private final CreatorPatternMapper creatorPatternMapper;
     private final OrderMapper orderMapper;
-    private final RechargePlanMapper rechargePlanMapper;
     private final BeadAdminMapper beadAdminMapper;
     private final TutorialMapper tutorialMapper;
     private final TaskConfigMapper taskConfigMapper;
@@ -59,7 +58,6 @@ public class AdminController {
                            BannerMapper bannerMapper, FeedbackMapper feedbackMapper,
                            CreatorPatternMapper creatorPatternMapper,
                            OrderMapper orderMapper,
-                           RechargePlanMapper rechargePlanMapper,
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
                            TaskConfigMapper taskConfigMapper,
@@ -74,7 +72,6 @@ public class AdminController {
         this.feedbackMapper = feedbackMapper;
         this.creatorPatternMapper = creatorPatternMapper;
         this.orderMapper = orderMapper;
-        this.rechargePlanMapper = rechargePlanMapper;
         this.beadAdminMapper = beadAdminMapper;
         this.tutorialMapper = tutorialMapper;
         this.taskConfigMapper = taskConfigMapper;
@@ -372,7 +369,14 @@ public class AdminController {
     }
 
     private String cleanBannerText(String value) {
-        return value == null ? "" : value.trim();
+        if (value == null) {
+            return "";
+        }
+        String sanitized = value
+                .replace("\u0000", "")
+                .replace("\r", "")
+                .trim();
+        return sanitized.length() > 255 ? sanitized.substring(0, 255) : sanitized;
     }
 
     // ─── 教程管理 ────────────────────────────────────────
@@ -648,16 +652,6 @@ public class AdminController {
         return m;
     }
 
-    private String cleanBannerText(String value) {
-        if (value == null) {
-            return "";
-        }
-        String sanitized = value
-                .replace("\u0000", "")
-                .replace("\r", "")
-                .trim();
-        return sanitized.length() > 255 ? sanitized.substring(0, 255) : sanitized;
-    }
     // ─── 订单管理 ────────────────────────────────────────
 
     @GetMapping("/orders")
@@ -688,70 +682,6 @@ public class AdminController {
             return m;
         }).collect(Collectors.toList());
         return ApiResponse.ok(Map.of("list", list, "total", total));
-    }
-
-    // ─── VIP套餐管理 ─────────────────────────────────────
-
-    @GetMapping("/vip-plans")
-    public ApiResponse<List<Map<String, Object>>> vipPlans() {
-        var list = rechargePlanMapper.listAll().stream().map(p -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", p.getId());
-            m.put("name", p.getName());
-            m.put("description", p.getDescription());
-            m.put("coins", p.getCoins());
-            m.put("aiQuota", p.getAiQuota());
-            m.put("price", p.getPrice());
-            m.put("originalPrice", p.getOriginalPrice());
-            m.put("isVip", p.getIsVip());
-            m.put("vipDays", p.getVipDays());
-            m.put("tag", p.getTag());
-            m.put("sortOrder", p.getSortOrder());
-            m.put("status", p.getStatus());
-            return m;
-        }).collect(Collectors.toList());
-        return ApiResponse.ok(list);
-    }
-
-    @PostMapping("/vip-plans")
-    public ApiResponse<String> createVipPlan(@RequestBody Map<String, Object> body) {
-        RechargePlanEntity plan = new RechargePlanEntity();
-        plan.setName((String) body.getOrDefault("name", ""));
-        plan.setDescription((String) body.getOrDefault("description", ""));
-        plan.setCoins(body.get("coins") instanceof Number n ? n.intValue() : 0);
-        plan.setAiQuota(body.get("aiQuota") instanceof Number n ? n.intValue() : 0);
-        plan.setPrice(body.get("price") instanceof Number n ? new java.math.BigDecimal(n.toString()) : java.math.BigDecimal.ZERO);
-        plan.setOriginalPrice(body.get("originalPrice") instanceof Number n ? new java.math.BigDecimal(n.toString()) : java.math.BigDecimal.ZERO);
-        plan.setIsVip(body.get("isVip") instanceof Number n ? n.intValue() : 0);
-        plan.setVipDays(body.get("vipDays") instanceof Number n ? n.intValue() : 0);
-        plan.setTag((String) body.getOrDefault("tag", ""));
-        plan.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 99);
-        rechargePlanMapper.insert(plan);
-        return ApiResponse.ok("ok");
-    }
-
-    @PutMapping("/vip-plans/{id}")
-    public ApiResponse<String> updateVipPlan(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        RechargePlanEntity plan = new RechargePlanEntity();
-        plan.setId(id);
-        plan.setName((String) body.getOrDefault("name", ""));
-        plan.setDescription((String) body.getOrDefault("description", ""));
-        plan.setCoins(body.get("coins") instanceof Number n ? n.intValue() : 0);
-        plan.setAiQuota(body.get("aiQuota") instanceof Number n ? n.intValue() : 0);
-        plan.setPrice(body.get("price") instanceof Number n ? new java.math.BigDecimal(n.toString()) : java.math.BigDecimal.ZERO);
-        plan.setOriginalPrice(body.get("originalPrice") instanceof Number n ? new java.math.BigDecimal(n.toString()) : java.math.BigDecimal.ZERO);
-        plan.setIsVip(body.get("isVip") instanceof Number n ? n.intValue() : 0);
-        plan.setVipDays(body.get("vipDays") instanceof Number n ? n.intValue() : 0);
-        plan.setTag((String) body.getOrDefault("tag", ""));
-        plan.setSortOrder(body.get("sortOrder") instanceof Number n ? n.intValue() : 99);
-        rechargePlanMapper.update(plan);
-        return ApiResponse.ok("ok");
-    }
-
-    @PostMapping("/vip-plans/{id}/toggle")
-    public ApiResponse<String> toggleVipPlan(@PathVariable Long id) {
-        rechargePlanMapper.toggleStatus(id);
-        return ApiResponse.ok("ok");
     }
 
     // ─── 任务中心管理 ─────────────────────────────────────
