@@ -70,6 +70,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         createGiftPackageTables(db);
         createReviewTaskSubmissionTable(db);
         createUserInviteRelationTable(db);
+        createWatermarkTables(db);
         enforceBannerUtf8mb4();
 
         // bp_recharge_plan
@@ -201,6 +202,49 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "KEY idx_inviter(inviter_user_id)," +
                         "KEY idx_invite_code(invite_code)" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='用户邀请关系表'");
+    }
+
+    private void createWatermarkTables(String db) {
+        createTableIfNotExists(db, "bp_watermark_config",
+                "CREATE TABLE bp_watermark_config (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键'," +
+                        "app_name VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋' COMMENT '小程序名称'," +
+                        "default_text VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋出品' COMMENT '默认水印文字'," +
+                        "font_size INT NOT NULL DEFAULT 24 COMMENT '字体大小'," +
+                        "color VARCHAR(64) NOT NULL DEFAULT 'rgba(100,100,100,0.25)' COMMENT '颜色'," +
+                        "angle INT NOT NULL DEFAULT -30 COMMENT '倾斜角度（度）'," +
+                        "spacing_x_ratio DECIMAL(3,2) NOT NULL DEFAULT 0.22 COMMENT '水平间距比例'," +
+                        "spacing_y_ratio DECIMAL(3,2) NOT NULL DEFAULT 0.18 COMMENT '垂直间距比例'," +
+                        "opacity DECIMAL(3,2) NOT NULL DEFAULT 0.25 COMMENT '透明度'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='全局水印配置表'");
+
+        createTableIfNotExists(db, "bp_user_watermark_config",
+                "CREATE TABLE bp_user_watermark_config (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键'," +
+                        "user_id BIGINT NOT NULL COMMENT '用户ID'," +
+                        "enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '0=关闭 1=开启'," +
+                        "custom_text VARCHAR(128) NULL COMMENT '自定义水印文字（VIP专属）'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "UNIQUE KEY uk_user_id(user_id)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='用户水印配置表（VIP功能）'");
+
+        seedWatermarkConfig();
+    }
+
+    private void seedWatermarkConfig() {
+        try {
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bp_watermark_config", Integer.class);
+            if (count != null && count > 0) return;
+
+            jdbc.execute("INSERT INTO bp_watermark_config(app_name, default_text, font_size, color, angle, spacing_x_ratio, spacing_y_ratio, opacity) " +
+                    "VALUES ('拼豆魔法屋', '拼豆魔法屋出品', 24, 'rgba(100,100,100,0.25)', -30, 0.22, 0.18, 0.25)");
+            log.info("[SchemaUpgrader] 已插入默认水印配置");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 初始化水印配置失败: {}", e.getMessage());
+        }
     }
 
     private void seedGiftTypes() {

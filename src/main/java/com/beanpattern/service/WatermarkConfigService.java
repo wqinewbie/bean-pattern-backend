@@ -109,7 +109,7 @@ public class WatermarkConfigService {
                         && user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(java.time.LocalDateTime.now());
         
         if (!isVip) {
-            throw new RuntimeException("仅VIP用户可以自定义水印");
+            throw new IllegalArgumentException("仅VIP用户可以自定义水印");
         }
         
         UserWatermarkConfig config = userMapper.getByUserId(userId);
