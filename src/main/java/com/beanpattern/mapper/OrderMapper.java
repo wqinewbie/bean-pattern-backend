@@ -9,6 +9,12 @@ import java.util.List;
 @Mapper
 public interface OrderMapper {
 
+    String ORDER_COLUMNS = "id, order_no AS orderNo, user_id AS userId, " +
+            "product_type AS productType, package_code AS packageCode, plan_name AS planName, " +
+            "amount, status, expire_at AS expireAt, deliver_status AS deliverStatus, " +
+            "deliver_error AS deliverError, paid_at AS paidAt, transaction_id AS transactionId, " +
+            "created_at AS createdAt";
+
     @Select("SELECT COUNT(*) FROM bp_order")
     int count();
 
@@ -22,31 +28,13 @@ public interface OrderMapper {
     @Select("SELECT COALESCE(SUM(amount), 0) FROM bp_order WHERE DATE(created_at) = CURDATE() AND status = 'PAID'")
     BigDecimal todayIncome();
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
     List<OrderEntity> listAll(@Param("offset") int offset, @Param("size") int size);
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order WHERE user_id = #{userId} ORDER BY created_at DESC")
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE user_id = #{userId} ORDER BY created_at DESC")
     List<OrderEntity> listByUserId(@Param("userId") Long userId);
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order WHERE user_id = #{userId} " +
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE user_id = #{userId} " +
             "AND (#{productType} IS NULL OR #{productType} = '' OR product_type = #{productType}) " +
             "ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
     List<OrderEntity> listByUserIdPaged(@Param("userId") Long userId,
@@ -54,27 +42,15 @@ public interface OrderMapper {
                                         @Param("offset") int offset,
                                         @Param("size") int size);
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order WHERE id = #{id}")
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE id = #{id}")
     OrderEntity findById(@Param("id") Long id);
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order WHERE order_no = #{orderNo}")
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE order_no = #{orderNo}")
     OrderEntity findByOrderNo(@Param("orderNo") String orderNo);
 
-    @Insert("INSERT INTO bp_order(order_no, user_id, plan_id, product_type, package_code, " +
+    @Insert("INSERT INTO bp_order(order_no, user_id, product_type, package_code, " +
             "plan_name, amount, status, expire_at, deliver_status) " +
-            "VALUES(#{orderNo}, #{userId}, COALESCE(#{planId}, 0), #{productType}, #{packageCode}, " +
+            "VALUES(#{orderNo}, #{userId}, #{productType}, #{packageCode}, " +
             "#{planName}, #{amount}, #{status}, #{expireAt}, #{deliverStatus})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(OrderEntity order);
@@ -91,13 +67,7 @@ public interface OrderMapper {
                            @Param("deliverStatus") String deliverStatus,
                            @Param("deliverError") String deliverError);
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order " +
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order " +
             "WHERE status = 'PENDING' AND expire_at < NOW() LIMIT #{limit}")
     List<OrderEntity> findExpiredOrders(@Param("limit") int limit);
 
@@ -105,13 +75,7 @@ public interface OrderMapper {
             "WHERE status = 'PENDING' AND expire_at < NOW()")
     int cancelExpiredOrders();
 
-    @Select("SELECT id, order_no AS orderNo, user_id AS userId, plan_id AS planId, plan_name AS planName, " +
-            "amount, status, product_id AS productId, vip_level_purchased AS vipLevelPurchased, " +
-            "vip_days AS vipDays, gift_items AS giftItems, " +
-            "product_type AS productType, package_code AS packageCode, expire_at AS expireAt, " +
-            "deliver_status AS deliverStatus, deliver_error AS deliverError, " +
-            "paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt FROM bp_order " +
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order " +
             "WHERE status = 'PAID' AND deliver_status = 'FAILED' LIMIT #{limit}")
     List<OrderEntity> findFailedDeliveryOrders(@Param("limit") int limit);
 }

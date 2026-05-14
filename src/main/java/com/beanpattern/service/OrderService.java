@@ -114,7 +114,6 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("vip");
         order.setPackageCode(packageCode);
-        order.setPlanId(0L);
         order.setPlanName(vipPackage.getPackageName());
         order.setAmount(vipPackage.getPrice());
         order.setStatus("PENDING");
@@ -154,7 +153,6 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("card");
         order.setPackageCode(packageCode);
-        order.setPlanId(0L);
         order.setPlanName(cardPackage.getPackageName());
         order.setAmount(price);
         order.setStatus("PENDING");
