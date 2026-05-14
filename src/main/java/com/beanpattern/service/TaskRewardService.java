@@ -10,7 +10,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * 任务奖励统一发放服务。
- * 所有非付费任务奖励只发放礼品包，具体权益由用户兑换礼品包后到账。
+ * 免费/运营类任务奖励只发放礼品包；AI次数和会员天数只在礼品包兑换或付费链路中到账。
  */
 @Service
 public class TaskRewardService {

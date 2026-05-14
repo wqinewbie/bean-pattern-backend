@@ -1,9 +1,7 @@
 package com.beanpattern.service.task;
 
-import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.mapper.CheckinConfigMapper;
 import com.beanpattern.service.CheckinService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,12 +17,10 @@ import java.util.Map;
 public class CheckinTaskHandler implements TaskHandler {
 
     private final CheckinService checkinService;
-    private final CheckinConfigMapper checkinConfigMapper;
     private final ObjectMapper objectMapper;
 
-    public CheckinTaskHandler(CheckinService checkinService, CheckinConfigMapper checkinConfigMapper) {
+    public CheckinTaskHandler(CheckinService checkinService) {
         this.checkinService = checkinService;
-        this.checkinConfigMapper = checkinConfigMapper;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -41,7 +37,6 @@ public class CheckinTaskHandler implements TaskHandler {
         boolean canClaim = Boolean.TRUE.equals(status.get("canClaim"));
         int requiredDays = numberValue(status.get("requiredDays"), 3);
         int continuousDays = numberValue(status.get("continuousDays"), 0);
-        CheckinConfig activeConfig = checkinConfigMapper.findLatest();
 
         int itemStatus;
         if (canClaim) itemStatus = 1;
@@ -54,8 +49,8 @@ public class CheckinTaskHandler implements TaskHandler {
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType(activeConfig != null ? activeConfig.getRewardType() : config.getRewardType())
-                .rewardValue(activeConfig != null ? activeConfig.getRewardValue() : config.getRewardValue())
+                .rewardType("GIFT_PACKAGE")
+                .rewardValue(1)
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("CHECKIN")
@@ -79,6 +74,7 @@ public class CheckinTaskHandler implements TaskHandler {
             return defaultValue;
         }
     }
+
 
     private String readExtraText(TaskConfig config, String field, String defaultValue) {
         if (config == null || !StringUtils.hasText(config.getExtraConfig())) return defaultValue;
