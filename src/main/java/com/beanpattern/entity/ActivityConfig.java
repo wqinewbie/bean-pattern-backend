@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import tools.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +16,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ActivityConfig {
+    private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
+
     private Long id;
     private String activityCode;       // 活动编码
     private String title;              // 活动标题
@@ -28,7 +31,9 @@ public class ActivityConfig {
     private String limitType;          // 限制类型：ONCE/DAILY/UNLIMITED
     private Integer totalQuota;        // 总名额
     private Integer remainQuota;       // 剩余名额
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime startAt;     // 活动开始时间
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime endAt;       // 活动结束时间
     private String contentHtml;        // 富文本HTML内容
     private String contentJson;        // 富文本JSON结构
@@ -37,6 +42,8 @@ public class ActivityConfig {
     private String buttonAction;       // 按钮动作：CLAIM/RECHARGE/JUMP
     private String buttonUrl;          // 按钮跳转URL（当action为JUMP时使用）
     private Boolean status;            // 状态：0下线 1上线
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime createdAt;   // 创建时间
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime updatedAt;   // 更新时间
 }
