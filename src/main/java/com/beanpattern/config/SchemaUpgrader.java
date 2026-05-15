@@ -303,8 +303,20 @@ public class SchemaUpgrader implements ApplicationRunner {
             if (sql.isEmpty()) {
                 return;
             }
-            jdbc.execute(sql);
-            log.info("[SchemaUpgrader] 系统字典默认项已执行 INSERT IGNORE");
+            int executed = 0;
+            for (String part : sql.split(";")) {
+                String stmt = part.trim();
+                if (stmt.isEmpty()) {
+                    continue;
+                }
+                try {
+                    jdbc.execute(stmt);
+                    executed++;
+                } catch (Exception ex) {
+                    log.warn("[SchemaUpgrader] 字典种子语句执行失败: {}", ex.getMessage());
+                }
+            }
+            log.info("[SchemaUpgrader] 系统字典默认项已执行，语句数: {}", executed);
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 初始化系统字典失败: {}", e.getMessage());
         }
