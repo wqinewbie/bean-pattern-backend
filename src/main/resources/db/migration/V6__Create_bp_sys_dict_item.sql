@@ -19,6 +19,7 @@ INSERT IGNORE INTO bp_sys_dict_item (dict_type, dict_label, dict_value, tag_type
 ('order_status', '已支付', 'PAID', 'success', 1, 1, 0, ''),
 ('order_status', '待支付', 'PENDING', 'warning', 2, 1, 0, ''),
 ('order_status', '已退款', 'REFUNDED', 'danger', 3, 1, 0, ''),
+('order_status', '已超时', 'TIMEOUT', 'info', 4, 1, 0, ''),
 ('user_status', '正常', '1', 'success', 1, 1, 0, ''),
 ('user_status', '禁用', '0', 'danger', 2, 1, 0, ''),
 ('vip_status', 'VIP用户', '1', 'warning', 1, 1, 0, ''),

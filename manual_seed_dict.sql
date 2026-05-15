@@ -1,3 +1,10 @@
+-- 手动执行字典数据初始化脚本
+-- 如果字典管理中没有数据，可以手动执行此脚本
+
+-- 清空现有数据（可选，如果需要重新初始化）
+-- TRUNCATE TABLE bp_sys_dict_item;
+
+-- 插入字典数据
 INSERT IGNORE INTO bp_sys_dict_item (dict_type, dict_label, dict_value, tag_type, sort_order, status, disabled, remark) VALUES
 ('order_status', '已支付', 'PAID', 'success', 1, 1, 0, ''),
 ('order_status', '待支付', 'PENDING', 'warning', 2, 1, 0, ''),
@@ -93,3 +100,7 @@ INSERT IGNORE INTO bp_sys_dict_item (dict_type, dict_label, dict_value, tag_type
 ('status_enable', '停用', '0', 'info', 2, 1, 0, ''),
 ('status_online', '上线', '1', 'success', 1, 1, 0, ''),
 ('status_online', '下线', '0', 'info', 2, 1, 0, '');
+
+-- 查询插入结果
+SELECT COUNT(*) as total_count FROM bp_sys_dict_item;
+SELECT dict_type, COUNT(*) as count FROM bp_sys_dict_item GROUP BY dict_type ORDER BY dict_type;
