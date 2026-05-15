@@ -76,6 +76,8 @@ public class SchemaUpgrader implements ApplicationRunner {
         createReviewTaskSubmissionTable(db);
         createUserInviteRelationTable(db);
         createWatermarkTables(db);
+        createSysDictTable(db);
+        seedSysDictItems();
         enforceBannerUtf8mb4();
 
         // bp_recharge_plan
@@ -257,6 +259,54 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.info("[SchemaUpgrader] 已插入默认水印配置");
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 初始化水印配置失败: {}", e.getMessage());
+        }
+    }
+
+    private void createSysDictTable(String db) {
+        createTableIfNotExists(db, "bp_sys_dict_item",
+                "CREATE TABLE bp_sys_dict_item (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键'," +
+                        "dict_type VARCHAR(64) NOT NULL COMMENT '字典类型编码'," +
+                        "dict_label VARCHAR(128) NOT NULL COMMENT '展示标签'," +
+                        "dict_value VARCHAR(128) NOT NULL COMMENT '选项值'," +
+                        "tag_type VARCHAR(32) NOT NULL DEFAULT 'info' COMMENT 'Tag类型'," +
+                        "sort_order INT NOT NULL DEFAULT 0 COMMENT '排序'," +
+                        "status TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1启用0停用'," +
+                        "disabled TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否禁用可选'," +
+                        "remark VARCHAR(256) NULL COMMENT '备注'," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "UNIQUE KEY uk_dict_type_value(dict_type, dict_value)," +
+                        "KEY idx_dict_type_status(dict_type, status)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='系统字典项'");
+    }
+
+    private void seedSysDictItems() {
+        try {
+            ClassPathResource resource = new ClassPathResource("db/seed/bp_sys_dict_item_seed.sql");
+            if (!resource.exists()) {
+                log.warn("[SchemaUpgrader] 字典种子文件不存在: db/seed/bp_sys_dict_item_seed.sql");
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (trimmed.isEmpty() || trimmed.startsWith("--")) {
+                        continue;
+                    }
+                    sb.append(line).append('\n');
+                }
+            }
+            String sql = sb.toString().trim();
+            if (sql.isEmpty()) {
+                return;
+            }
+            jdbc.execute(sql);
+            log.info("[SchemaUpgrader] 系统字典默认项已执行 INSERT IGNORE");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 初始化系统字典失败: {}", e.getMessage());
         }
     }
 

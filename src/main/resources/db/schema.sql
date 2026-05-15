@@ -305,3 +305,24 @@ INSERT INTO `bp_watermark_config`
   (`app_name`, `default_text`, `font_size`, `color`, `angle`, `spacing_x_ratio`, `spacing_y_ratio`, `opacity`)
 SELECT '拼豆魔法屋', '拼豆魔法屋出品', 24, 'rgba(100,100,100,0.25)', -30, 0.22, 0.18, 0.25
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `bp_watermark_config` LIMIT 1);
+
+-- =========================
+-- 系统字典项（管理端下拉；默认数据由应用启动 SchemaUpgrader 执行 db/seed/bp_sys_dict_item_seed.sql）
+-- =========================
+
+CREATE TABLE IF NOT EXISTS `bp_sys_dict_item` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `dict_type` varchar(64) NOT NULL COMMENT '字典类型编码',
+  `dict_label` varchar(128) NOT NULL COMMENT '展示标签',
+  `dict_value` varchar(128) NOT NULL COMMENT '选项值（与业务存储一致）',
+  `tag_type` varchar(32) NOT NULL DEFAULT 'info' COMMENT 'Element Plus tag 类型',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '同类型内排序',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0停用 1启用',
+  `disabled` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否禁用可选',
+  `remark` varchar(256) DEFAULT NULL COMMENT '备注',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dict_type_value` (`dict_type`,`dict_value`),
+  KEY `idx_dict_type_status` (`dict_type`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统字典项';
