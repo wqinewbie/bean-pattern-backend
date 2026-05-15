@@ -1,13 +1,11 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.entity.SysDictItem;
+import com.beanpattern.mapper.SysDictItemMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.dict.DictOption;
 import com.beanpattern.service.DictService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,9 +15,11 @@ import java.util.Map;
 @RequestMapping("/api/admin/dict")
 public class AdminDictController {
     private final DictService dictService;
+    private final SysDictItemMapper dictItemMapper;
 
-    public AdminDictController(DictService dictService) {
+    public AdminDictController(DictService dictService, SysDictItemMapper dictItemMapper) {
         this.dictService = dictService;
+        this.dictItemMapper = dictItemMapper;
     }
 
     @GetMapping("/options")
@@ -35,6 +35,59 @@ public class AdminDictController {
                 .distinct()
                 .toList();
         return ApiResponse.ok(dictService.getOptionsBatch(types));
+    }
+
+    @GetMapping("/items")
+    public ApiResponse<List<SysDictItem>> list() {
+        return ApiResponse.ok(dictItemMapper.findAll());
+    }
+
+    @GetMapping("/items/{id}")
+    public ApiResponse<SysDictItem> getById(@PathVariable Long id) {
+        SysDictItem item = dictItemMapper.findById(id);
+        if (item == null) {
+            return ApiResponse.error("字典项不存在");
+        }
+        return ApiResponse.ok(item);
+    }
+
+    @PostMapping("/items")
+    public ApiResponse<SysDictItem> create(@RequestBody SysDictItem item) {
+        if (item.getStatus() == null) {
+            item.setStatus(1);
+        }
+        if (item.getDisabled() == null) {
+            item.setDisabled(0);
+        }
+        if (item.getSortOrder() == null) {
+            item.setSortOrder(0);
+        }
+        dictItemMapper.insert(item);
+        dictService.refreshCache();
+        return ApiResponse.ok(item);
+    }
+
+    @PutMapping("/items/{id}")
+    public ApiResponse<SysDictItem> update(@PathVariable Long id, @RequestBody SysDictItem item) {
+        SysDictItem existing = dictItemMapper.findById(id);
+        if (existing == null) {
+            return ApiResponse.error("字典项不存在");
+        }
+        item.setId(id);
+        dictItemMapper.update(item);
+        dictService.refreshCache();
+        return ApiResponse.ok(item);
+    }
+
+    @DeleteMapping("/items/{id}")
+    public ApiResponse<String> delete(@PathVariable Long id) {
+        SysDictItem existing = dictItemMapper.findById(id);
+        if (existing == null) {
+            return ApiResponse.error("字典项不存在");
+        }
+        dictItemMapper.deleteById(id);
+        dictService.refreshCache();
+        return ApiResponse.ok("删除成功");
     }
 
     /**

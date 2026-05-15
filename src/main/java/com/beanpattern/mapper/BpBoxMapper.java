@@ -77,4 +77,27 @@ public interface BpBoxMapper {
 
     @Select("SELECT COUNT(*) FROM bp_box WHERE user_id=#{userId} AND status!=3")
     int countByUserId(@Param("userId") Long userId);
+
+    // 管理后台接口
+    @Select("SELECT * FROM bp_box WHERE status!=3 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    @Results({
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "sourceType", column = "source_type"),
+        @Result(property = "colorCount", column = "color_count"),
+        @Result(property = "gridSize", column = "grid_size"),
+        @Result(property = "draftId", column = "draft_id"),
+        @Result(property = "historyId", column = "history_id"),
+        @Result(property = "sourceUrl", column = "source_url"),
+        @Result(property = "coverUrl", column = "cover_url"),
+        @Result(property = "focusProgress", column = "focus_progress"),
+        @Result(property = "focusCompletedCells", column = "focus_completed_cells"),
+        @Result(property = "focusTotalCells", column = "focus_total_cells"),
+        @Result(property = "mappedPixelData", column = "mapped_pixel_data"),
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "updatedAt", column = "updated_at")
+    })
+    List<BpBox> listAllWithPage(@Param("limit") int limit, @Param("offset") int offset);
+
+    @Select("SELECT COUNT(*) FROM bp_box WHERE status!=3")
+    int countAll();
 }

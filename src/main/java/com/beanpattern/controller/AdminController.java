@@ -10,6 +10,7 @@ import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.GiftTypeConfigService;
 import com.beanpattern.service.ImageStorageService;
 import com.beanpattern.service.ReviewTaskService;
+import com.beanpattern.util.ImageUploadHelper;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -48,11 +49,15 @@ public class AdminController {
     private final BeadAdminMapper beadAdminMapper;
     private final TutorialMapper tutorialMapper;
     private final TaskConfigMapper taskConfigMapper;
+    private final BpBoxMapper bpBoxMapper;
+    private final BpDraftMapper bpDraftMapper;
+    private final BpHistoryMapper bpHistoryMapper;
     private final GiftPackageService giftPackageService;
     private final GiftTypeConfigService giftTypeConfigService;
     private final ReviewTaskService reviewTaskService;
     private final PasswordEncoder passwordEncoder;
     private final ImageStorageService imageStorageService;
+    private final ImageUploadHelper imageUploadHelper;
 
     public AdminController(AdminMapper adminMapper, UserMapper userMapper,
                            BannerMapper bannerMapper, FeedbackMapper feedbackMapper,
@@ -61,11 +66,15 @@ public class AdminController {
                            BeadAdminMapper beadAdminMapper,
                            TutorialMapper tutorialMapper,
                            TaskConfigMapper taskConfigMapper,
+                           BpBoxMapper bpBoxMapper,
+                           BpDraftMapper bpDraftMapper,
+                           BpHistoryMapper bpHistoryMapper,
                            GiftPackageService giftPackageService,
                            GiftTypeConfigService giftTypeConfigService,
                            ReviewTaskService reviewTaskService,
                            PasswordEncoder passwordEncoder,
-                           ImageStorageService imageStorageService) {
+                           ImageStorageService imageStorageService,
+                           ImageUploadHelper imageUploadHelper) {
         this.adminMapper = adminMapper;
         this.userMapper = userMapper;
         this.bannerMapper = bannerMapper;
@@ -75,11 +84,15 @@ public class AdminController {
         this.beadAdminMapper = beadAdminMapper;
         this.tutorialMapper = tutorialMapper;
         this.taskConfigMapper = taskConfigMapper;
+        this.bpBoxMapper = bpBoxMapper;
+        this.bpDraftMapper = bpDraftMapper;
+        this.bpHistoryMapper = bpHistoryMapper;
         this.giftPackageService = giftPackageService;
         this.giftTypeConfigService = giftTypeConfigService;
         this.reviewTaskService = reviewTaskService;
         this.passwordEncoder = passwordEncoder;
         this.imageStorageService = imageStorageService;
+        this.imageUploadHelper = imageUploadHelper;
     }
 
     // ─── 看板 ───────────────────────────────────────────
@@ -223,16 +236,154 @@ public class AdminController {
         return ApiResponse.ok("ok");
     }
 
-    @GetMapping("/user-patterns")
-    public ApiResponse<Map<String, Object>> userPatterns(
+    // ─── 用户图纸箱管理 ────────────────────────────────────────
+
+    @GetMapping("/user-boxes")
+    public ApiResponse<Map<String, Object>> userBoxes(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(defaultValue = "") String q,
-            @RequestParam(defaultValue = "") String taskType,
-            @RequestParam(defaultValue = "") String status,
-            @RequestParam(defaultValue = "") String isSaved) {
-        // 旧任务表已废弃，返回空列表
-        return ApiResponse.ok(Map.of("list", List.of(), "total", 0));
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var list = bpBoxMapper.listAllWithPage(pageSize, offset);
+        int total = bpBoxMapper.countAll();
+
+        var result = list.stream().map(box -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", box.getId());
+            m.put("userId", box.getUserId());
+            var user = userMapper.findById(box.getUserId());
+            m.put("userName", user != null ? user.getNickName() : "用户#" + box.getUserId());
+            m.put("name", box.getName() != null ? box.getName() : "");
+            m.put("sourceType", box.getSourceType() != null ? box.getSourceType() : "");
+            m.put("brand", box.getBrand() != null ? box.getBrand() : "");
+            m.put("colorCount", box.getColorCount() != null ? box.getColorCount() : 0);
+            m.put("gridSize", box.getGridSize() != null ? box.getGridSize() : 0);
+            m.put("coverUrl", box.getCoverUrl() != null ? box.getCoverUrl() : "");
+            m.put("sourceUrl", box.getSourceUrl() != null ? box.getSourceUrl() : "");
+            m.put("createdAt", box.getCreatedAt() != null ? box.getCreatedAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        // 如果有搜索条件，过滤结果
+        if (StringUtils.hasText(q)) {
+            result = result.stream().filter(m -> {
+                String userName = (String) m.get("userName");
+                String name = (String) m.get("name");
+                String userId = String.valueOf(m.get("userId"));
+                return userName.contains(q) || name.contains(q) || userId.contains(q);
+            }).collect(Collectors.toList());
+            total = result.size();
+        }
+
+        return ApiResponse.ok(Map.of("list", result, "total", total));
+    }
+
+    @DeleteMapping("/user-boxes/{id}")
+    public ApiResponse<String> deleteUserBox(@PathVariable Long id) {
+        var box = bpBoxMapper.findById(id);
+        if (box == null) return ApiResponse.fail("图纸不存在");
+        bpBoxMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 用户草稿箱管理 ────────────────────────────────────────
+
+    @GetMapping("/user-drafts")
+    public ApiResponse<Map<String, Object>> userDrafts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var list = bpDraftMapper.listAllWithPage(pageSize, offset);
+        int total = bpDraftMapper.countAll();
+
+        var result = list.stream().map(draft -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", draft.getId());
+            m.put("userId", draft.getUserId());
+            var user = userMapper.findById(draft.getUserId());
+            m.put("userName", user != null ? user.getNickName() : "用户#" + draft.getUserId());
+            m.put("name", draft.getName() != null ? draft.getName() : "");
+            m.put("sourceType", draft.getSourceType() != null ? draft.getSourceType() : "");
+            m.put("brand", draft.getBrand() != null ? draft.getBrand() : "");
+            m.put("colorCount", draft.getColorCount() != null ? draft.getColorCount() : 0);
+            m.put("gridSize", draft.getGridSize() != null ? draft.getGridSize() : 0);
+            m.put("createdAt", draft.getCreatedAt() != null ? draft.getCreatedAt().toString() : "");
+            m.put("updatedAt", draft.getUpdatedAt() != null ? draft.getUpdatedAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        // 如果有搜索条件，过滤结果
+        if (StringUtils.hasText(q)) {
+            result = result.stream().filter(m -> {
+                String userName = (String) m.get("userName");
+                String name = (String) m.get("name");
+                String userId = String.valueOf(m.get("userId"));
+                return userName.contains(q) || name.contains(q) || userId.contains(q);
+            }).collect(Collectors.toList());
+            total = result.size();
+        }
+
+        return ApiResponse.ok(Map.of("list", result, "total", total));
+    }
+
+    @DeleteMapping("/user-drafts/{id}")
+    public ApiResponse<String> deleteUserDraft(@PathVariable Long id) {
+        var draft = bpDraftMapper.findById(id);
+        if (draft == null) return ApiResponse.fail("草稿不存在");
+        bpDraftMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 用户时光机管理 ────────────────────────────────────────
+
+    @GetMapping("/user-history")
+    public ApiResponse<Map<String, Object>> userHistory(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var list = bpHistoryMapper.listAllWithPage(pageSize, offset);
+        int total = bpHistoryMapper.countAll();
+
+        var result = list.stream().map(history -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", history.getId());
+            m.put("userId", history.getUserId());
+            var user = userMapper.findById(history.getUserId());
+            m.put("userName", user != null ? user.getNickName() : "用户#" + history.getUserId());
+            m.put("name", history.getName() != null ? history.getName() : "");
+            m.put("sourceType", history.getSourceType() != null ? history.getSourceType() : "");
+            m.put("brand", history.getBrand() != null ? history.getBrand() : "");
+            m.put("colorCount", history.getColorCount() != null ? history.getColorCount() : 0);
+            m.put("gridSize", history.getGridSize() != null ? history.getGridSize() : 0);
+            m.put("sourceUrl", history.getSourceUrl() != null ? history.getSourceUrl() : "");
+            m.put("boxId", history.getBoxId());
+            m.put("createdAt", history.getCreatedAt() != null ? history.getCreatedAt().toString() : "");
+            m.put("expiresAt", history.getExpiresAt() != null ? history.getExpiresAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        // 如果有搜索条件，过滤结果
+        if (StringUtils.hasText(q)) {
+            result = result.stream().filter(m -> {
+                String userName = (String) m.get("userName");
+                String name = (String) m.get("name");
+                String userId = String.valueOf(m.get("userId"));
+                return userName.contains(q) || name.contains(q) || userId.contains(q);
+            }).collect(Collectors.toList());
+            total = result.size();
+        }
+
+        return ApiResponse.ok(Map.of("list", result, "total", total));
+    }
+
+    @DeleteMapping("/user-history/{id}")
+    public ApiResponse<String> deleteUserHistory(@PathVariable Long id) {
+        var history = bpHistoryMapper.findById(id);
+        if (history == null) return ApiResponse.fail("记录不存在");
+        bpHistoryMapper.deleteById(id);
+        return ApiResponse.ok("ok");
     }
 
     // ─── 礼品类型管理 ──────────────────────────────────────
@@ -434,6 +585,22 @@ public class AdminController {
         return ApiResponse.ok(upload);
     }
 
+    // ─── 通用图片上传 ────────────────────────────────────────
+
+    /**
+     * 管理后台统一图片上传接口
+     * POST /api/admin/image/upload
+     */
+    @PostMapping(value = "/image/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<ImageUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageUploadResponse upload = imageUploadHelper.uploadImage(file);
+            return ApiResponse.ok(upload);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
     // ─── 拼豆品牌 / 色盘 / 色号管理 ─────────────────────────
 
     @GetMapping("/bead/brands")
@@ -565,6 +732,149 @@ public class AdminController {
         result.put("missingCount", missing);
         return ApiResponse.ok(result);
     }
+
+    // ─── 用户图纸箱管理 ────────────────────────────────────────
+
+    @GetMapping("/user-boxes")
+    public ApiResponse<Map<String, Object>> userBoxes(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var allBoxes = bpBoxMapper.listAllWithPage(pageSize * 10, 0);
+
+        var filtered = allBoxes.stream().filter(box -> {
+            if (!StringUtils.hasText(q)) return true;
+            if (String.valueOf(box.getUserId()).contains(q)) return true;
+            if (box.getName() != null && box.getName().contains(q)) return true;
+            var user = userMapper.findById(box.getUserId());
+            if (user != null && user.getNickName() != null && user.getNickName().contains(q)) return true;
+            return false;
+        }).collect(Collectors.toList());
+
+        int total = filtered.size();
+        var paged = filtered.stream().skip(offset).limit(pageSize).map(box -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", box.getId());
+            m.put("userId", box.getUserId());
+            var user = userMapper.findById(box.getUserId());
+            m.put("userName", user != null && user.getNickName() != null ? user.getNickName() : "用户#" + box.getUserId());
+            m.put("name", box.getName() != null ? box.getName() : "");
+            m.put("sourceType", box.getSourceType() != null ? box.getSourceType() : "");
+            m.put("brand", box.getBrand() != null ? box.getBrand() : "");
+            m.put("colorCount", box.getColorCount() != null ? box.getColorCount() : 0);
+            m.put("gridSize", box.getGridSize() != null ? box.getGridSize() : 0);
+            m.put("coverUrl", box.getCoverUrl() != null ? box.getCoverUrl() : "");
+            m.put("sourceUrl", box.getSourceUrl() != null ? box.getSourceUrl() : "");
+            m.put("status", box.getStatus() != null ? box.getStatus() : 0);
+            m.put("focusProgress", box.getFocusProgress() != null ? box.getFocusProgress() : "0");
+            m.put("createdAt", box.getCreatedAt() != null ? box.getCreatedAt().toString() : "");
+            m.put("updatedAt", box.getUpdatedAt() != null ? box.getUpdatedAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.ok(Map.of("list", paged, "total", total));
+    }
+
+    @DeleteMapping("/user-boxes/{id}")
+    public ApiResponse<String> deleteUserBox(@PathVariable Long id) {
+        bpBoxMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 用户草稿箱管理 ────────────────────────────────────────
+
+    @GetMapping("/user-drafts")
+    public ApiResponse<Map<String, Object>> userDrafts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var allDrafts = bpDraftMapper.listAllWithPage(pageSize * 10, 0);
+
+        var filtered = allDrafts.stream().filter(draft -> {
+            if (!StringUtils.hasText(q)) return true;
+            if (String.valueOf(draft.getUserId()).contains(q)) return true;
+            if (draft.getName() != null && draft.getName().contains(q)) return true;
+            var user = userMapper.findById(draft.getUserId());
+            if (user != null && user.getNickName() != null && user.getNickName().contains(q)) return true;
+            return false;
+        }).collect(Collectors.toList());
+
+        int total = filtered.size();
+        var paged = filtered.stream().skip(offset).limit(pageSize).map(draft -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", draft.getId());
+            m.put("userId", draft.getUserId());
+            var user = userMapper.findById(draft.getUserId());
+            m.put("userName", user != null && user.getNickName() != null ? user.getNickName() : "用户#" + draft.getUserId());
+            m.put("name", draft.getName() != null ? draft.getName() : "");
+            m.put("sourceType", draft.getSourceType() != null ? draft.getSourceType() : "");
+            m.put("brand", draft.getBrand() != null ? draft.getBrand() : "");
+            m.put("colorCount", draft.getColorCount() != null ? draft.getColorCount() : 0);
+            m.put("gridSize", draft.getGridSize() != null ? draft.getGridSize() : 0);
+            m.put("createdAt", draft.getCreatedAt() != null ? draft.getCreatedAt().toString() : "");
+            m.put("updatedAt", draft.getUpdatedAt() != null ? draft.getUpdatedAt().toString() : "");
+            m.put("expiresAt", draft.getExpiresAt() != null ? draft.getExpiresAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.ok(Map.of("list", paged, "total", total));
+    }
+
+    @DeleteMapping("/user-drafts/{id}")
+    public ApiResponse<String> deleteUserDraft(@PathVariable Long id) {
+        bpDraftMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
+    // ─── 用户时光机管理 ────────────────────────────────────────
+
+    @GetMapping("/user-history")
+    public ApiResponse<Map<String, Object>> userHistory(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        int offset = (page - 1) * pageSize;
+        var allHistory = bpHistoryMapper.listAllWithPage(pageSize * 10, 0);
+
+        var filtered = allHistory.stream().filter(history -> {
+            if (!StringUtils.hasText(q)) return true;
+            if (String.valueOf(history.getUserId()).contains(q)) return true;
+            if (history.getName() != null && history.getName().contains(q)) return true;
+            var user = userMapper.findById(history.getUserId());
+            if (user != null && user.getNickName() != null && user.getNickName().contains(q)) return true;
+            return false;
+        }).collect(Collectors.toList());
+
+        int total = filtered.size();
+        var paged = filtered.stream().skip(offset).limit(pageSize).map(history -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", history.getId());
+            m.put("userId", history.getUserId());
+            var user = userMapper.findById(history.getUserId());
+            m.put("userName", user != null && user.getNickName() != null ? user.getNickName() : "用户#" + history.getUserId());
+            m.put("name", history.getName() != null ? history.getName() : "");
+            m.put("sourceType", history.getSourceType() != null ? history.getSourceType() : "");
+            m.put("brand", history.getBrand() != null ? history.getBrand() : "");
+            m.put("colorCount", history.getColorCount() != null ? history.getColorCount() : 0);
+            m.put("gridSize", history.getGridSize() != null ? history.getGridSize() : 0);
+            m.put("sourceUrl", history.getSourceUrl() != null ? history.getSourceUrl() : "");
+            m.put("boxId", history.getBoxId());
+            m.put("createdAt", history.getCreatedAt() != null ? history.getCreatedAt().toString() : "");
+            m.put("expiresAt", history.getExpiresAt() != null ? history.getExpiresAt().toString() : "");
+            return m;
+        }).collect(Collectors.toList());
+
+        return ApiResponse.ok(Map.of("list", paged, "total", total));
+    }
+
+    @DeleteMapping("/user-history/{id}")
+    public ApiResponse<String> deleteUserHistory(@PathVariable Long id) {
+        bpHistoryMapper.deleteById(id);
+        return ApiResponse.ok("ok");
+    }
+
     // ─── 反馈管理 ────────────────────────────────────────
 
     @GetMapping("/feedback")

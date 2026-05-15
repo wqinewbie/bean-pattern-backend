@@ -65,4 +65,22 @@ public interface BpDraftMapper {
 
     @Delete("DELETE FROM bp_draft WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     int deleteExpired();
+
+    // 管理后台接口
+    @Select("SELECT * FROM bp_draft WHERE (expires_at IS NULL OR expires_at > NOW()) ORDER BY updated_at DESC LIMIT #{limit} OFFSET #{offset}")
+    @Results({
+        @Result(property = "userId", column = "user_id"),
+        @Result(property = "sourceType", column = "source_type"),
+        @Result(property = "colorCount", column = "color_count"),
+        @Result(property = "gridSize", column = "grid_size"),
+        @Result(property = "boxId", column = "box_id"),
+        @Result(property = "mappedPixelData", column = "mapped_pixel_data"),
+        @Result(property = "createdAt", column = "created_at"),
+        @Result(property = "updatedAt", column = "updated_at"),
+        @Result(property = "expiresAt", column = "expires_at")
+    })
+    List<BpDraft> listAllWithPage(@Param("limit") int limit, @Param("offset") int offset);
+
+    @Select("SELECT COUNT(*) FROM bp_draft WHERE (expires_at IS NULL OR expires_at > NOW())")
+    int countAll();
 }

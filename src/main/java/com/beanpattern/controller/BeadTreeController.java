@@ -81,4 +81,9 @@ public class BeadTreeController {
     public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
         return ApiResponse.ok(beadAdminMapper.listColorsByPaletteId(id));
     }
+
+    @GetMapping("/brands/{id}/palettes")
+    public ApiResponse<List<Map<String, Object>>> brandPalettes(@PathVariable Long id) {
+        return ApiResponse.ok(beadAdminMapper.listPalettesByBrandId(id));
+    }
 }
