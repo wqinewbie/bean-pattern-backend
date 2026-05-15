@@ -46,7 +46,7 @@ public class AdminDictController {
     public ApiResponse<SysDictItem> getById(@PathVariable Long id) {
         SysDictItem item = dictItemMapper.findById(id);
         if (item == null) {
-            return ApiResponse.error("字典项不存在");
+            return ApiResponse.fail("字典项不存在");
         }
         return ApiResponse.ok(item);
     }
@@ -71,7 +71,7 @@ public class AdminDictController {
     public ApiResponse<SysDictItem> update(@PathVariable Long id, @RequestBody SysDictItem item) {
         SysDictItem existing = dictItemMapper.findById(id);
         if (existing == null) {
-            return ApiResponse.error("字典项不存在");
+            return ApiResponse.fail("字典项不存在");
         }
         item.setId(id);
         dictItemMapper.update(item);
@@ -83,7 +83,7 @@ public class AdminDictController {
     public ApiResponse<String> delete(@PathVariable Long id) {
         SysDictItem existing = dictItemMapper.findById(id);
         if (existing == null) {
-            return ApiResponse.error("字典项不存在");
+            return ApiResponse.fail("字典项不存在");
         }
         dictItemMapper.deleteById(id);
         dictService.refreshCache();
