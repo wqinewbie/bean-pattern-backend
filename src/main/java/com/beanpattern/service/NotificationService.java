@@ -162,6 +162,34 @@ public class NotificationService {
     }
 
     /**
+     * 创建VIP续费/开通通知
+     */
+    @Transactional
+    public UserNotification createVipRenewNotification(Long userId, String expireDate) {
+        NotificationTemplate template = notificationTemplateService.getByCode("vip_renew");
+        if (template != null && template.getIsActive()) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("expireDate", expireDate);
+            return createNotificationFromTemplate(userId, template, variables);
+        }
+
+        // 降级：使用硬编码
+        UserNotification notification = UserNotification.builder()
+                .userId(userId)
+                .type("vip_renew")
+                .title("VIP开通成功")
+                .content("恭喜！您的VIP会员已开通，有效期至 " + expireDate)
+                .icon("👑")
+                .actionType("PAGE")
+                .actionValue("/pages/vip/vip")
+                .actionText("查看权益")
+                .isRead(false)
+                .build();
+        notificationMapper.insert(notification);
+        return notification;
+    }
+
+    /**
      * 创建AI魔法次数提醒
      */
     @Transactional

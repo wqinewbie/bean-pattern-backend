@@ -31,7 +31,4 @@ public class UserWatermarkConfig {
     public String getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
     
-    public boolean isEnabled() {
-        return enabled != null && enabled == 1;
-    }
 }

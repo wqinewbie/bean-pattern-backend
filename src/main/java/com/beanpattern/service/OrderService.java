@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +34,7 @@ public class OrderService {
     private final AiQuotaLogService aiQuotaLogService;
     private final InviteCodeService inviteCodeService;
     private final StringRedisTemplate redisTemplate;
+    private final NotificationService notificationService;
 
     public OrderService(OrderMapper orderMapper,
                        UserMapper userMapper,
@@ -42,7 +44,8 @@ public class OrderService {
                        VipService vipService,
                        AiQuotaLogService aiQuotaLogService,
                        InviteCodeService inviteCodeService,
-                       StringRedisTemplate redisTemplate) {
+                       StringRedisTemplate redisTemplate,
+                       NotificationService notificationService) {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
         this.userGiftMapper = userGiftMapper;
@@ -52,6 +55,7 @@ public class OrderService {
         this.aiQuotaLogService = aiQuotaLogService;
         this.inviteCodeService = inviteCodeService;
         this.redisTemplate = redisTemplate;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -365,6 +369,15 @@ public class OrderService {
             order.getOrderNo(),
             "购买会员赠送AI次数"
         );
+
+        // 发送VIP续费/开通通知
+        try {
+            notificationService.createVipRenewNotification(
+                    order.getUserId(),
+                    newExpireAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        } catch (Exception ignored) {
+            // 通知发送失败不影响主流程
+        }
     }
 
     /**

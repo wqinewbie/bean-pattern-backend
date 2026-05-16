@@ -13,23 +13,23 @@ import java.util.List;
 @Mapper
 public interface GiftPackageMapper {
 
-    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package ORDER BY sort_order ASC, id DESC")
+    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, expire_days AS expireDays, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package ORDER BY sort_order ASC, id DESC")
     List<GiftPackage> findAll();
 
-    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE status = 1 ORDER BY sort_order ASC, id DESC")
+    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, expire_days AS expireDays, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE status = 1 ORDER BY sort_order ASC, id DESC")
     List<GiftPackage> findAllActive();
 
-    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE id = #{id}")
+    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, expire_days AS expireDays, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE id = #{id}")
     GiftPackage findById(@Param("id") Long id);
 
-    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE package_code = #{packageCode}")
+    @Select("SELECT id, package_code AS packageCode, name, description, items_json AS itemsJson, status, expire_days AS expireDays, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt FROM bp_gift_package WHERE package_code = #{packageCode}")
     GiftPackage findByCode(@Param("packageCode") String packageCode);
 
-    @Insert("INSERT INTO bp_gift_package(package_code, name, description, items_json, status, sort_order) VALUES(#{packageCode}, #{name}, #{description}, #{itemsJson}, #{status}, #{sortOrder})")
+    @Insert("INSERT INTO bp_gift_package(package_code, name, description, items_json, status, expire_days, sort_order) VALUES(#{packageCode}, #{name}, #{description}, #{itemsJson}, #{status}, #{expireDays}, #{sortOrder})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(GiftPackage giftPackage);
 
-    @Update("UPDATE bp_gift_package SET package_code=#{packageCode}, name=#{name}, description=#{description}, items_json=#{itemsJson}, status=#{status}, sort_order=#{sortOrder}, updated_at=NOW() WHERE id=#{id}")
+    @Update("UPDATE bp_gift_package SET package_code=#{packageCode}, name=#{name}, description=#{description}, items_json=#{itemsJson}, status=#{status}, expire_days=#{expireDays}, sort_order=#{sortOrder}, updated_at=NOW() WHERE id=#{id}")
     int update(GiftPackage giftPackage);
 
     @Update("UPDATE bp_gift_package SET status = CASE WHEN status=1 THEN 0 ELSE 1 END, updated_at=NOW() WHERE id=#{id}")

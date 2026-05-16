@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -21,13 +22,16 @@ public class VipService {
     private final UserMapper userMapper;
     private final UserVipRecordMapper userVipRecordMapper;
     private final VipProductMapper vipProductMapper;
+    private final NotificationService notificationService;
 
-    public VipService(UserMapper userMapper, 
+    public VipService(UserMapper userMapper,
                       UserVipRecordMapper userVipRecordMapper,
-                      VipProductMapper vipProductMapper) {
+                      VipProductMapper vipProductMapper,
+                      NotificationService notificationService) {
         this.userMapper = userMapper;
         this.userVipRecordMapper = userVipRecordMapper;
         this.vipProductMapper = vipProductMapper;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -89,6 +93,14 @@ public class VipService {
 
         // 更新用户配额
         updateUserQuota(userId, product);
+
+        // 发送VIP开通/续费通知
+        try {
+            String expireDateStr = expireAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            notificationService.createVipRenewNotification(userId, expireDateStr);
+        } catch (Exception ignored) {
+            // 通知发送失败不影响主流程
+        }
     }
 
     /**
@@ -156,6 +168,17 @@ public class VipService {
         }
 
         userVipRecordMapper.incrementAiUsedCount(record.getId());
+
+        // 检查剩余次数，≤3次时发送提醒
+        int remaining = aiQuota - record.getAiUsedCount() - 1;
+        if (remaining <= 3) {
+            try {
+                notificationService.createAiQuotaNotification(userId, remaining);
+            } catch (Exception ignored) {
+                // 通知发送失败不影响主流程
+            }
+        }
+
         return true;
     }
 

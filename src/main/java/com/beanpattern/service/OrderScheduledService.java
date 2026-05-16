@@ -1,7 +1,9 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.OrderEntity;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.OrderMapper;
+import com.beanpattern.mapper.UserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -21,10 +24,17 @@ public class OrderScheduledService {
 
     private final OrderMapper orderMapper;
     private final OrderService orderService;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
-    public OrderScheduledService(OrderMapper orderMapper, OrderService orderService) {
+    public OrderScheduledService(OrderMapper orderMapper,
+                                 OrderService orderService,
+                                 UserMapper userMapper,
+                                 NotificationService notificationService) {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
+        this.userMapper = userMapper;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -83,6 +93,43 @@ public class OrderScheduledService {
 
         } catch (Exception e) {
             log.error("重试发货失败", e);
+        }
+    }
+
+    /**
+     * VIP到期提醒（每天早上9点执行）
+     * 查询未来3天内到期的VIP用户并发送通知
+     */
+    @Scheduled(cron = "0 0 9 * * ?")
+    @Transactional
+    public void sendVipExpireReminder() {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime start = now;
+            LocalDateTime end = now.plusDays(3);
+
+            List<UserEntity> expiringUsers = userMapper.findVipExpiringBetween(start, end);
+            if (expiringUsers.isEmpty()) {
+                return;
+            }
+
+            log.info("发现 {} 个VIP即将到期的用户，开始发送提醒", expiringUsers.size());
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            for (UserEntity user : expiringUsers) {
+                try {
+                    String expireDate = user.getVipExpireAt() != null
+                            ? user.getVipExpireAt().format(fmt)
+                            : "";
+                    notificationService.createVipExpireNotification(user.getId(), expireDate);
+                } catch (Exception e) {
+                    log.error("发送VIP到期提醒失败: userId={}", user.getId(), e);
+                }
+            }
+
+            log.info("VIP到期提醒发送完成");
+        } catch (Exception e) {
+            log.error("VIP到期提醒任务失败", e);
         }
     }
 }

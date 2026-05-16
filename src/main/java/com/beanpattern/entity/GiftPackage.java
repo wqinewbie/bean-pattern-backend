@@ -9,6 +9,7 @@ public class GiftPackage {
     private String description;
     private String itemsJson;
     private Integer status;
+    private Integer expireDays;
     private Integer sortOrder;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -25,6 +26,8 @@ public class GiftPackage {
     public void setItemsJson(String itemsJson) { this.itemsJson = itemsJson; }
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
+    public Integer getExpireDays() { return expireDays; }
+    public void setExpireDays(Integer expireDays) { this.expireDays = expireDays; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
     public LocalDateTime getCreatedAt() { return createdAt; }

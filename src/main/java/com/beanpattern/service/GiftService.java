@@ -22,15 +22,18 @@ public class GiftService {
     private final GiftItemMapper giftItemMapper;
     private final UserGiftMapper userGiftMapper;
     private final GiftPackageService giftPackageService;
+    private final NotificationService notificationService;
 
     public GiftService(GiftTypeMapper giftTypeMapper,
                        GiftItemMapper giftItemMapper,
                        UserGiftMapper userGiftMapper,
-                       GiftPackageService giftPackageService) {
+                       GiftPackageService giftPackageService,
+                       NotificationService notificationService) {
         this.giftTypeMapper = giftTypeMapper;
         this.giftItemMapper = giftItemMapper;
         this.userGiftMapper = userGiftMapper;
         this.giftPackageService = giftPackageService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -153,6 +156,13 @@ public class GiftService {
             gift.setOrderId(orderId);
             gift.setStatus(0);
             userGiftMapper.insert(gift);
+
+            try {
+                notificationService.createGiftNotification(userId, "礼品", "您获得了新礼品，请在我的礼品中查看", gift.getId());
+            } catch (Exception ignored) {
+                // 通知发送失败不影响主流程
+            }
+
             return gift;
         }
 
@@ -183,6 +193,16 @@ public class GiftService {
 
         gift.setStatus(0);
         userGiftMapper.insert(gift);
+
+        // 发送礼品到账通知
+        try {
+            String giftName = gift.getGiftName() != null ? gift.getGiftName() : "礼品";
+            String desc = "您获得了" + giftName + "，请在我的礼品中查看";
+            notificationService.createGiftNotification(userId, giftName, desc, gift.getId());
+        } catch (Exception ignored) {
+            // 通知发送失败不影响主流程
+        }
+
         return gift;
     }
 

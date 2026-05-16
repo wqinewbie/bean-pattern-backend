@@ -120,4 +120,15 @@ public interface UserMapper {
 
     @Update("UPDATE bp_user SET available_brands = #{brands}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateAvailableBrands(@Param("id") Long id, @Param("brands") String brands);
+
+    @Select("SELECT id, open_id AS openId, invite_code AS inviteCode, union_id AS unionId, nick_name AS nickName, " +
+            "avatar_url AS avatarUrl, phone, gender, vip_level AS vipLevel, " +
+            "vip_expire_at AS vipExpireAt, ai_quota AS aiQuota, " +
+            "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
+            "current_storage AS currentStorage, current_draft AS currentDraft, " +
+            "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
+            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_user WHERE vip_level > 0 AND vip_expire_at BETWEEN #{start} AND #{end}")
+    java.util.List<UserEntity> findVipExpiringBetween(@Param("start") java.time.LocalDateTime start,
+                                                       @Param("end") java.time.LocalDateTime end);
 }

@@ -21,7 +21,7 @@ public class GiftPackageService {
 
     private static final String GIFT_PACKAGE_CODE = "GIFT_PACKAGE";
     private static final String GIFT_PACKAGE_SOURCE_PREFIX = "GIFT_PACKAGE:";
-    private static final int DEFAULT_PACKAGE_EXPIRE_DAYS = 30;
+    static final int DEFAULT_PACKAGE_EXPIRE_DAYS = 30;
 
     private final GiftPackageMapper giftPackageMapper;
     private final GiftTypeConfigMapper giftTypeConfigMapper;
@@ -118,7 +118,9 @@ public class GiftPackageService {
             throw new IllegalStateException("礼品包不存在或未启用");
         }
 
-        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
+        int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
+                ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
+        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
         int updated = userGiftMapper.use(gift.getId());
         if (updated <= 0) {
             throw new IllegalStateException("礼品兑换失败，请稍后重试");
@@ -127,11 +129,16 @@ public class GiftPackageService {
 
     @Transactional
     public void grantItemsJsonToUser(Long userId, String itemsJson) {
-        grantItemsJsonToUser(userId, itemsJson, "GIFT_PACKAGE", "", "发放礼品包权益");
+        grantItemsJsonToUser(userId, itemsJson, DEFAULT_PACKAGE_EXPIRE_DAYS, "GIFT_PACKAGE", "", "发放礼品包权益");
     }
 
     @Transactional
     public void grantItemsJsonToUser(Long userId, String itemsJson, String bizType, String bizId, String description) {
+        grantItemsJsonToUser(userId, itemsJson, DEFAULT_PACKAGE_EXPIRE_DAYS, bizType, bizId, description);
+    }
+
+    @Transactional
+    public void grantItemsJsonToUser(Long userId, String itemsJson, int expireDays, String bizType, String bizId, String description) {
         try {
             JsonNode items = objectMapper.readTree(itemsJson);
             if (!items.isArray()) {
@@ -140,7 +147,7 @@ public class GiftPackageService {
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
                 double value = readDouble(item, "value", readDouble(item, "gift_value", 0));
-                grantSingle(userId, type, value, bizType, bizId, description);
+                grantSingle(userId, type, value, expireDays, bizType, bizId, description);
             }
         } catch (IllegalArgumentException e) {
             throw e;
@@ -174,6 +181,8 @@ public class GiftPackageService {
     }
 
     private UserGift createPackageGift(Long userId, GiftPackage giftPackage, String source) {
+        int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
+                ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
         UserGift gift = new UserGift();
         gift.setUserId(userId);
         gift.setGiftItemId(giftPackage.getId());
@@ -182,7 +191,7 @@ public class GiftPackageService {
         gift.setGiftCategory("COUPON");
         gift.setValue(1);
         gift.setSource(source);
-        gift.setExpireAt(LocalDateTime.now().plusDays(DEFAULT_PACKAGE_EXPIRE_DAYS));
+        gift.setExpireAt(LocalDateTime.now().plusDays(expireDays));
         gift.setStatus(0);
         userGiftMapper.insert(gift);
         return gift;
@@ -213,7 +222,7 @@ public class GiftPackageService {
                 : "";
     }
 
-    private void grantSingle(Long userId, String type, double value, String bizType, String bizId, String description) {
+    private void grantSingle(Long userId, String type, double value, int expireDays, String bizType, String bizId, String description) {
         if ("AI_QUOTA".equals(type) || "AI_COUNT".equals(type)) {
             int amount = (int) value;
             userMapper.addAiQuota(userId, amount);
@@ -241,7 +250,7 @@ public class GiftPackageService {
         gift.setGiftCategory(typeConfig.getGiftCategory());
         gift.setValue((int) Math.round(value * 10));
         gift.setSource("GIFT_PACKAGE");
-        gift.setExpireAt(LocalDateTime.now().plusDays("VIP_TRIAL_CARD".equals(type) ? (int) value : 30));
+        gift.setExpireAt(LocalDateTime.now().plusDays("VIP_TRIAL_CARD".equals(type) ? (int) value : expireDays));
         gift.setStatus(0);
         userGiftMapper.insert(gift);
     }

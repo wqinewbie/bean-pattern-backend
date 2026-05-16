@@ -203,6 +203,7 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                         "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='礼品包表'");
+        addColumn(db, "bp_gift_package", "expire_days", "ALTER TABLE `bp_gift_package` ADD COLUMN `expire_days` INT NOT NULL DEFAULT 30 COMMENT '有效期天数' AFTER `status`");
     }
 
     private void createReviewTaskSubmissionTable(String db) {
