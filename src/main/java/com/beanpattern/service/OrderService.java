@@ -228,6 +228,7 @@ public class OrderService {
                        user.getVipExpireAt().isAfter(LocalDateTime.now());
 
         BigDecimal price = isVip && cardPackage.getVipPrice() != null
+                                && cardPackage.getVipPrice().compareTo(java.math.BigDecimal.ZERO) > 0
                           ? cardPackage.getVipPrice()
                           : cardPackage.getPrice();
 
