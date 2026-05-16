@@ -50,6 +50,14 @@ public class VipService {
     }
 
     /**
+     * 判断用户是否是有效会员（唯一入口）
+     * 标准：存在有效VIP记录（status=1、未过期、vipLevel>0）
+     */
+    public boolean isVip(Long userId) {
+        return getActiveVipRecord(userId) != null;
+    }
+
+    /**
      * 获取VIP产品列表
      */
     public List<VipProduct> getActiveProducts() {

@@ -87,7 +87,8 @@ public class VipController {
     public ApiResponse<VipInfoVO> getVipStatus(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
         int vipLevel = vipService.getUserVipLevel(user.getId());
-        return ApiResponse.ok(VipInfoVO.from(user, vipLevel));
+        boolean isVip = vipService.isVip(user.getId());
+        return ApiResponse.ok(VipInfoVO.from(user, vipLevel, isVip));
     }
 
     /**

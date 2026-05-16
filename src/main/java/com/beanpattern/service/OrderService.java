@@ -134,10 +134,9 @@ public class OrderService {
             throw new IllegalArgumentException("套餐已下架");
         }
 
-        // 检查会员权益
+        // 检查会员权益（vipOnly 限制）
         if (vipPackage.getVipOnly() != null && vipPackage.getVipOnly()) {
-            int vipLevel = vipService.getUserVipLevel(userId);
-            if (vipLevel <= 0) {
+            if (!vipService.isVip(userId)) {
                 throw new IllegalArgumentException("该套餐仅限会员购买");
             }
         }
@@ -206,10 +205,9 @@ public class OrderService {
             throw new IllegalArgumentException("套餐已下架");
         }
 
-        // 检查会员权益
+        // 检查会员权益（vipOnly 限制）
         if (cardPackage.getVipOnly() != null && cardPackage.getVipOnly()) {
-            int vipLevel = vipService.getUserVipLevel(userId);
-            if (vipLevel <= 0) {
+            if (!vipService.isVip(userId)) {
                 throw new IllegalArgumentException("该套餐仅限会员购买");
             }
         }
@@ -223,9 +221,7 @@ public class OrderService {
         }
 
         // 检查用户是否是会员，决定使用会员价还是普通价
-        UserEntity user = userMapper.findById(userId);
-        boolean isVip = user.getVipExpireAt() != null &&
-                       user.getVipExpireAt().isAfter(LocalDateTime.now());
+        boolean isVip = vipService.isVip(userId);
 
         BigDecimal price = isVip && cardPackage.getVipPrice() != null
                                 && cardPackage.getVipPrice().compareTo(java.math.BigDecimal.ZERO) > 0

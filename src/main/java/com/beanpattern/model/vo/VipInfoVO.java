@@ -1,6 +1,7 @@
 package com.beanpattern.model.vo;
 
 import com.beanpattern.entity.UserEntity;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 
@@ -17,11 +18,11 @@ public class VipInfoVO {
     private int aiQuota;
     private String availableBrands;
 
-    public static VipInfoVO from(UserEntity user, int vipLevel) {
+    public static VipInfoVO from(UserEntity user, int vipLevel, boolean isVip) {
         LocalDateTime expireAt = user.getVipExpireAt();
         VipInfoVO vo = new VipInfoVO();
         vo.vipLevel = vipLevel;
-        vo.isVip = vipLevel > 0 && expireAt != null && expireAt.isAfter(LocalDateTime.now());
+        vo.isVip = isVip;
         vo.vipExpireAt = expireAt != null ? expireAt.toString() : "";
         vo.storageQuota = user.getStorageQuota() != null ? user.getStorageQuota() : 10;
         vo.draftQuota = user.getDraftQuota() != null ? user.getDraftQuota() : 20;
@@ -30,10 +31,10 @@ public class VipInfoVO {
         return vo;
     }
 
+    @JsonProperty("isVip")
     public boolean isVip() { return isVip; }
-    public boolean getIsVip() { return isVip; }
+    @JsonProperty("isVip")
     public void setVip(boolean vip) { isVip = vip; }
-    public void setIsVip(boolean vip) { isVip = vip; }
     public int getVipLevel() { return vipLevel; }
     public void setVipLevel(int vipLevel) { this.vipLevel = vipLevel; }
     public String getVipExpireAt() { return vipExpireAt; }

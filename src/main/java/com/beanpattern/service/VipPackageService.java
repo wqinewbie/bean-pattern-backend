@@ -43,8 +43,7 @@ public class VipPackageService {
         }
 
         // 检查用户是否是会员
-        int vipLevel = vipService.getUserVipLevel(userId);
-        boolean isVip = vipLevel > 0;
+        boolean isVip = vipService.isVip(userId);
 
         // 如果用户不是会员，过滤掉仅会员可购买的套餐
         if (!isVip) {

@@ -2,7 +2,6 @@ package com.beanpattern.service;
 
 import com.beanpattern.entity.WatermarkConfig;
 import com.beanpattern.entity.UserWatermarkConfig;
-import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.WatermarkConfigMapper;
 import com.beanpattern.mapper.UserWatermarkConfigMapper;
 import org.springframework.stereotype.Service;
@@ -16,13 +15,16 @@ public class WatermarkConfigService {
     private final WatermarkConfigMapper mapper;
     private final UserWatermarkConfigMapper userMapper;
     private final UserService userService;
+    private final VipService vipService;
 
-    public WatermarkConfigService(WatermarkConfigMapper mapper, 
+    public WatermarkConfigService(WatermarkConfigMapper mapper,
                                   UserWatermarkConfigMapper userMapper,
-                                  UserService userService) {
+                                  UserService userService,
+                                  VipService vipService) {
         this.mapper = mapper;
         this.userMapper = userMapper;
         this.userService = userService;
+        this.vipService = vipService;
     }
 
     /**
@@ -57,11 +59,9 @@ public class WatermarkConfigService {
         // 1. 获取全局配置
         WatermarkConfig globalConfig = getConfig();
         
-        // 2. 获取用户信息
-        UserEntity user = userService.getUserById(userId);
-        boolean isVip = user != null && user.getVipLevel() != null && user.getVipLevel() > 0 
-                        && user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(java.time.LocalDateTime.now());
-        
+        // 2. 检查VIP状态
+        boolean isVip = vipService.isVip(userId);
+
         // 3. 获取用户个人配置
         UserWatermarkConfig userConfig = userMapper.getByUserId(userId);
         
@@ -104,10 +104,8 @@ public class WatermarkConfigService {
      */
     public void saveUserConfig(Long userId, Integer enabled, String customText) {
         // 检查VIP权限
-        UserEntity user = userService.getUserById(userId);
-        boolean isVip = user != null && user.getVipLevel() != null && user.getVipLevel() > 0 
-                        && user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(java.time.LocalDateTime.now());
-        
+        boolean isVip = vipService.isVip(userId);
+
         if (!isVip) {
             throw new IllegalArgumentException("仅VIP用户可以自定义水印");
         }

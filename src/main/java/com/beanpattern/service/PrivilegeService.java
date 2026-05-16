@@ -1,14 +1,12 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.PrivilegeConfig;
-import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.BpBoxMapper;
 import com.beanpattern.mapper.BpDraftMapper;
 import com.beanpattern.mapper.PrivilegeConfigMapper;
 import com.beanpattern.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,25 +18,24 @@ public class PrivilegeService {
     private final UserMapper userMapper;
     private final BpBoxMapper bpBoxMapper;
     private final BpDraftMapper bpDraftMapper;
+    private final VipService vipService;
 
     public PrivilegeService(PrivilegeConfigMapper privilegeConfigMapper,
                             UserMapper userMapper,
                             BpBoxMapper bpBoxMapper,
-                            BpDraftMapper bpDraftMapper) {
+                            BpDraftMapper bpDraftMapper,
+                            VipService vipService) {
         this.privilegeConfigMapper = privilegeConfigMapper;
         this.userMapper = userMapper;
         this.bpBoxMapper = bpBoxMapper;
         this.bpDraftMapper = bpDraftMapper;
+        this.vipService = vipService;
     }
 
     public record LimitStatus(boolean canAdd, int current, int limit, boolean vip) {}
 
     public boolean isVip(Long userId) {
-        UserEntity user = userMapper.findById(userId);
-        if (user == null) {
-            return false;
-        }
-        return user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(LocalDateTime.now());
+        return vipService.isVip(userId);
     }
 
     public Map<String, Object> getUserPrivileges(Long userId) {

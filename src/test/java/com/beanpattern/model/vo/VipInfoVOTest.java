@@ -17,9 +17,9 @@ class VipInfoVOTest {
         user.setVipLevel(1);
         user.setVipExpireAt(LocalDateTime.now().plusDays(3));
 
-        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel());
+        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel(), true);
 
-        assertTrue(vo.getIsVip());
+        assertTrue(vo.isVip());
         assertEquals(1, vo.getVipLevel());
     }
 
@@ -29,9 +29,9 @@ class VipInfoVOTest {
         user.setVipLevel(0);
         user.setVipExpireAt(LocalDateTime.now().plusDays(3));
 
-        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel());
+        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel(), false);
 
-        assertFalse(vo.getIsVip());
+        assertFalse(vo.isVip());
         assertEquals(0, vo.getVipLevel());
     }
 
@@ -41,9 +41,9 @@ class VipInfoVOTest {
         user.setVipLevel(1);
         user.setVipExpireAt(LocalDateTime.now().minusDays(1));
 
-        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel());
+        VipInfoVO vo = VipInfoVO.from(user, user.getVipLevel(), false);
 
-        assertFalse(vo.getIsVip());
+        assertFalse(vo.isVip());
         assertEquals(1, vo.getVipLevel());
     }
 }
