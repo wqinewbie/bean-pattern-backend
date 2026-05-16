@@ -20,7 +20,5 @@ public class UserCheckinClaim {
     private Long userId;               // 用户ID
     private LocalDate claimDate;       // 领取日期
     private Integer continuousDays;    // 连续签到天数（达到多少天领取的）
-    private String rewardType;         // 奖励类型
-    private Integer rewardValue;       // 奖励值
     private LocalDateTime createdAt;   // 创建时间
 }

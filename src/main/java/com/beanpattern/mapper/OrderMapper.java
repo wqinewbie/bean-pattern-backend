@@ -13,7 +13,7 @@ public interface OrderMapper {
             "product_type AS productType, package_code AS packageCode, plan_name AS planName, " +
             "amount, status, expire_at AS expireAt, deliver_status AS deliverStatus, " +
             "deliver_error AS deliverError, paid_at AS paidAt, transaction_id AS transactionId, " +
-            "created_at AS createdAt";
+            "coupon_id AS couponId, created_at AS createdAt";
 
     @Select("SELECT COUNT(*) FROM bp_order")
     int count();
@@ -49,9 +49,9 @@ public interface OrderMapper {
     OrderEntity findByOrderNo(@Param("orderNo") String orderNo);
 
     @Insert("INSERT INTO bp_order(order_no, user_id, product_type, package_code, " +
-            "plan_name, amount, status, expire_at, deliver_status) " +
+            "plan_name, amount, status, expire_at, deliver_status, coupon_id) " +
             "VALUES(#{orderNo}, #{userId}, #{productType}, #{packageCode}, " +
-            "#{planName}, #{amount}, #{status}, #{expireAt}, #{deliverStatus})")
+            "#{planName}, #{amount}, #{status}, #{expireAt}, #{deliverStatus}, #{couponId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(OrderEntity order);
 
@@ -78,4 +78,11 @@ public interface OrderMapper {
     @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order " +
             "WHERE status = 'PAID' AND deliver_status = 'FAILED' LIMIT #{limit}")
     List<OrderEntity> findFailedDeliveryOrders(@Param("limit") int limit);
+
+    @Select("SELECT COUNT(*) FROM bp_order WHERE user_id = #{userId} " +
+            "AND product_type = #{productType} AND package_code = #{packageCode} " +
+            "AND status = 'PAID'")
+    int countUserPurchase(@Param("userId") Long userId,
+                          @Param("productType") String productType,
+                          @Param("packageCode") String packageCode);
 }

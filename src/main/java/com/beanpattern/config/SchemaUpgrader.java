@@ -96,6 +96,10 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_order", "deliver_status", "ALTER TABLE `bp_order` ADD COLUMN `deliver_status` VARCHAR(32) NULL DEFAULT 'PENDING' COMMENT '发货状态：PENDING/SUCCESS/FAILED' AFTER `expire_at`");
         addColumn(db, "bp_order", "deliver_error", "ALTER TABLE `bp_order` ADD COLUMN `deliver_error` VARCHAR(512) NULL COMMENT '发货错误信息' AFTER `deliver_status`");
         addColumn(db, "bp_order", "transaction_id", "ALTER TABLE `bp_order` ADD COLUMN `transaction_id` VARCHAR(64) NULL COMMENT '微信交易单号' AFTER `deliver_error`");
+        addColumn(db, "bp_order", "coupon_id", "ALTER TABLE `bp_order` ADD COLUMN `coupon_id` BIGINT NULL COMMENT '使用的优惠券ID' AFTER `transaction_id`");
+
+        // user_gift - 修改 gift_item_id 为可空，支持礼品包动态生成的礼品
+        relaxUserGiftItemIdConstraint(db);
 
         // bp_feedback
         addColumn(db, "bp_feedback", "updated_at", "ALTER TABLE `bp_feedback` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
@@ -130,6 +134,25 @@ public class SchemaUpgrader implements ApplicationRunner {
             jdbc.execute("ALTER TABLE bp_user_activity_log DROP INDEX uk_user_activity_action");
             log.info("[SchemaUpgrader] 已移除活动领取 ONCE 唯一索引，改由业务按 limit_type 控制");
         } catch (Exception ignored) {
+        }
+    }
+
+    private void relaxUserGiftItemIdConstraint(String db) {
+        try {
+            // 检查表是否存在
+            Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'user_gift'",
+                Integer.class, db);
+            if (count == null || count == 0) {
+                log.info("[SchemaUpgrader] user_gift 表不存在，跳过字段修改");
+                return;
+            }
+
+            // 修改 gift_item_id 为可空
+            jdbc.execute("ALTER TABLE user_gift MODIFY COLUMN gift_item_id BIGINT NULL COMMENT '礼品项ID（礼品包动态生成的礼品可为空）'");
+            log.info("[SchemaUpgrader] 已将 user_gift.gift_item_id 修改为可空");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 修改 user_gift.gift_item_id 约束失败: {}", e.getMessage());
         }
     }
 

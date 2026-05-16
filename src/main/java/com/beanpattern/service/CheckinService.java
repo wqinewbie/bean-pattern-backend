@@ -1,6 +1,8 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.CheckinConfig;
+import com.beanpattern.entity.GiftPackage;
+import com.beanpattern.entity.RewardItem;
 import com.beanpattern.entity.UserCheckin;
 import com.beanpattern.entity.UserCheckinClaim;
 import com.beanpattern.entity.UserCheckinStatus;
@@ -9,6 +11,7 @@ import com.beanpattern.mapper.CheckinConfigMapper;
 import com.beanpattern.mapper.UserCheckinClaimMapper;
 import com.beanpattern.mapper.UserCheckinMapper;
 import com.beanpattern.mapper.UserCheckinStatusMapper;
+import com.beanpattern.service.task.GiftPackageRewardHelper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,6 +133,13 @@ public class CheckinService {
         LocalDate today = LocalDate.now();
         boolean checkedInToday = checkinMapper.findByUserAndDate(userId, today) != null;
 
+        // 从礼品包获取奖励信息
+        GiftPackage giftPackage = giftPackageService.getByCode(config.getGiftPackageCode());
+        if (giftPackage == null) {
+            throw new IllegalStateException("签到未配置礼品包");
+        }
+        RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
+
         Map<String, Object> result = new HashMap<>();
         result.put("continuousDays", status.getContinuousDays());
         result.put("totalDays", status.getTotalDays());
@@ -139,8 +149,9 @@ public class CheckinService {
         result.put("calendar", calendar);
         result.put("requiredDays", config.getContinuousDaysRequired());
         result.put("giftPackageCode", config.getGiftPackageCode());
-        result.put("rewardType", "GIFT_PACKAGE");
-        result.put("rewardValue", 1);
+        result.put("rewardType", rewardInfo.getType());
+        result.put("rewardValue", rewardInfo.getValue());
+        result.put("rewardItems", GiftPackageRewardHelper.parseAllRewardItems(giftPackage));
         result.put("isActive", config.getIsActive());
 
         return result;
@@ -248,14 +259,19 @@ public class CheckinService {
             throw new IllegalStateException("签到奖励未配置礼品包");
         }
 
+        // 从礼品包获取奖励信息
+        GiftPackage giftPackage = giftPackageService.getByCode(config.getGiftPackageCode());
+        if (giftPackage == null) {
+            throw new IllegalStateException("签到未配置礼品包");
+        }
+        RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
+
         UserGift packageGift;
         try {
             UserCheckinClaim claim = new UserCheckinClaim();
             claim.setUserId(userId);
             claim.setClaimDate(today);
             claim.setContinuousDays(status.getContinuousDays());
-            claim.setRewardType("GIFT_PACKAGE");
-            claim.setRewardValue(1);
             claimMapper.insert(claim);
             packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), "CHECKIN:" + today);
         } catch (DuplicateKeyException e) {
@@ -267,8 +283,8 @@ public class CheckinService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
-        result.put("rewardType", "GIFT_PACKAGE");
-        result.put("rewardValue", 1);
+        result.put("rewardType", rewardInfo.getType());
+        result.put("rewardValue", rewardInfo.getValue());
         result.put("giftId", packageGift.getId());
         result.put("giftName", packageGift.getGiftName());
         result.put("message", "领取成功，礼品包已放入我的礼品包");
@@ -314,12 +330,21 @@ public class CheckinService {
      */
     public Map<String, Object> getCheckinConfig() {
         CheckinConfig config = getActiveConfig();
+
+        // 从礼品包获取奖励信息
+        GiftPackage giftPackage = giftPackageService.getByCode(config.getGiftPackageCode());
+        if (giftPackage == null) {
+            throw new IllegalStateException("签到未配置礼品包");
+        }
+        RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
+
         Map<String, Object> result = new HashMap<>();
         result.put("id", config.getId());
         result.put("continuousDaysRequired", config.getContinuousDaysRequired());
         result.put("giftPackageCode", config.getGiftPackageCode());
-        result.put("rewardType", "GIFT_PACKAGE");
-        result.put("rewardValue", 1);
+        result.put("rewardType", rewardInfo.getType());
+        result.put("rewardValue", rewardInfo.getValue());
+        result.put("rewardItems", GiftPackageRewardHelper.parseAllRewardItems(giftPackage));
         result.put("isActive", config.getIsActive());
         return result;
     }

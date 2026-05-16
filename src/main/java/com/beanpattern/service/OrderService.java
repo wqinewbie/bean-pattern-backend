@@ -3,6 +3,7 @@ package com.beanpattern.service;
 import com.beanpattern.entity.*;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserMapper;
+import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.model.PageResult;
 import com.beanpattern.model.vo.OrderVO;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,23 +26,29 @@ public class OrderService {
 
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
+    private final UserGiftMapper userGiftMapper;
     private final VipPackageService vipPackageService;
     private final CardPackageService cardPackageService;
+    private final VipService vipService;
     private final AiQuotaLogService aiQuotaLogService;
     private final InviteCodeService inviteCodeService;
     private final StringRedisTemplate redisTemplate;
 
     public OrderService(OrderMapper orderMapper,
                        UserMapper userMapper,
+                       UserGiftMapper userGiftMapper,
                        VipPackageService vipPackageService,
                        CardPackageService cardPackageService,
+                       VipService vipService,
                        AiQuotaLogService aiQuotaLogService,
                        InviteCodeService inviteCodeService,
                        StringRedisTemplate redisTemplate) {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
+        this.userGiftMapper = userGiftMapper;
         this.vipPackageService = vipPackageService;
         this.cardPackageService = cardPackageService;
+        this.vipService = vipService;
         this.aiQuotaLogService = aiQuotaLogService;
         this.inviteCodeService = inviteCodeService;
         this.redisTemplate = redisTemplate;
@@ -99,10 +107,51 @@ public class OrderService {
      */
     @Transactional
     public OrderEntity createVipOrder(Long userId, String packageCode) {
+        return createVipOrder(userId, packageCode, null);
+    }
+
+    /**
+     * 创建会员订单（支持优惠券）
+     */
+    @Transactional
+    public OrderEntity createVipOrder(Long userId, String packageCode, Long couponId) {
         // 查询套餐
         VipPackage vipPackage = vipPackageService.getByCode(packageCode);
         if (vipPackage == null || !vipPackage.getIsActive()) {
             throw new IllegalArgumentException("套餐不存在或已下架");
+        }
+
+        // 检查定时上下架
+        LocalDateTime now = LocalDateTime.now();
+        if (vipPackage.getShelfStartTime() != null && now.isBefore(vipPackage.getShelfStartTime())) {
+            throw new IllegalArgumentException("套餐尚未上架");
+        }
+        if (vipPackage.getShelfEndTime() != null && now.isAfter(vipPackage.getShelfEndTime())) {
+            throw new IllegalArgumentException("套餐已下架");
+        }
+
+        // 检查会员权益
+        if (vipPackage.getVipOnly() != null && vipPackage.getVipOnly()) {
+            int vipLevel = vipService.getUserVipLevel(userId);
+            if (vipLevel <= 0) {
+                throw new IllegalArgumentException("该套餐仅限会员购买");
+            }
+        }
+
+        // 检查购买次数限制
+        if (vipPackage.getPurchaseLimit() != null && vipPackage.getPurchaseLimit() > 0) {
+            int purchaseCount = orderMapper.countUserPurchase(userId, "vip", packageCode);
+            if (purchaseCount >= vipPackage.getPurchaseLimit()) {
+                throw new IllegalArgumentException("已达到该套餐的购买次数限制");
+            }
+        }
+
+        BigDecimal finalPrice = vipPackage.getPrice();
+
+        // 如果使用优惠券，验证并计算折扣
+        if (couponId != null) {
+            UserGift coupon = validateAndGetCoupon(userId, couponId, "VIP_COUPON");
+            finalPrice = applyDiscount(finalPrice, coupon.getValue());
         }
 
         // 生成订单号
@@ -115,7 +164,8 @@ public class OrderService {
         order.setProductType("vip");
         order.setPackageCode(packageCode);
         order.setPlanName(vipPackage.getPackageName());
-        order.setAmount(vipPackage.getPrice());
+        order.setAmount(finalPrice);
+        order.setCouponId(couponId);
         order.setStatus("PENDING");
         order.setExpireAt(LocalDateTime.now().plusMinutes(10));
         order.setDeliverStatus("PENDING");
@@ -129,10 +179,43 @@ public class OrderService {
      */
     @Transactional
     public OrderEntity createCardOrder(Long userId, String packageCode) {
+        return createCardOrder(userId, packageCode, null);
+    }
+
+    /**
+     * 创建次卡订单（支持优惠券）
+     */
+    @Transactional
+    public OrderEntity createCardOrder(Long userId, String packageCode, Long couponId) {
         // 查询套餐
         CardPackage cardPackage = cardPackageService.getByCode(packageCode);
         if (cardPackage == null || !cardPackage.getIsActive()) {
             throw new IllegalArgumentException("套餐不存在或已下架");
+        }
+
+        // 检查定时上下架
+        LocalDateTime now = LocalDateTime.now();
+        if (cardPackage.getShelfStartTime() != null && now.isBefore(cardPackage.getShelfStartTime())) {
+            throw new IllegalArgumentException("套餐尚未上架");
+        }
+        if (cardPackage.getShelfEndTime() != null && now.isAfter(cardPackage.getShelfEndTime())) {
+            throw new IllegalArgumentException("套餐已下架");
+        }
+
+        // 检查会员权益
+        if (cardPackage.getVipOnly() != null && cardPackage.getVipOnly()) {
+            int vipLevel = vipService.getUserVipLevel(userId);
+            if (vipLevel <= 0) {
+                throw new IllegalArgumentException("该套餐仅限会员购买");
+            }
+        }
+
+        // 检查购买次数限制
+        if (cardPackage.getPurchaseLimit() != null && cardPackage.getPurchaseLimit() > 0) {
+            int purchaseCount = orderMapper.countUserPurchase(userId, "card", packageCode);
+            if (purchaseCount >= cardPackage.getPurchaseLimit()) {
+                throw new IllegalArgumentException("已达到该套餐的购买次数限制");
+            }
         }
 
         // 检查用户是否是会员，决定使用会员价还是普通价
@@ -144,6 +227,14 @@ public class OrderService {
                           ? cardPackage.getVipPrice()
                           : cardPackage.getPrice();
 
+        BigDecimal finalPrice = price;
+
+        // 如果使用优惠券，验证并计算折扣
+        if (couponId != null) {
+            UserGift coupon = validateAndGetCoupon(userId, couponId, "CARD_COUPON", "VIP_CARD_COUPON");
+            finalPrice = applyDiscount(finalPrice, coupon.getValue());
+        }
+
         // 生成订单号
         String orderNo = generateOrderNo();
 
@@ -154,13 +245,64 @@ public class OrderService {
         order.setProductType("card");
         order.setPackageCode(packageCode);
         order.setPlanName(cardPackage.getPackageName());
-        order.setAmount(price);
+        order.setAmount(finalPrice);
+        order.setCouponId(couponId);
         order.setStatus("PENDING");
         order.setExpireAt(LocalDateTime.now().plusMinutes(10));
         order.setDeliverStatus("PENDING");
 
         orderMapper.insert(order);
         return order;
+    }
+
+    /**
+     * 验证并获取优惠券
+     */
+    private UserGift validateAndGetCoupon(Long userId, Long couponId, String... allowedCouponCodes) {
+        UserGift coupon = userGiftMapper.findById(couponId);
+        if (coupon == null) {
+            throw new IllegalArgumentException("优惠券不存在");
+        }
+        if (!coupon.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("优惠券不属于当前用户");
+        }
+        if (coupon.getStatus() != 0) {
+            throw new IllegalArgumentException("优惠券已使用或不可用");
+        }
+        if (coupon.getExpireAt() != null && coupon.getExpireAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("优惠券已过期");
+        }
+        if (!"COUPON".equals(coupon.getGiftCategory())) {
+            throw new IllegalArgumentException("该礼品不是优惠券");
+        }
+
+        // 检查优惠券类型是否匹配
+        boolean typeMatched = false;
+        for (String allowedCode : allowedCouponCodes) {
+            if (allowedCode.equals(coupon.getGiftCode())) {
+                typeMatched = true;
+                break;
+            }
+        }
+        if (!typeMatched) {
+            throw new IllegalArgumentException("优惠券类型不适用于该商品");
+        }
+
+        return coupon;
+    }
+
+    /**
+     * 应用折扣
+     * @param originalPrice 原价
+     * @param discountValue 折扣值（例如：80 表示8折）
+     * @return 折扣后价格
+     */
+    private BigDecimal applyDiscount(BigDecimal originalPrice, Integer discountValue) {
+        if (discountValue == null || discountValue <= 0 || discountValue >= 100) {
+            return originalPrice;
+        }
+        BigDecimal discount = BigDecimal.valueOf(discountValue).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        return originalPrice.multiply(discount).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -300,6 +442,12 @@ public class OrderService {
             try {
                 deliverGoods(order);
                 inviteCodeService.markInviteeFirstPaid(order.getUserId());
+
+                // 6. 标记优惠券为已使用
+                if (order.getCouponId() != null) {
+                    userGiftMapper.use(order.getCouponId());
+                }
+
                 orderMapper.updateDeliverStatus(order.getId(), "SUCCESS", null);
             } catch (Exception e) {
                 // 发货失败，标记状态

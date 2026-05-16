@@ -1,10 +1,13 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.ActivityConfig;
+import com.beanpattern.entity.GiftPackage;
+import com.beanpattern.entity.RewardItem;
 import com.beanpattern.entity.UserActivityLog;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.ActivityConfigMapper;
 import com.beanpattern.mapper.UserActivityLogMapper;
+import com.beanpattern.service.task.GiftPackageRewardHelper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -104,13 +107,19 @@ public class ActivityService {
                     "ACTIVITY:" + activity.getActivityCode()
             );
 
+            // 从礼品包获取实际奖励信息用于日志记录
+            GiftPackage giftPackage = giftPackageService.getByCode(activity.getGiftPackageCode());
+            RewardItem rewardInfo = giftPackage != null
+                ? GiftPackageRewardHelper.parseRewardInfo(giftPackage)
+                : new RewardItem("GIFT_PACKAGE", 1, "礼品包");
+
             UserActivityLog log = new UserActivityLog();
             log.setUserId(userId);
             log.setActivityId(activity.getId());
             log.setActivityCode(activityCode);
             log.setActionType("CLAIM");
-            log.setRewardType("GIFT_PACKAGE");
-            log.setRewardValue(1);
+            log.setRewardType(rewardInfo.getType());
+            log.setRewardValue(rewardInfo.getValue());
             log.setGiftId(packageGift.getId());
             logMapper.insert(log);
 

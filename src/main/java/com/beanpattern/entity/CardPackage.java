@@ -26,6 +26,10 @@ public class CardPackage {
     private String tag;                // 标签：热销/超值
     private Integer sortOrder;         // 排序
     private Boolean isActive;          // 是否启用
+    private Integer purchaseLimit;     // 购买次数限制（每个用户，NULL=不限制）
+    private LocalDateTime shelfStartTime;  // 上架时间（NULL=立即上架）
+    private LocalDateTime shelfEndTime;    // 下架时间（NULL=不下架）
+    private Boolean vipOnly;           // 是否仅会员可购买
     private LocalDateTime createdAt;   // 创建时间
     private LocalDateTime updatedAt;   // 更新时间
 }

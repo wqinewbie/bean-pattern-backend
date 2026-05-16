@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 会员套餐配置服务
@@ -14,9 +15,11 @@ import java.util.List;
 public class VipPackageService {
 
     private final VipPackageMapper vipPackageMapper;
+    private final VipService vipService;
 
-    public VipPackageService(VipPackageMapper vipPackageMapper) {
+    public VipPackageService(VipPackageMapper vipPackageMapper, VipService vipService) {
         this.vipPackageMapper = vipPackageMapper;
+        this.vipService = vipService;
     }
 
     /**
@@ -24,6 +27,33 @@ public class VipPackageService {
      */
     public List<VipPackage> listActivePackages() {
         return vipPackageMapper.listActive();
+    }
+
+    /**
+     * 获取所有启用的会员套餐（用户端，根据用户会员状态过滤）
+     */
+    public List<VipPackage> listActivePackagesForUser(Long userId) {
+        List<VipPackage> packages = vipPackageMapper.listActive();
+
+        // 如果用户未登录，过滤掉所有仅会员可购买的套餐
+        if (userId == null) {
+            return packages.stream()
+                    .filter(pkg -> pkg.getVipOnly() == null || !pkg.getVipOnly())
+                    .collect(Collectors.toList());
+        }
+
+        // 检查用户是否是会员
+        int vipLevel = vipService.getUserVipLevel(userId);
+        boolean isVip = vipLevel > 0;
+
+        // 如果用户不是会员，过滤掉仅会员可购买的套餐
+        if (!isVip) {
+            return packages.stream()
+                    .filter(pkg -> pkg.getVipOnly() == null || !pkg.getVipOnly())
+                    .collect(Collectors.toList());
+        }
+
+        return packages;
     }
 
     /**

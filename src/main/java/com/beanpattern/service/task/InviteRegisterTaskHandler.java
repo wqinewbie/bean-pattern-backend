@@ -1,8 +1,10 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.InviteCodeService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,11 +18,13 @@ public class InviteRegisterTaskHandler implements TaskHandler {
 
     private final InviteCodeService inviteCodeService;
     private final UserGiftMapper userGiftMapper;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public InviteRegisterTaskHandler(InviteCodeService inviteCodeService, UserGiftMapper userGiftMapper) {
+    public InviteRegisterTaskHandler(InviteCodeService inviteCodeService, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
         this.inviteCodeService = inviteCodeService;
         this.userGiftMapper = userGiftMapper;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -48,14 +52,20 @@ public class InviteRegisterTaskHandler implements TaskHandler {
                 ? "已达标，可领取第" + (claimedRounds + 1) + "份礼包"
                 : "已邀请注册 " + currentCount + " 人，还差 " + nextNeed + " 人可再领";
 
+        GiftPackage giftPackage = StringUtils.hasText(packageCode)
+                ? giftPackageService.getByCode(packageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
+
         return TaskCenterItem.builder()
                 .taskId(config.getId())
                 .taskCode(config.getTaskCode())
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("INVITE_REGISTER")

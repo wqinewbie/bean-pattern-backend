@@ -1,8 +1,10 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.ReviewTaskSubmission;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
+import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.ReviewTaskService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,10 +18,12 @@ import org.springframework.util.StringUtils;
 public class ReviewTaskHandler implements TaskHandler {
 
     private final ReviewTaskService reviewTaskService;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public ReviewTaskHandler(ReviewTaskService reviewTaskService) {
+    public ReviewTaskHandler(ReviewTaskService reviewTaskService, GiftPackageService giftPackageService) {
         this.reviewTaskService = reviewTaskService;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -52,14 +56,21 @@ public class ReviewTaskHandler implements TaskHandler {
             }
         }
 
+        String giftPackageCode = readExtraText(config, "giftPackageCode", "");
+        GiftPackage giftPackage = StringUtils.hasText(giftPackageCode)
+                ? giftPackageService.getByCode(giftPackageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
+
         return TaskCenterItem.builder()
                 .taskId(config.getId())
                 .taskCode(config.getTaskCode())
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("REVIEW_TASK")

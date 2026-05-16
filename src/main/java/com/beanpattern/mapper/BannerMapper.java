@@ -41,11 +41,12 @@ public interface BannerMapper {
 
     @Update("UPDATE bp_banner SET title=#{title}, sub_title=#{subTitle}, image_url=#{imageUrl}, " +
             "tag_text=#{tagText}, bg_color=#{bgColor}, sort_order=#{sortOrder}, link_type=#{linkType}, link_value=#{linkValue}, " +
-            "action_type=#{actionType}, action_config=#{actionConfig}, updated_at=NOW() WHERE id=#{id}")
+            "action_type=#{actionType}, action_config=#{actionConfig}, start_at=#{startAt}, end_at=#{endAt}, updated_at=NOW() WHERE id=#{id}")
     int update(@Param("id") Long id, @Param("title") String title, @Param("subTitle") String subTitle,
                @Param("imageUrl") String imageUrl, @Param("tagText") String tagText, @Param("bgColor") String bgColor,
                @Param("sortOrder") int sortOrder, @Param("linkType") String linkType, @Param("linkValue") String linkValue,
-               @Param("actionType") String actionType, @Param("actionConfig") String actionConfig);
+               @Param("actionType") String actionType, @Param("actionConfig") String actionConfig,
+               @Param("startAt") java.time.LocalDateTime startAt, @Param("endAt") java.time.LocalDateTime endAt);
 
     @Update("UPDATE bp_banner SET status = CASE WHEN status=1 THEN 0 ELSE 1 END, updated_at=NOW() WHERE id=#{id}")
     int toggleStatus(@Param("id") Long id);

@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -504,7 +506,9 @@ public class AdminController {
                 (String) body.getOrDefault("linkType", "NONE"),
                 (String) body.getOrDefault("linkValue", ""),
                 (String) body.getOrDefault("actionType", ""),
-                (String) body.getOrDefault("actionConfig", ""));
+                (String) body.getOrDefault("actionConfig", ""),
+                parseDateTime(body.get("startAt")),
+                parseDateTime(body.get("endAt")));
         return ApiResponse.ok("ok");
     }
 
@@ -528,6 +532,20 @@ public class AdminController {
                 .replace("\r", "")
                 .trim();
         return sanitized.length() > 255 ? sanitized.substring(0, 255) : sanitized;
+    }
+
+    private LocalDateTime parseDateTime(Object value) {
+        if (value == null || "".equals(value)) {
+            return null;
+        }
+        if (value instanceof String str) {
+            try {
+                return LocalDateTime.parse(str, DateTimeFormatter.ISO_DATE_TIME);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     // ─── 教程管理 ────────────────────────────────────────

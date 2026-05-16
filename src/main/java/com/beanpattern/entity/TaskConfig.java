@@ -20,8 +20,6 @@ public class TaskConfig {
     private String taskName;           // 任务名称
     private String taskType;           // 任务类型：DAILY/ONCE/UNLIMITED
     private String description;        // 任务描述
-    private String rewardType;         // 奖励类型：AI_QUOTA/VIP_DAYS/COINS
-    private Integer rewardValue;       // 奖励值
     private String icon;               // 任务图标URL
     private Integer sortOrder;         // 排序
     private Boolean isActive;          // 是否启用

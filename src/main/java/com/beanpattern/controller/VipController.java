@@ -134,9 +134,13 @@ public class VipController {
      * 获取会员套餐列表（新版）
      */
     @GetMapping("/packages")
-    public ApiResponse<List<VipPackage>> getVipPackages() {
+    public ApiResponse<List<VipPackage>> getVipPackages(HttpServletRequest request) {
         try {
-            List<VipPackage> packages = vipPackageService.listActivePackages();
+            // 尝试获取当前用户，如果未登录则返回null
+            UserEntity user = sessionHelper.getUser(request);
+            Long userId = user != null ? user.getId() : null;
+
+            List<VipPackage> packages = vipPackageService.listActivePackagesForUser(userId);
             return ApiResponse.ok(packages);
         } catch (Exception e) {
             return ApiResponse.fail("获取会员套餐失败: " + e.getMessage());
@@ -147,9 +151,13 @@ public class VipController {
      * 获取次卡套餐列表
      */
     @GetMapping("/card-packages")
-    public ApiResponse<List<CardPackage>> getCardPackages() {
+    public ApiResponse<List<CardPackage>> getCardPackages(HttpServletRequest request) {
         try {
-            List<CardPackage> packages = cardPackageService.listActivePackages();
+            // 尝试获取当前用户，如果未登录则返回null
+            UserEntity user = sessionHelper.getUser(request);
+            Long userId = user != null ? user.getId() : null;
+
+            List<CardPackage> packages = cardPackageService.listActivePackagesForUser(userId);
             return ApiResponse.ok(packages);
         } catch (Exception e) {
             return ApiResponse.fail("获取次卡套餐失败: " + e.getMessage());

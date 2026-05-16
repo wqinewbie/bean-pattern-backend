@@ -80,6 +80,18 @@ public class GiftController {
     }
 
     /**
+     * 获取用户可用的优惠券（按商品类型过滤）
+     * @param productType 商品类型：vip/card
+     */
+    @GetMapping("/coupons/{productType}")
+    public ApiResponse<List<UserGift>> getAvailableCoupons(@PathVariable String productType,
+                                                            HttpServletRequest request) {
+        com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
+        List<UserGift> coupons = giftService.getAvailableCoupons(user.getId(), productType);
+        return ApiResponse.ok(coupons);
+    }
+
+    /**
      * 使用礼品
      */
     @PostMapping("/use")

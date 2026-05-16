@@ -1,11 +1,13 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.OrderEntity;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -27,11 +29,13 @@ public class FirstRechargeTaskHandler implements TaskHandler {
 
     private final OrderMapper orderMapper;
     private final UserGiftMapper userGiftMapper;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public FirstRechargeTaskHandler(OrderMapper orderMapper, UserGiftMapper userGiftMapper) {
+    public FirstRechargeTaskHandler(OrderMapper orderMapper, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
         this.orderMapper = orderMapper;
         this.userGiftMapper = userGiftMapper;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -46,12 +50,18 @@ public class FirstRechargeTaskHandler implements TaskHandler {
     @Override
     public TaskCenterItem buildTaskItem(Long userId, TaskConfig config) {
         boolean hasPaidOrder = hasPaidOrder(userId);
-        boolean claimed = hasClaimed(userId, resolveGiftPackageCode(config));
+        String packageCode = resolveGiftPackageCode(config);
+        boolean claimed = hasClaimed(userId, packageCode);
 
         int status;
         if (claimed) status = 2;
         else if (hasPaidOrder) status = 1;
         else status = 0;
+
+        GiftPackage giftPackage = StringUtils.hasText(packageCode)
+                ? giftPackageService.getByCode(packageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
 
         return TaskCenterItem.builder()
                 .taskId(config.getId())
@@ -59,8 +69,9 @@ public class FirstRechargeTaskHandler implements TaskHandler {
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("FIRST_RECHARGE_GIFT")

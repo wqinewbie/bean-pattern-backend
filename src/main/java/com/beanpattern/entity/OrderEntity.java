@@ -17,6 +17,7 @@ public class OrderEntity {
     private String deliverError;
     private LocalDateTime paidAt;
     private String transactionId;
+    private Long couponId;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -45,6 +46,8 @@ public class OrderEntity {
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
     public String getTransactionId() { return transactionId; }
     public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public Long getCouponId() { return couponId; }
+    public void setCouponId(Long couponId) { this.couponId = couponId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

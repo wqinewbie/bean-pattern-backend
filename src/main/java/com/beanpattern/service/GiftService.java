@@ -76,6 +76,27 @@ public class GiftService {
     }
 
     /**
+     * 获取用户可用的优惠券（按商品类型过滤）
+     */
+    public List<UserGift> getAvailableCoupons(Long userId, String productType) {
+        List<UserGift> allGifts = userGiftMapper.findAvailableByUserId(userId, 0, LocalDateTime.now());
+
+        // 根据商品类型过滤优惠券
+        return allGifts.stream()
+                .filter(gift -> "COUPON".equals(gift.getGiftCategory()))
+                .filter(gift -> {
+                    String giftCode = gift.getGiftCode();
+                    if ("vip".equals(productType)) {
+                        return "VIP_COUPON".equals(giftCode);
+                    } else if ("card".equals(productType)) {
+                        return "CARD_COUPON".equals(giftCode) || "VIP_CARD_COUPON".equals(giftCode);
+                    }
+                    return false;
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * 使用礼品（将状态改为已使用）
      */
     @Transactional

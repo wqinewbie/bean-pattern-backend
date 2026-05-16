@@ -1,8 +1,10 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.service.CheckinService;
+import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -17,10 +19,12 @@ import java.util.Map;
 public class CheckinTaskHandler implements TaskHandler {
 
     private final CheckinService checkinService;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public CheckinTaskHandler(CheckinService checkinService) {
+    public CheckinTaskHandler(CheckinService checkinService, GiftPackageService giftPackageService) {
         this.checkinService = checkinService;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -43,14 +47,21 @@ public class CheckinTaskHandler implements TaskHandler {
         else if (checkedInToday) itemStatus = 2;
         else itemStatus = 0;
 
+        String packageCode = readExtraText(config, "giftPackageCode", "");
+        GiftPackage giftPackage = StringUtils.hasText(packageCode)
+                ? giftPackageService.getByCode(packageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
+
         return TaskCenterItem.builder()
                 .taskId(config.getId())
                 .taskCode(config.getTaskCode())
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("CHECKIN")

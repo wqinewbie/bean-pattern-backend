@@ -53,16 +53,17 @@ public class OrderController {
      */
     @PostMapping("/vip")
     public ApiResponse<OrderPaymentResponse> createVipOrder(HttpServletRequest request,
-                                                            @RequestBody Map<String, String> params) {
+                                                            @RequestBody Map<String, Object> params) {
         try {
             UserEntity user = sessionHelper.requireUser(request);
-            String packageCode = params.get("packageCode");
+            String packageCode = (String) params.get("packageCode");
+            Long couponId = toLong(params.get("couponId"));
 
             if (packageCode == null || packageCode.isEmpty()) {
                 return ApiResponse.fail("套餐代码不能为空");
             }
 
-            OrderEntity order = orderService.createVipOrder(user.getId(), packageCode);
+            OrderEntity order = orderService.createVipOrder(user.getId(), packageCode, couponId);
             PaymentCreateResult payment = paymentService.createPayment(order);
             OrderEntity currentOrder = orderService.getUserOrder(user.getId(), order.getOrderNo());
             return ApiResponse.ok(OrderPaymentResponse.from(currentOrder != null ? currentOrder : order, payment));
@@ -78,16 +79,17 @@ public class OrderController {
      */
     @PostMapping("/card")
     public ApiResponse<OrderPaymentResponse> createCardOrder(HttpServletRequest request,
-                                                             @RequestBody Map<String, String> params) {
+                                                             @RequestBody Map<String, Object> params) {
         try {
             UserEntity user = sessionHelper.requireUser(request);
-            String packageCode = params.get("packageCode");
+            String packageCode = (String) params.get("packageCode");
+            Long couponId = toLong(params.get("couponId"));
 
             if (packageCode == null || packageCode.isEmpty()) {
                 return ApiResponse.fail("套餐代码不能为空");
             }
 
-            OrderEntity order = orderService.createCardOrder(user.getId(), packageCode);
+            OrderEntity order = orderService.createCardOrder(user.getId(), packageCode, couponId);
             PaymentCreateResult payment = paymentService.createPayment(order);
             OrderEntity currentOrder = orderService.getUserOrder(user.getId(), order.getOrderNo());
             return ApiResponse.ok(OrderPaymentResponse.from(currentOrder != null ? currentOrder : order, payment));
@@ -96,6 +98,23 @@ public class OrderController {
         } catch (Exception e) {
             return ApiResponse.fail("创建订单失败: " + e.getMessage());
         }
+    }
+
+    private Long toLong(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            String text = (String) value;
+            if (!text.isBlank()) {
+                try {
+                    return Long.parseLong(text);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     /**

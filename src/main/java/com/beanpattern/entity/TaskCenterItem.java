@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * 任务中心返回给前端的聚合模型。
  */
@@ -31,4 +33,9 @@ public class TaskCenterItem {
     private Long progressId;
     private Boolean done;
     private Boolean canClaim;
+
+    /**
+     * 奖励明细列表（支持多个奖励项）
+     */
+    private List<RewardItem> rewardItems;
 }

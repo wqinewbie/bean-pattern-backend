@@ -1,23 +1,25 @@
 package com.beanpattern.service;
 
+import com.beanpattern.entity.NotificationTemplate;
 import com.beanpattern.entity.UserNotification;
 import com.beanpattern.mapper.UserNotificationMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 通知服务
  */
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private final UserNotificationMapper notificationMapper;
-
-    public NotificationService(UserNotificationMapper notificationMapper) {
-        this.notificationMapper = notificationMapper;
-    }
+    private final NotificationTemplateService notificationTemplateService;
 
     /**
      * 获取用户通知列表
@@ -78,6 +80,14 @@ public class NotificationService {
      */
     @Transactional
     public UserNotification createSystemNotification(Long userId, String title, String content) {
+        NotificationTemplate template = notificationTemplateService.getByCode("system_notice");
+        if (template != null && template.getIsActive()) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("content", content);
+            return createNotificationFromTemplate(userId, template, variables);
+        }
+
+        // 降级：使用硬编码
         UserNotification notification = UserNotification.builder()
                 .userId(userId)
                 .type("system")
@@ -96,6 +106,16 @@ public class NotificationService {
      */
     @Transactional
     public UserNotification createGiftNotification(Long userId, String title, String content, Long giftId) {
+        NotificationTemplate template = notificationTemplateService.getByCode("gift_received");
+        if (template != null && template.getIsActive()) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("giftName", title);
+            variables.put("giftId", giftId);
+
+            return createNotificationFromTemplate(userId, template, variables, "gift", giftId);
+        }
+
+        // 降级：使用硬编码
         UserNotification notification = UserNotification.builder()
                 .userId(userId)
                 .type("gift")
@@ -118,6 +138,14 @@ public class NotificationService {
      */
     @Transactional
     public UserNotification createVipExpireNotification(Long userId, String expireDate) {
+        NotificationTemplate template = notificationTemplateService.getByCode("vip_expire");
+        if (template != null && template.getIsActive()) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("expireDate", expireDate);
+            return createNotificationFromTemplate(userId, template, variables);
+        }
+
+        // 降级：使用硬编码
         UserNotification notification = UserNotification.builder()
                 .userId(userId)
                 .type("vip_expire")
@@ -138,6 +166,14 @@ public class NotificationService {
      */
     @Transactional
     public UserNotification createAiQuotaNotification(Long userId, int remainingCount) {
+        NotificationTemplate template = notificationTemplateService.getByCode("ai_quota_low");
+        if (template != null && template.getIsActive()) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("remainingCount", remainingCount);
+            return createNotificationFromTemplate(userId, template, variables);
+        }
+
+        // 降级：使用硬编码
         UserNotification notification = UserNotification.builder()
                 .userId(userId)
                 .type("ai_low")
@@ -147,6 +183,42 @@ public class NotificationService {
                 .actionType("PAGE")
                 .actionValue("/pages/profile/profile?action=task")
                 .actionText("去完成任务")
+                .isRead(false)
+                .build();
+        notificationMapper.insert(notification);
+        return notification;
+    }
+
+    /**
+     * 从模板创建通知（通用方法）
+     */
+    private UserNotification createNotificationFromTemplate(Long userId, NotificationTemplate template, Map<String, Object> variables) {
+        return createNotificationFromTemplate(userId, template, variables, null, null);
+    }
+
+    /**
+     * 从模板创建通知（通用方法，支持关联数据）
+     */
+    private UserNotification createNotificationFromTemplate(Long userId, NotificationTemplate template,
+                                                           Map<String, Object> variables,
+                                                           String relatedType, Long relatedId) {
+        String title = notificationTemplateService.renderTemplate(template.getTitle(), variables);
+        String content = notificationTemplateService.renderTemplate(template.getContent(), variables);
+        String actionValue = template.getActionValue() != null ?
+                notificationTemplateService.renderTemplate(template.getActionValue(), variables) : null;
+
+        UserNotification notification = UserNotification.builder()
+                .userId(userId)
+                .type(template.getType())
+                .templateCode(template.getCode())
+                .title(title)
+                .content(content)
+                .icon(template.getIcon())
+                .actionType(template.getActionType())
+                .actionValue(actionValue)
+                .actionText(template.getActionText())
+                .relatedType(relatedType)
+                .relatedId(relatedId)
                 .isRead(false)
                 .build();
         notificationMapper.insert(notification);

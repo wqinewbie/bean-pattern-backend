@@ -43,19 +43,6 @@ public class CardController {
     }
 
     /**
-     * 获取次卡套餐列表
-     */
-    @GetMapping("/packages")
-    public ApiResponse<List<CardPackage>> getPackages() {
-        try {
-            List<CardPackage> packages = cardPackageService.listActivePackages();
-            return ApiResponse.ok(packages);
-        } catch (Exception e) {
-            return ApiResponse.fail("获取次卡套餐失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 购买次卡（兼容小程序旧路径）
      */
     @PostMapping("/purchase")

@@ -1,9 +1,11 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.entity.UserTaskProgress;
 import com.beanpattern.mapper.UserTaskProgressMapper;
+import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -18,10 +20,12 @@ import java.util.List;
 public class GenericProgressTaskHandler implements TaskHandler {
 
     private final UserTaskProgressMapper userTaskProgressMapper;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public GenericProgressTaskHandler(UserTaskProgressMapper userTaskProgressMapper) {
+    public GenericProgressTaskHandler(UserTaskProgressMapper userTaskProgressMapper, GiftPackageService giftPackageService) {
         this.userTaskProgressMapper = userTaskProgressMapper;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -42,14 +46,21 @@ public class GenericProgressTaskHandler implements TaskHandler {
         int currentCount = progress != null && progress.getCurrentCount() != null ? progress.getCurrentCount() : 0;
         int status = progress != null && progress.getStatus() != null ? progress.getStatus() : 0;
 
+        String giftPackageCode = readExtraText(config, "giftPackageCode", "");
+        GiftPackage giftPackage = StringUtils.hasText(giftPackageCode)
+                ? giftPackageService.getByCode(giftPackageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
+
         return TaskCenterItem.builder()
                 .taskId(config.getId())
                 .taskCode(config.getTaskCode())
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType(readExtraText(config, "handlerType", "GENERIC_PROGRESS"))

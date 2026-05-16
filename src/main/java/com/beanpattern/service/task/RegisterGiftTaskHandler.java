@@ -1,10 +1,12 @@
 package com.beanpattern.service.task;
 
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.UserMapper;
+import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -20,11 +22,13 @@ public class RegisterGiftTaskHandler implements TaskHandler {
 
     private final UserMapper userMapper;
     private final UserGiftMapper userGiftMapper;
+    private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public RegisterGiftTaskHandler(UserMapper userMapper, UserGiftMapper userGiftMapper) {
+    public RegisterGiftTaskHandler(UserMapper userMapper, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
         this.userMapper = userMapper;
         this.userGiftMapper = userGiftMapper;
+        this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -51,14 +55,20 @@ public class RegisterGiftTaskHandler implements TaskHandler {
         else if (registered) status = 1;
         else status = 0;
 
+        GiftPackage giftPackage = StringUtils.hasText(packageCode)
+                ? giftPackageService.getByCode(packageCode)
+                : null;
+        GiftPackageRewardHelper.RewardInfo rewardInfo = GiftPackageRewardHelper.parseGiftPackageReward(giftPackage);
+
         return TaskCenterItem.builder()
                 .taskId(config.getId())
                 .taskCode(config.getTaskCode())
                 .taskName(config.getTaskName())
                 .taskType(config.getTaskType())
                 .description(config.getDescription())
-                .rewardType("GIFT_PACKAGE")
-                .rewardValue(1)
+                .rewardType(rewardInfo.getDisplayType())
+                .rewardValue(rewardInfo.getDisplayValue())
+                .rewardItems(rewardInfo.getItems())
                 .icon(config.getIcon())
                 .sortOrder(config.getSortOrder())
                 .handlerType("REGISTER_GIFT")
