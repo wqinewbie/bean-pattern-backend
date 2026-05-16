@@ -35,6 +35,10 @@ public class SessionHelper {
         }
     }
 
+    public UserEntity getUser(HttpServletRequest request) {
+        return resolveUser(request);
+    }
+
     public UserEntity resolveUser(HttpServletRequest request) {
         String openId = resolveOpenId(request);
         if (!StringUtils.hasText(openId)) return null;

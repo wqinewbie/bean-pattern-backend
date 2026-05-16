@@ -67,6 +67,19 @@ public class GiftPackageRewardHelper {
         }
     }
 
+    public static RewardItem parseRewardInfo(GiftPackage giftPackage) {
+        RewardInfo info = parseGiftPackageReward(giftPackage);
+        List<RewardItem> items = info.getItems();
+        if (!items.isEmpty()) {
+            return items.get(0);
+        }
+        return new RewardItem(info.getDisplayType(), info.getDisplayValue(), null);
+    }
+
+    public static List<RewardItem> parseAllRewardItems(GiftPackage giftPackage) {
+        return parseGiftPackageReward(giftPackage).getItems();
+    }
+
     private static String formatRewardText(String type, int value) {
         return switch (type) {
             case "AI_COUNT", "AI_QUOTA" -> value + "次AI对话";
