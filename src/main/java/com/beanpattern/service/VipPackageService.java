@@ -1,6 +1,7 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.VipPackage;
+import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.VipPackageMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +17,12 @@ public class VipPackageService {
 
     private final VipPackageMapper vipPackageMapper;
     private final VipService vipService;
+    private final OrderMapper orderMapper;
 
-    public VipPackageService(VipPackageMapper vipPackageMapper, VipService vipService) {
+    public VipPackageService(VipPackageMapper vipPackageMapper, VipService vipService, OrderMapper orderMapper) {
         this.vipPackageMapper = vipPackageMapper;
         this.vipService = vipService;
+        this.orderMapper = orderMapper;
     }
 
     /**
@@ -35,7 +38,7 @@ public class VipPackageService {
     public List<VipPackage> listActivePackagesForUser(Long userId) {
         List<VipPackage> packages = vipPackageMapper.listActive();
 
-        // 如果用户未登录，过滤掉所有仅会员可购买的套餐
+        // 如果用户未登录，过滤掉所有仅会员可购买的套餐（且不计算剩余可购次数）
         if (userId == null) {
             return packages.stream()
                     .filter(pkg -> pkg.getVipOnly() == null || !pkg.getVipOnly())
@@ -47,9 +50,20 @@ public class VipPackageService {
 
         // 如果用户不是会员，过滤掉仅会员可购买的套餐
         if (!isVip) {
-            return packages.stream()
+            packages = packages.stream()
                     .filter(pkg -> pkg.getVipOnly() == null || !pkg.getVipOnly())
                     .collect(Collectors.toList());
+        }
+
+        // 计算每个套餐的剩余可购次数（NULL=不限购）
+        for (VipPackage pkg : packages) {
+            Integer purchaseLimit = pkg.getPurchaseLimit();
+            if (purchaseLimit == null || purchaseLimit <= 0) {
+                pkg.setRemainingPurchaseCount(null);
+                continue;
+            }
+            int purchaseCount = orderMapper.countUserPurchase(userId, "vip", pkg.getPackageCode());
+            pkg.setRemainingPurchaseCount(Math.max(purchaseLimit - purchaseCount, 0));
         }
 
         return packages;

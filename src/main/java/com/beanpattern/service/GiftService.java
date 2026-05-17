@@ -4,6 +4,7 @@ import com.beanpattern.entity.GiftItem;
 import com.beanpattern.entity.GiftType;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.GiftItemMapper;
+import com.beanpattern.mapper.GiftTypeConfigMapper;
 import com.beanpattern.mapper.GiftTypeMapper;
 import com.beanpattern.mapper.UserGiftMapper;
 import org.springframework.stereotype.Service;
@@ -19,17 +20,20 @@ import java.util.List;
 public class GiftService {
 
     private final GiftTypeMapper giftTypeMapper;
+    private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final GiftItemMapper giftItemMapper;
     private final UserGiftMapper userGiftMapper;
     private final GiftPackageService giftPackageService;
     private final NotificationService notificationService;
 
     public GiftService(GiftTypeMapper giftTypeMapper,
+                       GiftTypeConfigMapper giftTypeConfigMapper,
                        GiftItemMapper giftItemMapper,
                        UserGiftMapper userGiftMapper,
                        GiftPackageService giftPackageService,
                        NotificationService notificationService) {
         this.giftTypeMapper = giftTypeMapper;
+        this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.giftItemMapper = giftItemMapper;
         this.userGiftMapper = userGiftMapper;
         this.giftPackageService = giftPackageService;
@@ -68,7 +72,9 @@ public class GiftService {
      * 获取用户的礼品列表
      */
     public List<UserGift> getUserGifts(Long userId) {
-        return userGiftMapper.findByUserId(userId);
+        List<UserGift> gifts = userGiftMapper.findByUserId(userId);
+        gifts.forEach(this::fillUsageHint);
+        return gifts;
     }
 
     /**
@@ -215,5 +221,41 @@ public class GiftService {
         }
         GiftType type = giftTypeMapper.findById(giftTypeId);
         return type != null ? type.getGiftCategory() : "OTHER";
+    }
+
+    private void fillUsageHint(UserGift gift) {
+        if (gift == null) return;
+
+        gift.setUsageMode("DIRECT_USE");
+        gift.setTargetTab(null);
+
+        String giftCode = gift.getGiftCode() == null ? "" : gift.getGiftCode().toUpperCase();
+        if ("VIP_COUPON".equals(giftCode)) {
+            gift.setUsageMode("JUMP_VIP");
+            gift.setTargetTab("vip");
+            return;
+        }
+        if ("CARD_COUPON".equals(giftCode) || "VIP_CARD_COUPON".equals(giftCode)) {
+            gift.setUsageMode("JUMP_VIP");
+            gift.setTargetTab("cards");
+            return;
+        }
+
+        if (gift.getGiftItemId() != null) {
+            GiftItem item = giftItemMapper.findById(gift.getGiftItemId());
+            if (item != null && item.getGiftTypeId() != null) {
+                com.beanpattern.entity.GiftTypeConfig typeConfig = giftTypeConfigMapper.findById(item.getGiftTypeId());
+                if (typeConfig != null) {
+                    String targetProductType = typeConfig.getTargetProductType();
+                    if ("vip".equalsIgnoreCase(targetProductType)) {
+                        gift.setUsageMode("JUMP_VIP");
+                        gift.setTargetTab("vip");
+                    } else if ("card".equalsIgnoreCase(targetProductType)) {
+                        gift.setUsageMode("JUMP_VIP");
+                        gift.setTargetTab("cards");
+                    }
+                }
+            }
+        }
     }
 }

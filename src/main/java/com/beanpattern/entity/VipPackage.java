@@ -30,6 +30,7 @@ public class VipPackage {
     private LocalDateTime shelfStartTime;  // 上架时间（NULL=立即上架）
     private LocalDateTime shelfEndTime;    // 下架时间（NULL=不下架）
     private Boolean vipOnly;           // 是否仅会员可购买
+    private Integer remainingPurchaseCount; // 当前用户剩余可购次数（NULL=不限购）
     private LocalDateTime createdAt;   // 创建时间
     private LocalDateTime updatedAt;   // 更新时间
 }

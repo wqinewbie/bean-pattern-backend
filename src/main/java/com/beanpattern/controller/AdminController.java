@@ -280,6 +280,28 @@ public class AdminController {
         return ApiResponse.ok(Map.of("list", result, "total", total));
     }
 
+    @GetMapping("/user-boxes/{id}")
+    public ApiResponse<Map<String, Object>> userBoxDetail(@PathVariable Long id) {
+        var box = bpBoxMapper.findById(id);
+        if (box == null) return ApiResponse.fail("图纸不存在");
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", box.getId());
+        m.put("userId", box.getUserId());
+        var user = userMapper.findById(box.getUserId());
+        m.put("userName", user != null ? user.getNickName() : "用户#" + box.getUserId());
+        m.put("name", box.getName() != null ? box.getName() : "");
+        m.put("sourceType", box.getSourceType() != null ? box.getSourceType() : "");
+        m.put("brand", box.getBrand() != null ? box.getBrand() : "");
+        m.put("colorCount", box.getColorCount() != null ? box.getColorCount() : 0);
+        m.put("gridSize", box.getGridSize() != null ? box.getGridSize() : 0);
+        m.put("coverUrl", box.getCoverUrl() != null ? box.getCoverUrl() : "");
+        m.put("sourceUrl", box.getSourceUrl() != null ? box.getSourceUrl() : "");
+        m.put("mappedPixelData", box.getMappedPixelData() != null ? box.getMappedPixelData() : "");
+        m.put("createdAt", box.getCreatedAt() != null ? box.getCreatedAt().toString() : "");
+        return ApiResponse.ok(m);
+    }
+
     @DeleteMapping("/user-boxes/{id}")
     public ApiResponse<String> deleteUserBox(@PathVariable Long id) {
         var box = bpBoxMapper.findById(id);
@@ -327,6 +349,27 @@ public class AdminController {
         }
 
         return ApiResponse.ok(Map.of("list", result, "total", total));
+    }
+
+    @GetMapping("/user-drafts/{id}")
+    public ApiResponse<Map<String, Object>> userDraftDetail(@PathVariable Long id) {
+        var draft = bpDraftMapper.findById(id);
+        if (draft == null) return ApiResponse.fail("草稿不存在");
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", draft.getId());
+        m.put("userId", draft.getUserId());
+        var user = userMapper.findById(draft.getUserId());
+        m.put("userName", user != null ? user.getNickName() : "用户#" + draft.getUserId());
+        m.put("name", draft.getName() != null ? draft.getName() : "");
+        m.put("sourceType", draft.getSourceType() != null ? draft.getSourceType() : "");
+        m.put("brand", draft.getBrand() != null ? draft.getBrand() : "");
+        m.put("colorCount", draft.getColorCount() != null ? draft.getColorCount() : 0);
+        m.put("gridSize", draft.getGridSize() != null ? draft.getGridSize() : 0);
+        m.put("mappedPixelData", draft.getMappedPixelData() != null ? draft.getMappedPixelData() : "");
+        m.put("createdAt", draft.getCreatedAt() != null ? draft.getCreatedAt().toString() : "");
+        m.put("updatedAt", draft.getUpdatedAt() != null ? draft.getUpdatedAt().toString() : "");
+        return ApiResponse.ok(m);
     }
 
     @DeleteMapping("/user-drafts/{id}")

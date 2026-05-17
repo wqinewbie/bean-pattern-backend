@@ -4,6 +4,7 @@ import com.beanpattern.entity.*;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.UserVipRecordMapper;
 import com.beanpattern.model.PageResult;
 import com.beanpattern.model.vo.OrderVO;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -28,6 +29,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
     private final UserGiftMapper userGiftMapper;
+    private final UserVipRecordMapper userVipRecordMapper;
     private final VipPackageService vipPackageService;
     private final CardPackageService cardPackageService;
     private final VipService vipService;
@@ -39,6 +41,7 @@ public class OrderService {
     public OrderService(OrderMapper orderMapper,
                        UserMapper userMapper,
                        UserGiftMapper userGiftMapper,
+                       UserVipRecordMapper userVipRecordMapper,
                        VipPackageService vipPackageService,
                        CardPackageService cardPackageService,
                        VipService vipService,
@@ -49,6 +52,7 @@ public class OrderService {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
         this.userGiftMapper = userGiftMapper;
+        this.userVipRecordMapper = userVipRecordMapper;
         this.vipPackageService = vipPackageService;
         this.cardPackageService = cardPackageService;
         this.vipService = vipService;
@@ -352,6 +356,17 @@ public class OrderService {
 
         // 更新用户会员到期时间
         userMapper.updateVip(order.getUserId(), 1, newExpireAt);
+
+        // 创建VIP记录（确保 isVip() 能够正确识别）
+        UserVipRecord vipRecord = new UserVipRecord();
+        vipRecord.setUserId(order.getUserId());
+        vipRecord.setProductCode(order.getPackageCode());
+        vipRecord.setVipLevel(1);
+        vipRecord.setOrderId(order.getId());
+        vipRecord.setOrderNo(order.getOrderNo());
+        vipRecord.setStartAt(now);
+        vipRecord.setExpireAt(newExpireAt);
+        userVipRecordMapper.insert(vipRecord);
 
         // 赠送AI次数
         int aiQuotaGift = vipPackage.getAiQuotaGift() != null ? vipPackage.getAiQuotaGift() : 10;

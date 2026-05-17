@@ -14,6 +14,10 @@ public class UserGift {
     private String giftCategory;
     private Integer value;
     private String source;
+
+    // 前端使用提示字段（非持久化）
+    private String usageMode;
+    private String targetTab;
     private Long taskId;
     private Long shareRecordId;
     private Long orderId;
@@ -46,6 +50,12 @@ public class UserGift {
 
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+
+    public String getUsageMode() { return usageMode; }
+    public void setUsageMode(String usageMode) { this.usageMode = usageMode; }
+
+    public String getTargetTab() { return targetTab; }
+    public void setTargetTab(String targetTab) { this.targetTab = targetTab; }
 
     public Long getTaskId() { return taskId; }
     public void setTaskId(Long taskId) { this.taskId = taskId; }
