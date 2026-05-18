@@ -38,7 +38,7 @@ public class AdminActivityController {
         normalizeActivity(activity);
         validateActivity(activity);
         activityMapper.insert(activity);
-        return ApiResponse.ok("创建成功");
+        return ApiResponse.ok(null);
     }
 
     @PutMapping("/{id}")
@@ -47,19 +47,19 @@ public class AdminActivityController {
         normalizeActivity(activity);
         validateActivity(activity);
         activityMapper.update(activity);
-        return ApiResponse.ok("更新成功");
+        return ApiResponse.ok(null);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteActivity(@PathVariable Long id) {
         activityMapper.deleteById(id);
-        return ApiResponse.ok("删除成功");
+        return ApiResponse.ok(null);
     }
 
     @PutMapping("/{id}/status")
     public ApiResponse<Void> toggleStatus(@PathVariable Long id, @RequestParam Boolean status) {
         activityMapper.updateStatus(id, status);
-        return ApiResponse.ok("状态更新成功");
+        return ApiResponse.ok(null);
     }
 
     private void normalizeActivity(ActivityConfig activity) {

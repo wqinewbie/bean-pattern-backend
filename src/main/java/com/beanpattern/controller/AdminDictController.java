@@ -87,7 +87,7 @@ public class AdminDictController {
         }
         dictItemMapper.deleteById(id);
         dictService.refreshCache();
-        return ApiResponse.ok("删除成功");
+        return ApiResponse.ok(null);
     }
 
     /**
