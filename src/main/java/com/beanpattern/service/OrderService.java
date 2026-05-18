@@ -37,6 +37,7 @@ public class OrderService {
     private final InviteCodeService inviteCodeService;
     private final StringRedisTemplate redisTemplate;
     private final NotificationService notificationService;
+    private final GiftPackageService giftPackageService;
 
     public OrderService(OrderMapper orderMapper,
                        UserMapper userMapper,
@@ -48,7 +49,8 @@ public class OrderService {
                        AiQuotaLogService aiQuotaLogService,
                        InviteCodeService inviteCodeService,
                        StringRedisTemplate redisTemplate,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       GiftPackageService giftPackageService) {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
         this.userGiftMapper = userGiftMapper;
@@ -60,6 +62,7 @@ public class OrderService {
         this.inviteCodeService = inviteCodeService;
         this.redisTemplate = redisTemplate;
         this.notificationService = notificationService;
+        this.giftPackageService = giftPackageService;
     }
 
     /**
