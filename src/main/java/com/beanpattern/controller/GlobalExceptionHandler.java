@@ -1,6 +1,7 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.ErrorCode;
 import com.beanpattern.model.ProfileIncompleteException;
 import com.beanpattern.model.UnauthorizedException;
 import org.slf4j.Logger;

@@ -1,6 +1,7 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.GiftItem;
+import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.GiftType;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.GiftItemMapper;
