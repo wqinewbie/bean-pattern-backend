@@ -7,6 +7,7 @@ import com.beanpattern.entity.UserTaskProgress;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.TaskConfigMapper;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.mapper.UserTaskProgressMapper;
 import com.beanpattern.service.task.TaskHandler;
@@ -36,6 +37,7 @@ public class TaskService {
     private final TaskConfigMapper taskConfigMapper;
     private final UserTaskProgressMapper userTaskProgressMapper;
     private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final UserMapper userMapper;
     private final OrderMapper orderMapper;
     private final GiftPackageService giftPackageService;
@@ -47,6 +49,7 @@ public class TaskService {
     public TaskService(TaskConfigMapper taskConfigMapper,
                        UserTaskProgressMapper userTaskProgressMapper,
                        UserGiftMapper userGiftMapper,
+                       BpUserGiftMapper bpUserGiftMapper,
                        UserMapper userMapper,
                        OrderMapper orderMapper,
                        GiftPackageService giftPackageService,
@@ -56,6 +59,7 @@ public class TaskService {
         this.taskConfigMapper = taskConfigMapper;
         this.userTaskProgressMapper = userTaskProgressMapper;
         this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.userMapper = userMapper;
         this.orderMapper = orderMapper;
         this.giftPackageService = giftPackageService;
@@ -110,7 +114,7 @@ public class TaskService {
     public UserTaskProgress incrementTaskProgress(Long userId, String taskCode) {
         TaskConfig config = taskConfigMapper.findByCode(taskCode);
         if (config == null) {
-            throw new IllegalArgumentException("浠诲姟涓嶅瓨鍦? " + taskCode);
+            throw new IllegalArgumentException("任务不存在: " + taskCode);
         }
         if (!isGenericProgressTask(config)) {
             throw new IllegalArgumentException("Task does not support generic progress completion");
@@ -182,7 +186,7 @@ public class TaskService {
             throw new IllegalArgumentException("Task config not found");
         }
         if (!isGenericProgressTask(config)) {
-            throw new IllegalArgumentException("璇ヤ换鍔″鍔遍渶閫氳繃瀵瑰簲涓氬姟鎺ュ彛棰嗗彇");
+            throw new IllegalArgumentException("该任务奖励需通过对应业务接口领取");
         }
 
         userTaskProgressMapper.claim(progressId);
@@ -265,7 +269,7 @@ public class TaskService {
             throw new IllegalArgumentException("未配置礼包 giftPackageCode");
         }
         String sourcePrefixWithCode = sourcePrefix + ":" + packageCode + ":";
-        int claimedRounds = userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefixWithCode);
+        int claimedRounds = bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefixWithCode);
         if (StringUtils.hasText(duplicateMessage) && claimedRounds > 0) {
             throw new IllegalStateException(duplicateMessage);
         }
@@ -278,7 +282,7 @@ public class TaskService {
         if (!StringUtils.hasText(packageCode)) {
             return 0;
         }
-        return userGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix + ":" + packageCode + ":");
+        return bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix + ":" + packageCode + ":");
     }
 
     private int countInviteRegister(Long userId) {

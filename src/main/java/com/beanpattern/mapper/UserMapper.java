@@ -20,7 +20,7 @@ public interface UserMapper {
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "status, last_vip_notify_at AS lastVipNotifyAt, last_ai_notify_at AS lastAiNotifyAt, created_at AS createdAt, updated_at AS updatedAt" +
             "FROM bp_user WHERE open_id = #{openId}")
     UserEntity findByOpenId(@Param("openId") String openId);
 
@@ -30,7 +30,7 @@ public interface UserMapper {
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "status, last_vip_notify_at AS lastVipNotifyAt, last_ai_notify_at AS lastAiNotifyAt, created_at AS createdAt, updated_at AS updatedAt" +
             "FROM bp_user WHERE id = #{id}")
     UserEntity findById(@Param("id") Long id);
 
@@ -43,7 +43,7 @@ public interface UserMapper {
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "status, last_vip_notify_at AS lastVipNotifyAt, last_ai_notify_at AS lastAiNotifyAt, created_at AS createdAt, updated_at AS updatedAt" +
             "FROM bp_user WHERE invite_code = #{inviteCode} LIMIT 1")
     UserEntity findByInviteCode(@Param("inviteCode") String inviteCode);
 
@@ -87,7 +87,7 @@ public interface UserMapper {
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "status, last_vip_notify_at AS lastVipNotifyAt, last_ai_notify_at AS lastAiNotifyAt, created_at AS createdAt, updated_at AS updatedAt" +
             "FROM bp_user ORDER BY created_at DESC LIMIT 10000")
     java.util.List<UserEntity> listAll();
 
@@ -115,6 +115,18 @@ public interface UserMapper {
     @Update("UPDATE bp_user SET current_draft = #{count}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateCurrentDraft(@Param("id") Long id, @Param("count") int count);
 
+    @Update("UPDATE bp_user SET current_storage = current_storage + 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
+    int incrementCurrentStorage(@Param("id") Long id);
+
+    @Update("UPDATE bp_user SET current_storage = current_storage - 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND current_storage > 0")
+    int decrementCurrentStorage(@Param("id") Long id);
+
+    @Update("UPDATE bp_user SET current_draft = current_draft + 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
+    int incrementCurrentDraft(@Param("id") Long id);
+
+    @Update("UPDATE bp_user SET current_draft = current_draft - 1, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND current_draft > 0")
+    int decrementCurrentDraft(@Param("id") Long id);
+
     @Update("UPDATE bp_user SET ai_reset_at = #{resetAt}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateAiResetAt(@Param("id") Long id, @Param("resetAt") java.time.LocalDateTime resetAt);
 
@@ -127,7 +139,7 @@ public interface UserMapper {
             "storage_quota AS storageQuota, draft_quota AS draftQuota, " +
             "current_storage AS currentStorage, current_draft AS currentDraft, " +
             "ai_reset_at AS aiResetAt, available_brands AS availableBrands, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "status, last_vip_notify_at AS lastVipNotifyAt, last_ai_notify_at AS lastAiNotifyAt, created_at AS createdAt, updated_at AS updatedAt" +
             "FROM bp_user WHERE vip_level > 0 AND vip_expire_at BETWEEN #{start} AND #{end}")
     java.util.List<UserEntity> findVipExpiringBetween(@Param("start") java.time.LocalDateTime start,
                                                        @Param("end") java.time.LocalDateTime end);

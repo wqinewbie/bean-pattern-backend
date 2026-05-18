@@ -45,16 +45,8 @@ public class BannerController {
     @PostMapping("/claim")
     public ApiResponse<Map<String, Object>> claimGift(@RequestBody Map<String, Object> params,
                                                        HttpServletRequest request) {
-        try {
-            Long userId = sessionHelper.requireUser(request).getId();
-            Long bannerId = Long.valueOf(params.get("bannerId").toString());
-
-            Map<String, Object> result = bannerService.claimBannerGift(userId, bannerId);
-            return ApiResponse.ok(result);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.fail(e.getMessage());
-        } catch (Exception e) {
-            return ApiResponse.fail("领取失败：" + e.getMessage());
-        }
+        Long userId = sessionHelper.requireUser(request).getId();
+        Long bannerId = Long.valueOf(params.get("bannerId").toString());
+        return ApiResponse.ok(bannerService.claimBannerGift(userId, bannerId));
     }
 }

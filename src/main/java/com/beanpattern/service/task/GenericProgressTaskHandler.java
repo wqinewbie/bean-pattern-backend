@@ -11,8 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-
 /**
  * 兼容现有 bp_task_config + user_task_progress 的通用事件型任务。
  */
@@ -76,12 +74,7 @@ public class GenericProgressTaskHandler implements TaskHandler {
     }
 
     private UserTaskProgress findProgress(Long userId, String taskCode) {
-        List<UserTaskProgress> progresses = userTaskProgressMapper.findByUserId(userId);
-        if (progresses == null) return null;
-        return progresses.stream()
-                .filter(item -> taskCode.equals(item.getTaskCode()))
-                .findFirst()
-                .orElse(null);
+        return userTaskProgressMapper.findByUserIdAndTaskCode(userId, taskCode);
     }
 
     private int readExtraInt(TaskConfig config, String field, int defaultValue) {

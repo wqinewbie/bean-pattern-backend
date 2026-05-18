@@ -162,16 +162,6 @@ public class BeadController {
         return ApiResponse.ok(data);
     }
 
-    @PostMapping("/generate-result")
-    public ApiResponse<Map<String, Object>> generateResult(@RequestBody Map<String, Object> body) {
-        return ApiResponse.fail("该接口已停用");
-    }
-
-    @PostMapping("/generate-pattern")
-    public ApiResponse<Map<String, Object>> generatePattern(@RequestBody Map<String, Object> body) {
-        return ApiResponse.fail("该接口已停用");
-    }
-
     @PostMapping("/match-colors")
     public ApiResponse<List<List<Map<String, Object>>>> matchColors(@RequestBody Map<String, Object> body) {
         String brand = (String) body.getOrDefault("brand", "mard");

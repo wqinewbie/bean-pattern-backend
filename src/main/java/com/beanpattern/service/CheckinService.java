@@ -103,58 +103,62 @@ public class CheckinService {
      * 获取用户签到状态
      */
     public Map<String, Object> getCheckinStatus(Long userId) {
-        UserCheckinStatus status = statusMapper.findByUserId(userId);
-
-        // 如果没有状态记录，初始化一个
-        if (status == null) {
-            status = new UserCheckinStatus();
-            status.setUserId(userId);
-            status.setContinuousDays(0);
-            status.setTotalDays(0);
-            status.setLastCheckinDate(null);
-            status.setCanClaim(false);
-        }
-
         CheckinConfig config = getActiveConfig();
-        LocalDate startDate = LocalDate.now().minusDays(6);
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(6);
         List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, startDate);
+
+        // 动态计算 totalDays 和 continuousDays（不依赖 bp_user_checkin_status）
+        int totalDays = checkinMapper.countByUserId(userId);
+        int continuousDays = calcContinuousDays(recentCheckins, today);
+        boolean checkedInToday = recentCheckins.stream().anyMatch(c -> today.equals(c.getCheckinDate()));
+        boolean canClaim = continuousDays >= config.getContinuousDaysRequired() && config.getIsActive();
 
         // 构建签到日历（最近7天）
         Map<String, Boolean> calendar = new HashMap<>();
         for (int i = 0; i < 7; i++) {
-            LocalDate date = LocalDate.now().minusDays(6 - i);
-            calendar.put(date.toString(), false);
+            calendar.put(today.minusDays(6 - i).toString(), false);
         }
         for (UserCheckin checkin : recentCheckins) {
             calendar.put(checkin.getCheckinDate().toString(), true);
         }
 
-        // 检查今天是否已签到
-        LocalDate today = LocalDate.now();
-        boolean checkedInToday = checkinMapper.findByUserAndDate(userId, today) != null;
-
-        // 从礼品包获取奖励信息
         GiftPackage giftPackage = giftPackageService.getByCode(config.getGiftPackageCode());
-        if (giftPackage == null) {
-            throw new IllegalStateException("签到未配置礼品包");
+        RewardItem rewardInfo;
+        if (giftPackage != null) {
+            rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
+        } else {
+            rewardInfo = new RewardItem("NONE", 0, "未配置");
         }
-        RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("continuousDays", status.getContinuousDays());
-        result.put("totalDays", status.getTotalDays());
-        result.put("lastCheckinDate", status.getLastCheckinDate());
-        result.put("canClaim", status.getCanClaim());
+        result.put("continuousDays", continuousDays);
+        result.put("totalDays", totalDays);
+        result.put("lastCheckinDate", !recentCheckins.isEmpty() ? recentCheckins.get(0).getCheckinDate().toString() : null);
+        result.put("canClaim", canClaim);
         result.put("checkedInToday", checkedInToday);
         result.put("calendar", calendar);
         result.put("requiredDays", config.getContinuousDaysRequired());
-        result.put("giftPackageCode", config.getGiftPackageCode());
+        result.put("giftPackageCode", config.getGiftPackageCode() != null ? config.getGiftPackageCode() : "");
         result.put("rewardType", rewardInfo.getType());
         result.put("rewardValue", rewardInfo.getValue());
-        result.put("rewardItems", GiftPackageRewardHelper.parseAllRewardItems(giftPackage));
-        result.put("isActive", config.getIsActive());
+        result.put("rewardItems", giftPackage != null ? GiftPackageRewardHelper.parseAllRewardItems(giftPackage) : java.util.Collections.emptyList());
+        result.put("isActive", giftPackage != null && config.getIsActive());
 
         return result;
+    }
+
+    private int calcContinuousDays(List<UserCheckin> recentCheckins, LocalDate today) {
+        if (recentCheckins.isEmpty()) return 0;
+        int count = 0;
+        LocalDate date = today;
+        while (true) {
+            final LocalDate d = date;
+            if (recentCheckins.stream().noneMatch(c -> d.equals(c.getCheckinDate()))) break;
+            count++;
+            date = date.minusDays(1);
+        }
+        return count;
     }
 
     /**
@@ -174,40 +178,19 @@ public class CheckinService {
             throw new IllegalStateException("今天已经签到过了");
         }
 
-        // 获取或创建签到状态
-        UserCheckinStatus status = statusMapper.findByUserId(userId);
-        if (status == null) {
-            status = new UserCheckinStatus();
-            status.setUserId(userId);
-            status.setContinuousDays(0);
-            status.setTotalDays(0);
-            status.setLastCheckinDate(null);
-            status.setCanClaim(false);
-            statusMapper.insert(status);
-        }
-
-        // 计算连续天数
+        // 从 bp_user_checkin 记录动态计算连续天数
+        UserCheckin lastCheckin = checkinMapper.findLastByUser(userId);
         int newContinuousDays;
-        LocalDate lastCheckinDate = status.getLastCheckinDate();
-
-        if (lastCheckinDate == null) {
-            // 第一次签到
+        if (lastCheckin == null) {
             newContinuousDays = 1;
-        } else if (lastCheckinDate.equals(today.minusDays(1))) {
-            // 连续签到
-            newContinuousDays = status.getContinuousDays() + 1;
-        } else if (lastCheckinDate.equals(today)) {
-            // 今天已签到（理论上不会到这里，因为前面已经检查过）
-            throw new IllegalStateException("今天已经签到过了");
+        } else if (lastCheckin.getCheckinDate().equals(today.minusDays(1))) {
+            newContinuousDays = lastCheckin.getContinuousDays() + 1;
         } else {
-            // 中断了，重新开始
             newContinuousDays = 1;
         }
 
-        // 判断是否可以领取奖励
         boolean canClaim = (newContinuousDays >= config.getContinuousDaysRequired());
 
-        // 插入签到记录
         try {
             UserCheckin checkin = new UserCheckin();
             checkin.setUserId(userId);
@@ -218,17 +201,25 @@ public class CheckinService {
             throw new IllegalStateException("今天已经签到过了");
         }
 
-        // 更新签到状态
-        status.setContinuousDays(newContinuousDays);
-        status.setTotalDays(status.getTotalDays() + 1);
-        status.setLastCheckinDate(today);
-        status.setCanClaim(canClaim);
-        statusMapper.update(status);
+        // 同步更新旧状态表（兼容过渡期，后续版本删除）
+        try {
+            UserCheckinStatus status = statusMapper.findByUserId(userId);
+            if (status == null) {
+                status = new UserCheckinStatus();
+                status.setUserId(userId);
+                try { statusMapper.insert(status); } catch (Exception ignored) {}
+            }
+            status.setContinuousDays(newContinuousDays);
+            status.setTotalDays(checkinMapper.countByUserId(userId));
+            status.setLastCheckinDate(today);
+            status.setCanClaim(canClaim);
+            statusMapper.update(status);
+        } catch (Exception ignored) {}
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("continuousDays", newContinuousDays);
-        result.put("totalDays", status.getTotalDays());
+        result.put("totalDays", checkinMapper.countByUserId(userId));
         result.put("canClaim", canClaim);
         result.put("message", "签到成功！连续签到" + newContinuousDays + "天");
 
@@ -243,43 +234,28 @@ public class CheckinService {
         LocalDate today = LocalDate.now();
         CheckinConfig config = getActiveConfig();
 
-        // 检查签到状态
-        UserCheckinStatus status = statusMapper.findByUserId(userId);
-        if (status == null || !status.getCanClaim()) {
+        // 动态计算是否可以领取（不依赖 bp_user_checkin_status）
+        List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, today.minusDays(6));
+        int continuousDays = calcContinuousDays(recentCheckins, today);
+        if (continuousDays < config.getContinuousDaysRequired()) {
             throw new IllegalStateException("暂无可领取的奖励");
-        }
-
-        // 检查今天是否已领取（利用唯一索引防止重复）
-        UserCheckinClaim existingClaim = claimMapper.findByUserAndDate(userId, today);
-        if (existingClaim != null) {
-            throw new IllegalStateException("今天已经领取过奖励了");
         }
 
         if (config.getGiftPackageCode() == null || config.getGiftPackageCode().isBlank()) {
             throw new IllegalStateException("签到奖励未配置礼品包");
         }
 
-        // 从礼品包获取奖励信息
         GiftPackage giftPackage = giftPackageService.getByCode(config.getGiftPackageCode());
         if (giftPackage == null) {
             throw new IllegalStateException("签到未配置礼品包");
         }
         RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
 
-        UserGift packageGift;
-        try {
-            UserCheckinClaim claim = new UserCheckinClaim();
-            claim.setUserId(userId);
-            claim.setClaimDate(today);
-            claim.setContinuousDays(status.getContinuousDays());
-            claimMapper.insert(claim);
-            packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), "CHECKIN:" + today);
-        } catch (DuplicateKeyException e) {
-            throw new IllegalStateException("今天已经领取过奖励了");
-        }
+        // grantPackageToUser uses "CHECKIN:date" as source; bp_user_gift source uniqueness prevents double-claim
+        UserGift packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), "CHECKIN:" + today);
 
-        // 重置连续天数和领取状态
-        statusMapper.resetContinuous(userId);
+        // 同步更新旧表（兼容过渡期）
+        try { statusMapper.resetContinuous(userId); } catch (Exception ignored) {}
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

@@ -80,7 +80,7 @@ public class AdminDictController {
     }
 
     @DeleteMapping("/items/{id}")
-    public ApiResponse<String> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Long id) {
         SysDictItem existing = dictItemMapper.findById(id);
         if (existing == null) {
             return ApiResponse.fail("字典项不存在");
@@ -94,8 +94,8 @@ public class AdminDictController {
      * 在库中增删改字典项后调用，无需重启即可刷新管理端下拉缓存。
      */
     @PostMapping("/reload-cache")
-    public ApiResponse<String> reloadCache() {
+    public ApiResponse<Void> reloadCache() {
         dictService.refreshCache();
-        return ApiResponse.ok("ok");
+        return ApiResponse.ok(null);
     }
 }

@@ -40,6 +40,6 @@ public interface BannerClaimLogMapper {
      */
     @Select("SELECT id, user_id AS userId, banner_id AS bannerId, banner_code AS bannerCode, " +
             "gift_type AS giftType, gift_value AS giftValue, claim_date AS claimDate, created_at AS createdAt " +
-            "FROM bp_banner_claim_log WHERE user_id = #{userId} ORDER BY created_at DESC")
+            "FROM bp_banner_claim_log WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<BannerClaimLog> findByUserId(@Param("userId") Long userId);
 }

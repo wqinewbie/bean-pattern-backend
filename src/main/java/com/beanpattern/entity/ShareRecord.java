@@ -3,7 +3,7 @@ package com.beanpattern.entity;
 import java.time.LocalDateTime;
 
 /**
- * 分享记录表实体：share_record
+ * 分享记录表实体：bp_share_record
  */
 public class ShareRecord {
     private Long id;

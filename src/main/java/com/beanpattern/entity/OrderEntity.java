@@ -16,9 +16,14 @@ public class OrderEntity {
     private String deliverStatus;
     private String deliverError;
     private LocalDateTime paidAt;
+    private Long productId;
+    private Integer vipLevelPurchased;
+    private Integer vipDays;
+    private String giftItems;
     private String transactionId;
     private Long couponId;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,10 +49,20 @@ public class OrderEntity {
     public void setDeliverError(String deliverError) { this.deliverError = deliverError; }
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+    public Integer getVipLevelPurchased() { return vipLevelPurchased; }
+    public void setVipLevelPurchased(Integer vipLevelPurchased) { this.vipLevelPurchased = vipLevelPurchased; }
+    public Integer getVipDays() { return vipDays; }
+    public void setVipDays(Integer vipDays) { this.vipDays = vipDays; }
+    public String getGiftItems() { return giftItems; }
+    public void setGiftItems(String giftItems) { this.giftItems = giftItems; }
     public String getTransactionId() { return transactionId; }
     public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
     public Long getCouponId() { return couponId; }
     public void setCouponId(Long couponId) { this.couponId = couponId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

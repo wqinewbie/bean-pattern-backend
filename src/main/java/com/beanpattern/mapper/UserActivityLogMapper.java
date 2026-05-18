@@ -50,7 +50,7 @@ public interface UserActivityLogMapper {
             "action_type AS actionType, reward_type AS rewardType, reward_value AS rewardValue, " +
             "gift_id AS giftId, created_at AS createdAt " +
             "FROM bp_user_activity_log " +
-            "WHERE user_id = #{userId} ORDER BY created_at DESC")
+            "WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<UserActivityLog> findByUserId(@Param("userId") Long userId);
 
     /**
@@ -60,6 +60,6 @@ public interface UserActivityLogMapper {
             "action_type AS actionType, reward_type AS rewardType, reward_value AS rewardValue, " +
             "gift_id AS giftId, created_at AS createdAt " +
             "FROM bp_user_activity_log " +
-            "WHERE activity_id = #{activityId} ORDER BY created_at DESC")
+            "WHERE activity_id = #{activityId} ORDER BY created_at DESC LIMIT 200")
     List<UserActivityLog> findByActivityId(@Param("activityId") Long activityId);
 }

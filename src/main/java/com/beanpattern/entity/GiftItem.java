@@ -3,7 +3,7 @@ package com.beanpattern.entity;
 import java.time.LocalDateTime;
 
 /**
- * 礼品项表实体：gift_item
+ * 礼品项表实体：bp_gift_item
  */
 public class GiftItem {
     private Long id;

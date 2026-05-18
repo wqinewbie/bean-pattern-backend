@@ -11,9 +11,10 @@ public interface OrderMapper {
 
     String ORDER_COLUMNS = "id, order_no AS orderNo, user_id AS userId, " +
             "product_type AS productType, package_code AS packageCode, plan_name AS planName, " +
-            "amount, status, expire_at AS expireAt, deliver_status AS deliverStatus, " +
+            "product_id AS productId, vip_level_purchased AS vipLevelPurchased, vip_days AS vipDays, " +
+            "gift_items AS giftItems, amount, status, expire_at AS expireAt, deliver_status AS deliverStatus, " +
             "deliver_error AS deliverError, paid_at AS paidAt, transaction_id AS transactionId, " +
-            "coupon_id AS couponId, created_at AS createdAt";
+            "coupon_id AS couponId, created_at AS createdAt, updated_at AS updatedAt";
 
     @Select("SELECT COUNT(*) FROM bp_order")
     int count();
@@ -31,7 +32,7 @@ public interface OrderMapper {
     @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order ORDER BY created_at DESC LIMIT #{size} OFFSET #{offset}")
     List<OrderEntity> listAll(@Param("offset") int offset, @Param("size") int size);
 
-    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE user_id = #{userId} ORDER BY created_at DESC")
+    @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<OrderEntity> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE user_id = #{userId} " +
@@ -49,9 +50,11 @@ public interface OrderMapper {
     OrderEntity findByOrderNo(@Param("orderNo") String orderNo);
 
     @Insert("INSERT INTO bp_order(order_no, user_id, product_type, package_code, " +
-            "plan_name, amount, status, expire_at, deliver_status, coupon_id) " +
+            "plan_name, product_id, vip_level_purchased, vip_days, gift_items, " +
+            "amount, status, expire_at, deliver_status, coupon_id) " +
             "VALUES(#{orderNo}, #{userId}, #{productType}, #{packageCode}, " +
-            "#{planName}, #{amount}, #{status}, #{expireAt}, #{deliverStatus}, #{couponId})")
+            "#{planName}, #{productId}, #{vipLevelPurchased}, #{vipDays}, #{giftItems}, " +
+            "#{amount}, #{status}, #{expireAt}, #{deliverStatus}, #{couponId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(OrderEntity order);
 

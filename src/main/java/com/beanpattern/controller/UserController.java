@@ -50,12 +50,13 @@ public class UserController {
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> stats(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
-        // TODO: 后续根据新表结构重新统计
         return ApiResponse.ok(Map.of(
-                "total", 0,
-                "success", 0,
-                "saved", 0,
-                "ai", 0
+                "storageUsed", user.getCurrentStorage() != null ? user.getCurrentStorage() : 0,
+                "storageQuota", user.getStorageQuota() != null ? user.getStorageQuota() : 0,
+                "draftUsed", user.getCurrentDraft() != null ? user.getCurrentDraft() : 0,
+                "draftQuota", user.getDraftQuota() != null ? user.getDraftQuota() : 0,
+                "aiQuota", user.getAiQuota() != null ? user.getAiQuota() : 0,
+                "vipLevel", user.getVipLevel() != null ? user.getVipLevel() : 0
         ));
     }
 

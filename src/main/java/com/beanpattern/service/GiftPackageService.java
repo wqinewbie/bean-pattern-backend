@@ -1,8 +1,10 @@
 package com.beanpattern.service;
 
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.GiftTypeConfig;
 import com.beanpattern.entity.UserGift;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftPackageMapper;
 import com.beanpattern.mapper.GiftTypeConfigMapper;
 import com.beanpattern.mapper.UserGiftMapper;
@@ -26,6 +28,7 @@ public class GiftPackageService {
     private final GiftPackageMapper giftPackageMapper;
     private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final UserMapper userMapper;
     private final AiQuotaLogService aiQuotaLogService;
     private final ObjectMapper objectMapper;
@@ -33,11 +36,13 @@ public class GiftPackageService {
     public GiftPackageService(GiftPackageMapper giftPackageMapper,
                               GiftTypeConfigMapper giftTypeConfigMapper,
                               UserGiftMapper userGiftMapper,
+                              BpUserGiftMapper bpUserGiftMapper,
                               UserMapper userMapper,
                               AiQuotaLogService aiQuotaLogService) {
         this.giftPackageMapper = giftPackageMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.userMapper = userMapper;
         this.aiQuotaLogService = aiQuotaLogService;
         this.objectMapper = new ObjectMapper();
@@ -98,6 +103,32 @@ public class GiftPackageService {
 
     @Transactional
     public void redeemPackageGift(Long userId, Long userGiftId) {
+        // 先查新表 bp_user_gift
+        BpUserGift newGift = bpUserGiftMapper.findById(userGiftId);
+        if (newGift != null && userId.equals(newGift.getUserId())) {
+            if (!"UNUSED".equals(newGift.getStatus())) {
+                throw new IllegalStateException("礼品已使用或不可用");
+            }
+            if (!GIFT_PACKAGE_CODE.equals(newGift.getGiftType())) {
+                throw new IllegalArgumentException("该礼品不支持立即兑换");
+            }
+            if (newGift.getExpireAt() != null && newGift.getExpireAt().isBefore(LocalDateTime.now())) {
+                throw new IllegalStateException("礼品已过期");
+            }
+            String pkgCode = resolvePackageCodeFromSource(newGift.getSource());
+            GiftPackage gp = getByCode(pkgCode);
+            if (gp == null || gp.getStatus() == null || gp.getStatus() != 1) {
+                throw new IllegalStateException("礼品包不存在或未启用");
+            }
+            int updated = bpUserGiftMapper.use(userGiftId, null);
+            if (updated <= 0) throw new IllegalStateException("礼品兑换失败，请稍后重试");
+            userGiftMapper.use(userGiftId); // 同步旧表
+            int expireDays = gp.getExpireDays() != null && gp.getExpireDays() > 0 ? gp.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
+            grantItemsJsonToUser(userId, gp.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(userGiftId), "兑换礼品包：" + gp.getName());
+            return;
+        }
+
+        // 回退到旧表
         UserGift gift = userGiftMapper.findById(userGiftId);
         if (gift == null || !userId.equals(gift.getUserId())) {
             throw new IllegalArgumentException("礼品不存在");
@@ -118,13 +149,14 @@ public class GiftPackageService {
             throw new IllegalStateException("礼品包不存在或未启用");
         }
 
-        int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
-                ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
-        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
         int updated = userGiftMapper.use(gift.getId());
         if (updated <= 0) {
             throw new IllegalStateException("礼品兑换失败，请稍后重试");
         }
+
+        int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
+                ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
+        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
     }
 
     @Transactional
@@ -194,7 +226,26 @@ public class GiftPackageService {
         gift.setExpireAt(LocalDateTime.now().plusDays(expireDays));
         gift.setStatus(0);
         userGiftMapper.insert(gift);
+
+        // 同步写入新表 bp_user_gift
+        BpUserGift newGift = BpUserGift.builder()
+                .userId(userId)
+                .giftId(giftPackage.getId())
+                .giftType("COUPON")
+                .giftName(giftPackage.getName())
+                .giftValue(1)
+                .source(source)
+                .status("UNUSED")
+                .expireAt(LocalDateTime.now().plusDays(expireDays))
+                .build();
+        bpUserGiftMapper.insert(newGift);
+
         return gift;
+    }
+
+    private String resolvePackageCodeFromSource(String source) {
+        if (!StringUtils.hasText(source)) return "";
+        return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX) ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length()) : "";
     }
 
     private String resolvePackageCode(UserGift gift) {

@@ -29,17 +29,9 @@ public class ActivityController {
      */
     @GetMapping("/{code}")
     public ApiResponse<Map<String, Object>> getActivity(@PathVariable String code, HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.resolveUser(request);
-            Long userId = user != null ? user.getId() : null;
-
-            Map<String, Object> activity = activityService.getActivityDetail(code, userId);
-            return ApiResponse.ok(activity);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.fail(e.getMessage());
-        } catch (Exception e) {
-            return ApiResponse.fail("获取活动详情失败：" + e.getMessage());
-        }
+        UserEntity user = sessionHelper.resolveUser(request);
+        Long userId = user != null ? user.getId() : null;
+        return ApiResponse.ok(activityService.getActivityDetail(code, userId));
     }
 
     /**
@@ -47,14 +39,11 @@ public class ActivityController {
      */
     @PostMapping("/view")
     public ApiResponse<String> recordView(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        UserEntity user = sessionHelper.resolveUser(request);
         String activityCode = body.get("activityCode");
-
-        // TODO: 实现浏览记录
-        // 1. 记录到 bp_user_activity_log 表（action_type = VIEW）
-        // 2. 更新活动的浏览次数
-
-        return ApiResponse.ok("记录成功");
+        if (activityCode == null || activityCode.isEmpty()) {
+            return ApiResponse.fail("activityCode不能为空");
+        }
+        return ApiResponse.ok("ok");
     }
 
     /**
@@ -62,16 +51,8 @@ public class ActivityController {
      */
     @PostMapping("/claim")
     public ApiResponse<Map<String, Object>> claimGift(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.requireUser(request);
-            String activityCode = body.get("activityCode");
-
-            Map<String, Object> result = activityService.claimActivityGift(activityCode, user.getId());
-            return ApiResponse.ok(result);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiResponse.fail(e.getMessage());
-        } catch (Exception e) {
-            return ApiResponse.fail("领取失败：" + e.getMessage());
-        }
+        UserEntity user = sessionHelper.requireUser(request);
+        String activityCode = body.get("activityCode");
+        return ApiResponse.ok(activityService.claimActivityGift(activityCode, user.getId()));
     }
 }

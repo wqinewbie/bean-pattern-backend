@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 用户任务进度表实体：user_task_progress
+ * 用户任务进度表实体：bp_user_task_progress
  */
 public class UserTaskProgress {
     private Long id;

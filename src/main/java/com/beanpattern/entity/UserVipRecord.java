@@ -3,7 +3,7 @@ package com.beanpattern.entity;
 import java.time.LocalDateTime;
 
 /**
- * 用户VIP记录表实体：user_vip_record
+ * 用户VIP记录表实体：bp_user_vip_record
  */
 public class UserVipRecord {
     private Long id;

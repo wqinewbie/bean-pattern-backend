@@ -64,12 +64,8 @@ public class TaskController {
             return ApiResponse.fail("任务编码不能为空");
         }
 
-        try {
-            UserTaskProgress progress = taskService.incrementTaskProgress(user.getId(), taskCode);
-            return ApiResponse.ok(progress);
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        UserTaskProgress progress = taskService.incrementTaskProgress(user.getId(), taskCode);
+        return ApiResponse.ok(progress);
     }
 
     /**
@@ -83,13 +79,7 @@ public class TaskController {
         if (progressId == null) {
             return ApiResponse.fail("进度ID不能为空");
         }
-
-        try {
-            UserGift gift = taskService.claimTaskReward(user.getId(), progressId);
-            return ApiResponse.ok(gift);
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return ApiResponse.ok(taskService.claimTaskReward(user.getId(), progressId));
     }
 
     /**

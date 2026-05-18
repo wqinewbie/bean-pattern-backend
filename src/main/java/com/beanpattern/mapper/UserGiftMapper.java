@@ -21,7 +21,7 @@ public interface UserGiftMapper {
             "gift_category AS giftCategory, value, source, task_id AS taskId, share_record_id AS shareRecordId, " +
             "order_id AS orderId, used_at AS usedAt, expire_at AS expireAt, status, " +
             "created_at AS createdAt, updated_at AS updatedAt " +
-            "FROM user_gift WHERE user_id = #{userId} ORDER BY created_at DESC")
+            "FROM user_gift WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<UserGift> findByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, gift_item_id AS giftItemId, gift_code AS giftCode, gift_name AS giftName, " +
@@ -29,7 +29,7 @@ public interface UserGiftMapper {
             "order_id AS orderId, used_at AS usedAt, expire_at AS expireAt, status, " +
             "created_at AS createdAt, updated_at AS updatedAt " +
             "FROM user_gift WHERE user_id = #{userId} AND status = #{status} " +
-            "AND (expire_at IS NULL OR expire_at > #{now}) ORDER BY created_at DESC")
+            "AND (expire_at IS NULL OR expire_at > #{now}) ORDER BY created_at DESC LIMIT 200")
     List<UserGift> findAvailableByUserId(@Param("userId") Long userId, @Param("status") Integer status, @Param("now") LocalDateTime now);
 
     @Insert("INSERT INTO user_gift(user_id, gift_item_id, gift_code, gift_name, gift_category, value, " +

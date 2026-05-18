@@ -4,6 +4,7 @@ import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.InviteCodeService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,12 +19,14 @@ public class InviteRechargeTaskHandler implements TaskHandler {
 
     private final InviteCodeService inviteCodeService;
     private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public InviteRechargeTaskHandler(InviteCodeService inviteCodeService, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
+    public InviteRechargeTaskHandler(InviteCodeService inviteCodeService, UserGiftMapper userGiftMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
         this.inviteCodeService = inviteCodeService;
         this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
@@ -81,7 +84,7 @@ public class InviteRechargeTaskHandler implements TaskHandler {
 
     private int countClaimedRounds(Long userId, String packageCode) {
         if (!StringUtils.hasText(packageCode)) return 0;
-        return userGiftMapper.countByUserIdAndSourcePrefix(userId, CLAIM_SOURCE_PREFIX + packageCode + ":");
+        return bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, CLAIM_SOURCE_PREFIX + packageCode + ":");
     }
 
     private int readExtraInt(TaskConfig config, String field, int defaultValue) {

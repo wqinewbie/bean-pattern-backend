@@ -40,13 +40,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProfileIncompleteException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleProfileIncomplete(ProfileIncompleteException ex) {
-        return ApiResponse.fail(10010, ex.getMessage());
+        return ErrorCode.PROFILE_INCOMPLETE.fail(ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ApiResponse.fail("服务器内部错误，请稍后重试");
+        return ErrorCode.INTERNAL_ERROR.fail();
     }
 }

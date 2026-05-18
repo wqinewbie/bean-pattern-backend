@@ -19,7 +19,8 @@ public interface ActivityConfigMapper {
             "total_quota AS totalQuota, remain_quota AS remainQuota, start_at AS startAt, end_at AS endAt, " +
             "content_html AS contentHtml, content_json AS contentJson, page_type AS pageType, " +
             "button_text AS buttonText, button_action AS buttonAction, button_url AS buttonUrl, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "banner_id AS bannerId, gift_items AS giftItems, discount_config AS discountConfig, " +
+            "task_config AS taskConfig, status, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_activity_config ORDER BY created_at DESC")
     List<ActivityConfig> findAll();
 
@@ -31,7 +32,8 @@ public interface ActivityConfigMapper {
             "total_quota AS totalQuota, remain_quota AS remainQuota, start_at AS startAt, end_at AS endAt, " +
             "content_html AS contentHtml, content_json AS contentJson, page_type AS pageType, " +
             "button_text AS buttonText, button_action AS buttonAction, button_url AS buttonUrl, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "banner_id AS bannerId, gift_items AS giftItems, discount_config AS discountConfig, " +
+            "task_config AS taskConfig, status, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_activity_config WHERE activity_code = #{activityCode}")
     ActivityConfig findByCode(@Param("activityCode") String activityCode);
 
@@ -43,7 +45,8 @@ public interface ActivityConfigMapper {
             "total_quota AS totalQuota, remain_quota AS remainQuota, start_at AS startAt, end_at AS endAt, " +
             "content_html AS contentHtml, content_json AS contentJson, page_type AS pageType, " +
             "button_text AS buttonText, button_action AS buttonAction, button_url AS buttonUrl, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "banner_id AS bannerId, gift_items AS giftItems, discount_config AS discountConfig, " +
+            "task_config AS taskConfig, status, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_activity_config WHERE id = #{id}")
     ActivityConfig findById(@Param("id") Long id);
 
@@ -55,7 +58,8 @@ public interface ActivityConfigMapper {
             "total_quota AS totalQuota, remain_quota AS remainQuota, start_at AS startAt, end_at AS endAt, " +
             "content_html AS contentHtml, content_json AS contentJson, page_type AS pageType, " +
             "button_text AS buttonText, button_action AS buttonAction, button_url AS buttonUrl, " +
-            "status, created_at AS createdAt, updated_at AS updatedAt " +
+            "banner_id AS bannerId, gift_items AS giftItems, discount_config AS discountConfig, " +
+            "task_config AS taskConfig, status, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_activity_config " +
             "WHERE status = 1 AND start_at <= NOW() AND end_at >= NOW() " +
             "ORDER BY created_at DESC")
@@ -67,11 +71,11 @@ public interface ActivityConfigMapper {
     @Insert("INSERT INTO bp_activity_config (activity_code, title, description, cover_image, " +
             "activity_type, gift_package_code, limit_type, total_quota, remain_quota, " +
             "start_at, end_at, content_html, content_json, page_type, button_text, button_action, button_url, " +
-            "status, created_at, updated_at) " +
+            "banner_id, gift_items, discount_config, task_config, status, created_at, updated_at) " +
             "VALUES (#{activityCode}, #{title}, #{description}, #{coverImage}, " +
             "#{activityType}, NULLIF(TRIM(#{giftPackageCode}), ''), #{limitType}, #{totalQuota}, #{remainQuota}, " +
             "#{startAt}, #{endAt}, #{contentHtml}, NULLIF(TRIM(#{contentJson}), ''), #{pageType}, #{buttonText}, #{buttonAction}, #{buttonUrl}, " +
-            "#{status}, NOW(), NOW())")
+            "#{bannerId}, #{giftItems}, #{discountConfig}, #{taskConfig}, #{status}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ActivityConfig activity);
 
@@ -84,7 +88,8 @@ public interface ActivityConfigMapper {
             "limit_type = #{limitType}, total_quota = #{totalQuota}, remain_quota = #{remainQuota}, " +
             "start_at = #{startAt}, end_at = #{endAt}, content_html = #{contentHtml}, content_json = NULLIF(TRIM(#{contentJson}), ''), " +
             "page_type = #{pageType}, button_text = #{buttonText}, button_action = #{buttonAction}, button_url = #{buttonUrl}, " +
-            "updated_at = NOW() WHERE id = #{id}")
+            "banner_id = #{bannerId}, gift_items = #{giftItems}, discount_config = #{discountConfig}, " +
+            "task_config = #{taskConfig}, updated_at = NOW() WHERE id = #{id}")
     int update(ActivityConfig activity);
 
     /**

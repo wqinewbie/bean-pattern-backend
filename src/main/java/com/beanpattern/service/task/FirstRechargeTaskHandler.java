@@ -1,19 +1,16 @@
 package com.beanpattern.service.task;
 
 import com.beanpattern.entity.GiftPackage;
-import com.beanpattern.entity.OrderEntity;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
 
 /**
  * 首冲礼包/首充福利的聚合实现。
@@ -29,12 +26,14 @@ public class FirstRechargeTaskHandler implements TaskHandler {
 
     private final OrderMapper orderMapper;
     private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public FirstRechargeTaskHandler(OrderMapper orderMapper, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
+    public FirstRechargeTaskHandler(OrderMapper orderMapper, UserGiftMapper userGiftMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
         this.orderMapper = orderMapper;
         this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
@@ -87,16 +86,13 @@ public class FirstRechargeTaskHandler implements TaskHandler {
     }
 
     private boolean hasPaidOrder(Long userId) {
-        List<OrderEntity> orders = orderMapper.listByUserId(userId);
-        return orders.stream().anyMatch(order -> "PAID".equalsIgnoreCase(order.getStatus()));
+        return orderMapper.existsPaidOrderByUserId(userId);
     }
 
     private boolean hasClaimed(Long userId, String packageCode) {
         if (!StringUtils.hasText(packageCode)) return false;
-        return userGiftMapper.findByUserId(userId).stream()
-                .map(UserGift::getSource)
-                .filter(StringUtils::hasText)
-                .anyMatch(source -> source.equals(CLAIM_SOURCE_PREFIX + packageCode));
+        String sourcePrefix = CLAIM_SOURCE_PREFIX + packageCode + ":";
+        return bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix) > 0;
     }
 
     private String resolveGiftPackageCode(TaskConfig config) {

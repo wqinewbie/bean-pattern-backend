@@ -37,8 +37,12 @@ public class ActivityConfig {
     private String pageType;           // 页面类型：RICH_TEXT/CUSTOM
     private String buttonText;         // 按钮文案
     private String buttonAction;       // 按钮动作：CLAIM/RECHARGE/JUMP
-    private String buttonUrl;          // 按钮跳转URL（当action为JUMP时使用）
-    private Boolean status;            // 状态：0下线 1上线
+    private String buttonUrl;
+    private Long bannerId;
+    private String giftItems;
+    private String discountConfig;
+    private String taskConfig;
+    private Boolean status;
     @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime createdAt;   // 创建时间
     @JsonFormat(pattern = DATE_TIME_PATTERN)

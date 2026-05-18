@@ -115,11 +115,7 @@ public class ShareController {
             return ApiResponse.fail("记录ID不能为空");
         }
 
-        try {
-            UserGift gift = shareService.claimShareReward(user.getId(), recordId);
-            return ApiResponse.ok(gift);
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        UserGift gift = shareService.claimShareReward(user.getId(), recordId);
+        return ApiResponse.ok(gift);
     }
 }

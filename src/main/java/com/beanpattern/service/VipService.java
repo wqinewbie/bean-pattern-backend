@@ -151,7 +151,8 @@ public class VipService {
     }
 
     /**
-     * 使用AI次数
+     * 使用AI次数（VIP月度配额——当前未启用）
+     * 实际的AI额度扣减走 UserService.useAiQuota() → bp_user.ai_quota
      */
     @Transactional
     public boolean useAiQuota(Long userId) {
@@ -160,30 +161,28 @@ public class VipService {
             return false;
         }
 
-        // 检查是否还有配额（ai_used_count < ai_quota）
         VipProduct product = vipProductMapper.findById(record.getProductId());
         if (product == null) {
             return false;
         }
-        
+
         Integer aiQuota = product.getAiQuotaPerMonth();
         if (aiQuota == null || aiQuota <= 0) {
             return false;
         }
-        
-        if (record.getAiUsedCount() >= aiQuota) {
+
+        int affected = userVipRecordMapper.incrementAiUsedCountIfQuotaAvailable(record.getId(), aiQuota);
+        if (affected == 0) {
             return false;
         }
 
-        userVipRecordMapper.incrementAiUsedCount(record.getId());
-
         // 检查剩余次数，≤3次时发送提醒
-        int remaining = aiQuota - record.getAiUsedCount() - 1;
+        int usedAfterIncrement = record.getAiUsedCount() + 1;
+        int remaining = aiQuota - usedAfterIncrement;
         if (remaining <= 3) {
             try {
                 notificationService.createAiQuotaNotification(userId, remaining);
             } catch (Exception ignored) {
-                // 通知发送失败不影响主流程
             }
         }
 

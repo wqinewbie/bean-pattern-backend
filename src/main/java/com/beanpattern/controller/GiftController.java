@@ -3,8 +3,8 @@ package com.beanpattern.controller;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.GiftItem;
 import com.beanpattern.entity.GiftType;
-import com.beanpattern.entity.UserGift;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.vo.GiftVO;
 import com.beanpattern.service.GiftService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,19 +63,16 @@ public class GiftController {
      * 获取用户礼品列表
      */
     @GetMapping("/my")
-    public ApiResponse<List<UserGift>> getMyGifts(HttpServletRequest request) {
+    public ApiResponse<List<GiftVO>> getMyGifts(HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
-        List<UserGift> gifts = giftService.getUserGifts(user.getId());
+        List<GiftVO> gifts = giftService.getUserGifts(user.getId()).stream().map(GiftVO::from).collect(java.util.stream.Collectors.toList());
         return ApiResponse.ok(gifts);
     }
 
-    /**
-     * 获取用户可用的礼品
-     */
     @GetMapping("/available")
-    public ApiResponse<List<UserGift>> getAvailableGifts(HttpServletRequest request) {
+    public ApiResponse<List<GiftVO>> getAvailableGifts(HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
-        List<UserGift> gifts = giftService.getAvailableUserGifts(user.getId());
+        List<GiftVO> gifts = giftService.getAvailableUserGifts(user.getId()).stream().map(GiftVO::from).collect(java.util.stream.Collectors.toList());
         return ApiResponse.ok(gifts);
     }
 
@@ -84,10 +81,10 @@ public class GiftController {
      * @param productType 商品类型：vip/card
      */
     @GetMapping("/coupons/{productType}")
-    public ApiResponse<List<UserGift>> getAvailableCoupons(@PathVariable String productType,
-                                                            HttpServletRequest request) {
+    public ApiResponse<List<GiftVO>> getAvailableCoupons(@PathVariable String productType,
+                                                          HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
-        List<UserGift> coupons = giftService.getAvailableCoupons(user.getId(), productType);
+        List<GiftVO> coupons = giftService.getAvailableCoupons(user.getId(), productType).stream().map(GiftVO::from).collect(java.util.stream.Collectors.toList());
         return ApiResponse.ok(coupons);
     }
 

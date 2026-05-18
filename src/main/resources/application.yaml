@@ -14,6 +14,13 @@ server:
   # 后端端口，小程序里 API_BASE_URL 要和这里一致
   port: 8081
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  default-produces-media-type: application/json
+
 payment:
   provider: ${PAYMENT_PROVIDER:mock}
   mock:
@@ -31,6 +38,9 @@ app:
   upload-dir: ./uploads
   # 文件外链拼接基础地址（例如上传后返回的图片 URL）
   base-url: http://localhost:8080
+  jwt:
+    # JWT签名密钥（生产环境通过环境变量注入）
+    secret: ${JWT_SECRET:dev-secret-change-me-in-production}
   wechat:
     # 微信小程序真实配置：建议通过环境变量注入
     app-id: ${WECHAT_APP_ID:}

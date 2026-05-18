@@ -99,4 +99,7 @@ public interface UserCheckinMapper {
 
     @Select("SELECT COUNT(DISTINCT user_id) FROM bp_user_checkin")
     int countDistinctUsers();
+
+    @Select("SELECT COUNT(1) FROM bp_user_checkin WHERE user_id = #{userId}")
+    int countByUserId(@Param("userId") Long userId);
 }

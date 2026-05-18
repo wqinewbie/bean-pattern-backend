@@ -10,37 +10,37 @@ public interface CreatorPatternMapper {
 
     @Select("SELECT id, user_id AS userId, title, description, cover_url AS coverUrl, " +
             "pattern_url AS patternUrl, grid_size AS gridSize, difficulty, price_coins AS priceCoins, " +
-            "download_count AS downloadCount, like_count AS likeCount, status, " +
-            "category, tags, created_at AS createdAt " +
+            "download_count AS downloadCount, like_count AS likeCount, income_coins AS incomeCoins, status, " +
+            "category, tags, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_creator_pattern WHERE status = 1 " +
             "ORDER BY created_at DESC LIMIT #{limit}")
     List<CreatorPatternEntity> listPublic(@Param("limit") int limit);
 
     @Select("SELECT id, user_id AS userId, title, description, cover_url AS coverUrl, " +
             "pattern_url AS patternUrl, grid_size AS gridSize, difficulty, price_coins AS priceCoins, " +
-            "download_count AS downloadCount, like_count AS likeCount, status, " +
-            "reject_reason AS rejectReason, category, tags, created_at AS createdAt " +
-            "FROM bp_creator_pattern WHERE user_id = #{userId} ORDER BY created_at DESC")
+            "download_count AS downloadCount, like_count AS likeCount, income_coins AS incomeCoins, status, " +
+            "reject_reason AS rejectReason, category, tags, created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_creator_pattern WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<CreatorPatternEntity> listByUser(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, title, description, cover_url AS coverUrl, " +
             "pattern_url AS patternUrl, grid_size AS gridSize, difficulty, price_coins AS priceCoins, " +
-            "download_count AS downloadCount, like_count AS likeCount, status, " +
-            "reject_reason AS rejectReason, category, tags, created_at AS createdAt " +
+            "download_count AS downloadCount, like_count AS likeCount, income_coins AS incomeCoins, status, " +
+            "reject_reason AS rejectReason, category, tags, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_creator_pattern ORDER BY created_at DESC LIMIT 1000")
     List<CreatorPatternEntity> listAll();
 
     @Select("SELECT id, user_id AS userId, title, description, cover_url AS coverUrl, " +
             "pattern_url AS patternUrl, grid_size AS gridSize, difficulty, price_coins AS priceCoins, " +
-            "download_count AS downloadCount, like_count AS likeCount, status, " +
-            "category, tags, created_at AS createdAt " +
+            "download_count AS downloadCount, like_count AS likeCount, income_coins AS incomeCoins, status, " +
+            "category, tags, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_creator_pattern WHERE id = #{id}")
     CreatorPatternEntity findById(@Param("id") Long id);
 
     @Insert("INSERT INTO bp_creator_pattern(user_id, title, description, cover_url, pattern_url, " +
-            "grid_size, difficulty, price_coins, category, tags, status) " +
+            "grid_size, difficulty, price_coins, income_coins, category, tags, status) " +
             "VALUES(#{userId}, #{title}, #{description}, #{coverUrl}, #{patternUrl}, " +
-            "#{gridSize}, #{difficulty}, #{priceCoins}, #{category}, #{tags}, 0)")
+            "#{gridSize}, #{difficulty}, #{priceCoins}, #{incomeCoins}, #{category}, #{tags}, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(CreatorPatternEntity pattern);
 

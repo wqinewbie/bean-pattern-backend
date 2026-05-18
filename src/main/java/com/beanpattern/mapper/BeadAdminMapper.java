@@ -75,12 +75,12 @@ public interface BeadAdminMapper {
                k.brand_id AS brandId,
                b.name AS brandName,
                k.color_count AS colorCount,
-               COALESCE(GROUP_CONCAT(p.name ORDER BY bkp.sort_order SEPARATOR ','), k.palette_ids) AS paletteIds
+               GROUP_CONCAT(p.name ORDER BY bkp.sort_order SEPARATOR ',') AS paletteIds
         FROM bead_brand_kit k
         LEFT JOIN bead_brand b ON b.id = k.brand_id
         LEFT JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
         LEFT JOIN bead_palette p ON p.id = bkp.palette_id
-        GROUP BY k.id, k.brand_id, b.name, k.color_count, k.palette_ids
+        GROUP BY k.id, k.brand_id, b.name, k.color_count
         ORDER BY k.brand_id, k.color_count
         """)
     List<Map<String, Object>> listBrandKits();

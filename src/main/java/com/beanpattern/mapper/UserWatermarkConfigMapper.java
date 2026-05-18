@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.*;
 @Mapper
 public interface UserWatermarkConfigMapper {
 
-    @Select("SELECT id, user_id, enabled, custom_text, created_at, updated_at FROM bp_user_watermark_config WHERE user_id=#{userId}")
+    @Select("SELECT id, user_id AS userId, enabled, custom_text AS customText, created_at AS createdAt, updated_at AS updatedAt FROM bp_user_watermark_config WHERE user_id=#{userId}")
     UserWatermarkConfig getByUserId(Long userId);
 
     @Insert("""

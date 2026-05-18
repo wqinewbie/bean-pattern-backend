@@ -3,7 +3,7 @@ package com.beanpattern.entity;
 import java.time.LocalDateTime;
 
 /**
- * 分享访客表实体：share_visitor
+ * 分享访客表实体：bp_share_visitor
  */
 public class ShareVisitor {
     private Long id;

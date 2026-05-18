@@ -1,5 +1,9 @@
 package com.beanpattern.entity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -13,10 +17,17 @@ public class BpBox {
 
     private Long id;
     private Long userId;
+    @NotBlank(message = "来源类型不能为空")
     private String sourceType;  // LOCAL, AI, DRAW
+    @NotBlank(message = "品牌不能为空")
     private String brand;       // 品牌，如mard
+    @Positive(message = "色数必须大于0")
     private Integer colorCount; // 色数，如48
+    @NotBlank(message = "图纸名称不能为空")
+    @Size(max = 128, message = "图纸名称最长128字符")
     private String name;        // 图纸名称
+    @NotNull(message = "尺寸不能为空")
+    @Positive(message = "尺寸必须大于0")
     private Integer gridSize;   // 尺寸，如64表示64x64
     private Long draftId;       // 关联草稿箱ID
     private Long historyId;     // 关联时光机ID

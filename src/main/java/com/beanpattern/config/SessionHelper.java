@@ -3,13 +3,11 @@ package com.beanpattern.config;
 import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ProfileIncompleteException;
 import com.beanpattern.model.UnauthorizedException;
+import com.beanpattern.security.JwtTokenService;
 import com.beanpattern.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 @Component
 public class SessionHelper {
@@ -17,22 +15,17 @@ public class SessionHelper {
     public static final String HEADER_SESSION = "X-Session-Id";
 
     private final UserService userService;
+    private final JwtTokenService jwtTokenService;
 
-    public SessionHelper(UserService userService) {
+    public SessionHelper(UserService userService, JwtTokenService jwtTokenService) {
         this.userService = userService;
+        this.jwtTokenService = jwtTokenService;
     }
 
     public String resolveOpenId(HttpServletRequest request) {
         String token = request.getHeader(HEADER_SESSION);
         if (!StringUtils.hasText(token)) return null;
-        try {
-            String decoded = new String(Base64.getUrlDecoder().decode(token), StandardCharsets.UTF_8);
-            int colonIdx = decoded.lastIndexOf(':');
-            if (colonIdx <= 0) return null;
-            return decoded.substring(0, colonIdx);
-        } catch (Exception e) {
-            return null;
-        }
+        return jwtTokenService.verifyAndGetOpenId(token);
     }
 
     public UserEntity getUser(HttpServletRequest request) {

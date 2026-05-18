@@ -6,22 +6,10 @@ import com.beanpattern.model.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 活动中心管理 Controller（后台管理）。
- * 活动中心是公共内容承接页；若配置领取动作，必须绑定礼品包。
- */
 @RestController
 @RequestMapping("/api/admin/activities")
 public class AdminActivityController {
@@ -40,54 +28,38 @@ public class AdminActivityController {
     }
 
     @PostMapping
-    public ApiResponse<String> createActivity(@RequestBody ActivityConfig activity) {
-        try {
-            if (activity.getRemainQuota() == null) {
-                activity.setRemainQuota(activity.getTotalQuota());
-            }
-            if (activity.getStatus() == null) {
-                activity.setStatus(true);
-            }
-            normalizeActivity(activity);
-            validateActivity(activity);
-            activityMapper.insert(activity);
-            return ApiResponse.ok("创建成功");
-        } catch (Exception e) {
-            return ApiResponse.fail("创建失败：" + e.getMessage());
+    public ApiResponse<Void> createActivity(@RequestBody ActivityConfig activity) {
+        if (activity.getRemainQuota() == null) {
+            activity.setRemainQuota(activity.getTotalQuota());
         }
+        if (activity.getStatus() == null) {
+            activity.setStatus(true);
+        }
+        normalizeActivity(activity);
+        validateActivity(activity);
+        activityMapper.insert(activity);
+        return ApiResponse.ok("创建成功");
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<String> updateActivity(@PathVariable Long id, @RequestBody ActivityConfig activity) {
-        try {
-            activity.setId(id);
-            normalizeActivity(activity);
-            validateActivity(activity);
-            activityMapper.update(activity);
-            return ApiResponse.ok("更新成功");
-        } catch (Exception e) {
-            return ApiResponse.fail("更新失败：" + e.getMessage());
-        }
+    public ApiResponse<Void> updateActivity(@PathVariable Long id, @RequestBody ActivityConfig activity) {
+        activity.setId(id);
+        normalizeActivity(activity);
+        validateActivity(activity);
+        activityMapper.update(activity);
+        return ApiResponse.ok("更新成功");
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteActivity(@PathVariable Long id) {
-        try {
-            activityMapper.deleteById(id);
-            return ApiResponse.ok("删除成功");
-        } catch (Exception e) {
-            return ApiResponse.fail("删除失败：" + e.getMessage());
-        }
+    public ApiResponse<Void> deleteActivity(@PathVariable Long id) {
+        activityMapper.deleteById(id);
+        return ApiResponse.ok("删除成功");
     }
 
     @PutMapping("/{id}/status")
-    public ApiResponse<String> toggleStatus(@PathVariable Long id, @RequestParam Boolean status) {
-        try {
-            activityMapper.updateStatus(id, status);
-            return ApiResponse.ok("状态更新成功");
-        } catch (Exception e) {
-            return ApiResponse.fail("状态更新失败：" + e.getMessage());
-        }
+    public ApiResponse<Void> toggleStatus(@PathVariable Long id, @RequestParam Boolean status) {
+        activityMapper.updateStatus(id, status);
+        return ApiResponse.ok("状态更新成功");
     }
 
     private void normalizeActivity(ActivityConfig activity) {

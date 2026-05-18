@@ -21,37 +21,44 @@ public interface UserTaskProgressMapper {
             "current_count AS currentCount, target_count AS targetCount, status, " +
             "completed_at AS completedAt, claimed_at AS claimedAt, period_start AS periodStart, " +
             "created_at AS createdAt, updated_at AS updatedAt " +
-            "FROM user_task_progress WHERE user_id = #{userId}")
+            "FROM bp_user_task_progress WHERE user_id = #{userId} LIMIT 200")
     List<UserTaskProgress> findByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
             "current_count AS currentCount, target_count AS targetCount, status, " +
             "completed_at AS completedAt, claimed_at AS claimedAt, period_start AS periodStart, " +
             "created_at AS createdAt, updated_at AS updatedAt " +
-            "FROM user_task_progress WHERE user_id = #{userId} AND task_id = #{taskId} AND period_start = #{periodStart}")
+            "FROM bp_user_task_progress WHERE user_id = #{userId} AND task_code = #{taskCode} LIMIT 1")
+    UserTaskProgress findByUserIdAndTaskCode(@Param("userId") Long userId, @Param("taskCode") String taskCode);
+
+    @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
+            "current_count AS currentCount, target_count AS targetCount, status, " +
+            "completed_at AS completedAt, claimed_at AS claimedAt, period_start AS periodStart, " +
+            "created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_user_task_progress WHERE user_id = #{userId} AND task_id = #{taskId} AND period_start = #{periodStart}")
     UserTaskProgress findByUserAndTaskAndPeriod(@Param("userId") Long userId, 
                                                  @Param("taskId") Long taskId, 
                                                  @Param("periodStart") LocalDate periodStart);
 
-    @Insert("INSERT INTO user_task_progress(user_id, task_id, task_code, current_count, target_count, status, period_start) " +
+    @Insert("INSERT INTO bp_user_task_progress(user_id, task_id, task_code, current_count, target_count, status, period_start) " +
             "VALUES(#{userId}, #{taskId}, #{taskCode}, #{currentCount}, #{targetCount}, #{status}, #{periodStart})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserTaskProgress progress);
 
-    @Update("UPDATE user_task_progress SET current_count = #{currentCount}, status = #{status}, " +
+    @Update("UPDATE bp_user_task_progress SET current_count = #{currentCount}, status = #{status}, " +
             "completed_at = #{completedAt}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateProgress(@Param("id") Long id, 
                        @Param("currentCount") Integer currentCount,
                        @Param("status") Integer status,
                        @Param("completedAt") java.time.LocalDateTime completedAt);
 
-    @Update("UPDATE user_task_progress SET status = 2, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
+    @Update("UPDATE bp_user_task_progress SET status = 2, claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int claim(@Param("id") Long id);
     
     @Select("SELECT id, user_id AS userId, task_id AS taskId, task_code AS taskCode, " +
             "current_count AS currentCount, target_count AS targetCount, status, " +
             "completed_at AS completedAt, claimed_at AS claimedAt, period_start AS periodStart, " +
             "created_at AS createdAt, updated_at AS updatedAt " +
-            "FROM user_task_progress WHERE id = #{id}")
+            "FROM bp_user_task_progress WHERE id = #{id}")
     UserTaskProgress findById(@Param("id") Long id);
 }

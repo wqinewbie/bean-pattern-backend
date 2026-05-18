@@ -26,54 +26,38 @@ public class PrivilegeController {
 
     @GetMapping("/info")
     public ApiResponse<Map<String, Object>> getPrivilegeInfo(HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.requireUser(request);
-            return ApiResponse.ok(privilegeService.getUserPrivileges(user.getId()));
-        } catch (Exception e) {
-            return ApiResponse.fail("获取权益信息失败: " + e.getMessage());
-        }
+        UserEntity user = sessionHelper.requireUser(request);
+        return ApiResponse.ok(privilegeService.getUserPrivileges(user.getId()));
     }
 
     @GetMapping("/check/pattern-box")
     public ApiResponse<Map<String, Object>> checkPatternBox(HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.requireUser(request);
-            return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
-        } catch (Exception e) {
-            return ApiResponse.fail("检查图纸箱容量失败: " + e.getMessage());
-        }
+        UserEntity user = sessionHelper.requireUser(request);
+        return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
     }
 
     @GetMapping("/check/draft-box")
     public ApiResponse<Map<String, Object>> checkDraftBox(HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.requireUser(request);
-            return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
-        } catch (Exception e) {
-            return ApiResponse.fail("检查草稿箱容量失败: " + e.getMessage());
-        }
+        UserEntity user = sessionHelper.requireUser(request);
+        return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
     }
 
     @GetMapping("/check")
     public ApiResponse<Map<String, Object>> checkByKey(@RequestParam String key, HttpServletRequest request) {
-        try {
-            UserEntity user = sessionHelper.requireUser(request);
-            if ("pattern_box_limit".equals(key)) {
-                return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
-            }
-            if ("draft_box_limit".equals(key)) {
-                return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
-            }
-            if ("history_expire_days".equals(key)) {
-                return ApiResponse.ok(Map.of("value", privilegeService.getHistoryExpireDays(user.getId())));
-            }
-            if ("watermark_control".equals(key)) {
-                return ApiResponse.ok(Map.of("value", privilegeService.canControlWatermark(user.getId())));
-            }
-            return ApiResponse.fail("未知权益: " + key);
-        } catch (Exception e) {
-            return ApiResponse.fail("检查权益失败: " + e.getMessage());
+        UserEntity user = sessionHelper.requireUser(request);
+        if ("pattern_box_limit".equals(key)) {
+            return ApiResponse.ok(toLimitMap(privilegeService.getPatternBoxLimitStatus(user.getId())));
         }
+        if ("draft_box_limit".equals(key)) {
+            return ApiResponse.ok(toLimitMap(privilegeService.getDraftBoxLimitStatus(user.getId())));
+        }
+        if ("history_expire_days".equals(key)) {
+            return ApiResponse.ok(Map.of("value", privilegeService.getHistoryExpireDays(user.getId())));
+        }
+        if ("watermark_control".equals(key)) {
+            return ApiResponse.ok(Map.of("value", privilegeService.canControlWatermark(user.getId())));
+        }
+        return ApiResponse.fail("未知权益: " + key);
     }
 
     private Map<String, Object> toLimitMap(PrivilegeService.LimitStatus status) {

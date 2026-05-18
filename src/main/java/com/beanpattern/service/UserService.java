@@ -130,49 +130,33 @@ public class UserService {
     /**
      * 增加存储使用量
      */
-    @Transactional
     public void incrementStorageUsage(Long userId) {
-        UserEntity user = userMapper.findById(userId);
-        if (user == null) return;
-        int current = user.getCurrentStorage() != null ? user.getCurrentStorage() : 0;
-        userMapper.updateCurrentStorage(userId, current + 1);
+        if (userId == null) return;
+        userMapper.incrementCurrentStorage(userId);
     }
-    
+
     /**
      * 减少存储使用量
      */
-    @Transactional
     public void decrementStorageUsage(Long userId) {
-        UserEntity user = userMapper.findById(userId);
-        if (user == null) return;
-        int current = user.getCurrentStorage() != null ? user.getCurrentStorage() : 0;
-        if (current > 0) {
-            userMapper.updateCurrentStorage(userId, current - 1);
-        }
+        if (userId == null) return;
+        userMapper.decrementCurrentStorage(userId);
     }
-    
+
     /**
      * 增加草稿使用量
      */
-    @Transactional
     public void incrementDraftUsage(Long userId) {
-        UserEntity user = userMapper.findById(userId);
-        if (user == null) return;
-        int current = user.getCurrentDraft() != null ? user.getCurrentDraft() : 0;
-        userMapper.updateCurrentDraft(userId, current + 1);
+        if (userId == null) return;
+        userMapper.incrementCurrentDraft(userId);
     }
-    
+
     /**
      * 减少草稿使用量
      */
-    @Transactional
     public void decrementDraftUsage(Long userId) {
-        UserEntity user = userMapper.findById(userId);
-        if (user == null) return;
-        int current = user.getCurrentDraft() != null ? user.getCurrentDraft() : 0;
-        if (current > 0) {
-            userMapper.updateCurrentDraft(userId, current - 1);
-        }
+        if (userId == null) return;
+        userMapper.decrementCurrentDraft(userId);
     }
     
     /**

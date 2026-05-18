@@ -8,6 +8,7 @@ import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpHistoryService;
 import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class BpBoxController {
      * 保存图纸到图纸箱
      */
     @PostMapping("/save")
-    public ApiResponse<BpBox> save(@RequestBody BpBox box, HttpServletRequest request) {
+    public ApiResponse<BpBox> save(@Valid @RequestBody BpBox box, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
@@ -159,7 +160,7 @@ public class BpBoxController {
      * 更新图纸信息（名称等）
      */
     @PutMapping("/update")
-    public ApiResponse<Void> update(@RequestBody BpBox box, HttpServletRequest request) {
+    public ApiResponse<Void> update(@Valid @RequestBody BpBox box, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 

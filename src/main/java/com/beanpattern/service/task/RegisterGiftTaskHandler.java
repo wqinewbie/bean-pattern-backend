@@ -3,8 +3,7 @@ package com.beanpattern.service.task;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
-import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,13 +20,13 @@ public class RegisterGiftTaskHandler implements TaskHandler {
     private static final String CLAIM_SOURCE_PREFIX = "REGISTER_GIFT:";
 
     private final UserMapper userMapper;
-    private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public RegisterGiftTaskHandler(UserMapper userMapper, UserGiftMapper userGiftMapper, GiftPackageService giftPackageService) {
+    public RegisterGiftTaskHandler(UserMapper userMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
         this.userMapper = userMapper;
-        this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();
     }
@@ -44,11 +43,9 @@ public class RegisterGiftTaskHandler implements TaskHandler {
     public TaskCenterItem buildTaskItem(Long userId, TaskConfig config) {
         boolean registered = userMapper.findById(userId) != null;
         String packageCode = readExtraText(config, "giftPackageCode", "");
-        String source = CLAIM_SOURCE_PREFIX + packageCode;
-        boolean claimed = userGiftMapper.findByUserId(userId).stream()
-                .map(UserGift::getSource)
-                .filter(StringUtils::hasText)
-                .anyMatch(source::equals);
+        String sourcePrefix = CLAIM_SOURCE_PREFIX + packageCode + ":";
+        boolean claimed = StringUtils.hasText(packageCode)
+                && bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, sourcePrefix) > 0;
 
         int status;
         if (claimed) status = 2;

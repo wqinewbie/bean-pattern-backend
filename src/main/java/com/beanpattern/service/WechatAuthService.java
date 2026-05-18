@@ -3,6 +3,7 @@ package com.beanpattern.service;
 import com.beanpattern.config.AppProperties;
 import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.WxLoginResponse;
+import com.beanpattern.security.JwtTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,15 +27,17 @@ public class WechatAuthService {
     private final AppProperties appProperties;
     private final UserService userService;
     private final InviteCodeService inviteCodeService;
+    private final JwtTokenService jwtTokenService;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private volatile String cachedAccessToken;
     private volatile long cachedAccessTokenExpireAt;
 
-    public WechatAuthService(AppProperties appProperties, UserService userService, InviteCodeService inviteCodeService) {
+    public WechatAuthService(AppProperties appProperties, UserService userService, InviteCodeService inviteCodeService, JwtTokenService jwtTokenService) {
         this.appProperties = appProperties;
         this.userService = userService;
         this.inviteCodeService = inviteCodeService;
+        this.jwtTokenService = jwtTokenService;
     }
 
     public WxLoginResponse wxLogin(String code, String inviteCode) {
@@ -49,9 +51,7 @@ public class WechatAuthService {
             String selfInviteCode = inviteCodeService.ensureInviteCode(user);
             inviteCodeService.bindInviteRelationIfNeeded(user.getId(), inviteCode);
 
-            String token = Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString((openId + ":" + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
+            String token = jwtTokenService.generateToken(openId);
             return new WxLoginResponse(token, openId, selfInviteCode);
         } catch (Exception e) {
             log.warn("[wxLogin][failed] msg={}, codeLen={}", e.getMessage(), code == null ? 0 : code.length());

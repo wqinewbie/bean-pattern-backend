@@ -65,13 +65,6 @@ public class PaymentController {
      */
     @GetMapping("/status/{orderNo}")
     public ApiResponse<Map<String, Object>> getPaymentStatus(@PathVariable String orderNo) {
-        try {
-            // TODO: 查询订单状态
-            // OrderEntity order = orderMapper.findByOrderNo(orderNo);
-            // return ApiResponse.ok(Map.of("status", order.getStatus()));
-            return ApiResponse.ok(Map.of("status", "PENDING"));
-        } catch (Exception e) {
-            return ApiResponse.fail("查询支付状态失败: " + e.getMessage());
-        }
+        return ApiResponse.ok(orderService.getPaymentStatus(orderNo));
     }
 }

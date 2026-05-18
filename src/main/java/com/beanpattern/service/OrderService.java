@@ -349,11 +349,6 @@ public class OrderService {
 
         LocalDateTime newExpireAt = baseTime.plusDays(vipPackage.getDurationDays());
 
-        // 检查是否超过最大叠加限制（365天）
-        if (newExpireAt.isAfter(now.plusDays(365))) {
-            newExpireAt = now.plusDays(365);
-        }
-
         // 更新用户会员到期时间
         userMapper.updateVip(order.getUserId(), 1, newExpireAt);
 
@@ -421,8 +416,7 @@ public class OrderService {
      * 发货：礼品订单
      */
     private void deliverGift(OrderEntity order) {
-        // 礼品订单的发货逻辑
-        // 根据礼品类型进行不同的处理
+        giftPackageService.grantPackageToUser(order.getUserId(), order.getPackageCode(), "ORDER:" + order.getOrderNo());
     }
 
     /**
@@ -430,18 +424,6 @@ public class OrderService {
      */
     @Transactional
     public void handlePaymentCallback(String orderNo, String transactionId) {
-        // 1. 检查订单状态
-        OrderEntity order = orderMapper.findByOrderNo(orderNo);
-        if (order == null) {
-            throw new IllegalArgumentException("订单不存在");
-        }
-
-        if ("PAID".equals(order.getStatus())) {
-            // 订单已支付，直接返回
-            return;
-        }
-
-        // 2. 使用分布式锁
         String lockKey = "order:pay:lock:" + orderNo;
         Boolean locked = redisTemplate.opsForValue()
             .setIfAbsent(lockKey, "1", 30, TimeUnit.SECONDS);
@@ -451,39 +433,45 @@ public class OrderService {
         }
 
         try {
-            // 3. 双重检查订单状态
-            order = orderMapper.findByOrderNo(orderNo);
-            if (!"PENDING".equals(order.getStatus())) {
+            OrderEntity order = orderMapper.findByOrderNo(orderNo);
+            if (order == null) {
+                throw new IllegalArgumentException("订单不存在");
+            }
+
+            if ("PAID".equals(order.getStatus())) {
                 return;
             }
 
-            // 4. 更新订单状态为已支付
             order.setStatus("PAID");
             order.setTransactionId(transactionId);
             order.setPaidAt(LocalDateTime.now());
             orderMapper.updatePaymentSuccess(order.getId(), transactionId);
 
-            // 5. 同步发货
             try {
                 deliverGoods(order);
                 inviteCodeService.markInviteeFirstPaid(order.getUserId());
 
-                // 6. 标记优惠券为已使用
                 if (order.getCouponId() != null) {
                     userGiftMapper.use(order.getCouponId());
                 }
 
                 orderMapper.updateDeliverStatus(order.getId(), "SUCCESS", null);
             } catch (Exception e) {
-                // 发货失败，标记状态
                 orderMapper.updateDeliverStatus(order.getId(), "FAILED", e.getMessage());
                 throw e;
             }
 
         } finally {
-            // 释放锁
             redisTemplate.delete(lockKey);
         }
+    }
+
+    public java.util.Map<String, Object> getPaymentStatus(String orderNo) {
+        OrderEntity order = orderMapper.findByOrderNo(orderNo);
+        if (order == null) {
+            return java.util.Map.of("status", "NOT_FOUND");
+        }
+        return java.util.Map.of("status", order.getStatus(), "orderNo", order.getOrderNo());
     }
 
     /**

@@ -66,7 +66,7 @@ public class ReviewTaskService {
     }
 
     @Transactional
-    public ReviewTaskSubmission review(Long submissionId, Integer status, String reviewRemark) {
+    public ReviewTaskSubmission review(Long submissionId, Integer status, Long reviewedBy, String reviewRemark) {
         ReviewTaskSubmission submission = reviewTaskSubmissionMapper.findById(submissionId);
         if (submission == null) {
             throw new IllegalArgumentException("提交记录不存在");
@@ -74,7 +74,7 @@ public class ReviewTaskService {
         if (status == null || (status != 1 && status != 2)) {
             throw new IllegalArgumentException("审核状态非法");
         }
-        reviewTaskSubmissionMapper.updateReviewStatus(submissionId, status, reviewRemark);
+        reviewTaskSubmissionMapper.updateReviewStatus(submissionId, status, reviewedBy, reviewRemark);
 
         if (status == 1) {
             TaskConfig config = taskConfigMapper.findByCode(submission.getTaskCode());

@@ -5,6 +5,8 @@ import com.beanpattern.entity.GiftType;
 import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.GiftItemMapper;
 import com.beanpattern.mapper.GiftTypeConfigMapper;
+import com.beanpattern.entity.BpUserGift;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftTypeMapper;
 import com.beanpattern.mapper.UserGiftMapper;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class GiftService {
     private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final GiftItemMapper giftItemMapper;
     private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final NotificationService notificationService;
 
@@ -30,12 +33,14 @@ public class GiftService {
                        GiftTypeConfigMapper giftTypeConfigMapper,
                        GiftItemMapper giftItemMapper,
                        UserGiftMapper userGiftMapper,
+                       BpUserGiftMapper bpUserGiftMapper,
                        GiftPackageService giftPackageService,
                        NotificationService notificationService) {
         this.giftTypeMapper = giftTypeMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.giftItemMapper = giftItemMapper;
         this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.notificationService = notificationService;
     }
@@ -69,19 +74,17 @@ public class GiftService {
     }
 
     /**
-     * 获取用户的礼品列表
+     * 获取用户的礼品列表（从 bp_user_gift 读取）
      */
-    public List<UserGift> getUserGifts(Long userId) {
-        List<UserGift> gifts = userGiftMapper.findByUserId(userId);
-        gifts.forEach(this::fillUsageHint);
-        return gifts;
+    public List<BpUserGift> getUserGifts(Long userId) {
+        return bpUserGiftMapper.findByUserId(userId);
     }
 
     /**
-     * 获取用户可用的礼品
+     * 获取用户可用的礼品（从 bp_user_gift 读取）
      */
-    public List<UserGift> getAvailableUserGifts(Long userId) {
-        return userGiftMapper.findAvailableByUserId(userId, 0, LocalDateTime.now());
+    public List<BpUserGift> getAvailableUserGifts(Long userId) {
+        return bpUserGiftMapper.findByUserIdAndStatus(userId, "UNUSED");
     }
 
     /**
@@ -115,19 +118,24 @@ public class GiftService {
 
     @Transactional
     public boolean useGift(Long userId, Long giftId, boolean redeemNow) {
+        // 先查新表 bp_user_gift
+        BpUserGift newGift = bpUserGiftMapper.findById(giftId);
+        if (newGift != null && newGift.getUserId().equals(userId) && "UNUSED".equals(newGift.getStatus())) {
+            if (newGift.getExpireAt() != null && newGift.getExpireAt().isBefore(LocalDateTime.now())) return false;
+            if (redeemNow && "GIFT_PACKAGE".equals(newGift.getGiftType())) {
+                GiftPackage gp = giftPackageService.getByCode("UNKNOWN");
+                return false;
+            }
+            bpUserGiftMapper.use(giftId, null);
+            // 同步更新旧表
+            userGiftMapper.use(giftId);
+            return true;
+        }
+
+        // 回退到旧表 user_gift
         UserGift gift = userGiftMapper.findById(giftId);
-        if (gift == null) {
-            return false;
-        }
-        if (!gift.getUserId().equals(userId)) {
-            return false;
-        }
-        if (gift.getStatus() != 0) {
-            return false;
-        }
-        if (gift.getExpireAt() != null && gift.getExpireAt().isBefore(LocalDateTime.now())) {
-            return false;
-        }
+        if (gift == null || !gift.getUserId().equals(userId) || gift.getStatus() != 0) return false;
+        if (gift.getExpireAt() != null && gift.getExpireAt().isBefore(LocalDateTime.now())) return false;
 
         if (redeemNow && "GIFT_PACKAGE".equals(gift.getGiftCode())) {
             giftPackageService.redeemPackageGift(userId, giftId);
@@ -153,23 +161,7 @@ public class GiftService {
                               Long taskId, Long shareRecordId, Long orderId) {
         GiftItem item = giftItemMapper.findById(giftItemId);
         if (item == null) {
-            UserGift gift = new UserGift();
-            gift.setUserId(userId);
-            gift.setGiftItemId(giftItemId);
-            gift.setSource(source);
-            gift.setTaskId(taskId);
-            gift.setShareRecordId(shareRecordId);
-            gift.setOrderId(orderId);
-            gift.setStatus(0);
-            userGiftMapper.insert(gift);
-
-            try {
-                notificationService.createGiftNotification(userId, "礼品", "您获得了新礼品，请在我的礼品中查看", gift.getId());
-            } catch (Exception ignored) {
-                // 通知发送失败不影响主流程
-            }
-
-            return gift;
+            throw new IllegalArgumentException("礼品项不存在: " + giftItemId);
         }
 
         if (item.getTotalQuantity() > 0) {
@@ -199,6 +191,20 @@ public class GiftService {
 
         gift.setStatus(0);
         userGiftMapper.insert(gift);
+
+        // 同步写入新表 bp_user_gift
+        BpUserGift newGift = BpUserGift.builder()
+                .userId(userId)
+                .giftId(giftItemId)
+                .giftType(getGiftCategory(item.getGiftTypeId()))
+                .giftName(item.getName())
+                .giftValue(item.getValue())
+                .source(source)
+                .sourceId(taskId != null ? taskId : shareRecordId != null ? shareRecordId : orderId)
+                .status("UNUSED")
+                .expireAt(gift.getExpireAt())
+                .build();
+        bpUserGiftMapper.insert(newGift);
 
         // 发送礼品到账通知
         try {

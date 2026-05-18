@@ -14,6 +14,7 @@ public class CreatorPatternEntity {
     private Integer priceCoins;
     private Integer downloadCount;
     private Integer likeCount;
+    private Integer incomeCoins;
     private Integer status;
     private String rejectReason;
     private String category;
@@ -43,6 +44,8 @@ public class CreatorPatternEntity {
     public void setDownloadCount(Integer downloadCount) { this.downloadCount = downloadCount; }
     public Integer getLikeCount() { return likeCount; }
     public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+    public Integer getIncomeCoins() { return incomeCoins; }
+    public void setIncomeCoins(Integer incomeCoins) { this.incomeCoins = incomeCoins; }
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
     public String getRejectReason() { return rejectReason; }

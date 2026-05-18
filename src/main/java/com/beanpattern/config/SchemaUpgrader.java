@@ -174,8 +174,8 @@ public class SchemaUpgrader implements ApplicationRunner {
     }
 
     private void createGiftPackageTables(String db) {
-        createTableIfNotExists(db, "gift_type",
-                "CREATE TABLE gift_type (" +
+        createTableIfNotExists(db, "bp_gift_type",
+                "CREATE TABLE bp_gift_type (" +
                         "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
                         "code VARCHAR(64) NOT NULL UNIQUE COMMENT '礼品类型编码'," +
                         "name VARCHAR(128) NOT NULL COMMENT '礼品类型名称'," +
@@ -187,7 +187,7 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                         "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='礼品类型表'");
-        addColumn(db, "gift_type", "value_type", "ALTER TABLE `gift_type` ADD COLUMN `value_type` VARCHAR(32) NOT NULL DEFAULT 'number' COMMENT '值类型：number/discount/days/times/coins' AFTER `status`");
+        addColumn(db, "bp_gift_type", "value_type", "ALTER TABLE `gift_type` ADD COLUMN `value_type` VARCHAR(32) NOT NULL DEFAULT 'number' COMMENT '值类型：number/discount/days/times/coins' AFTER `status`");
         addColumn(db, "gift_type", "target_product_type", "ALTER TABLE `gift_type` ADD COLUMN `target_product_type` VARCHAR(32) NULL COMMENT '适用商品：vip/card/all' AFTER `value_type`");
         seedGiftTypes();
 
@@ -207,8 +207,8 @@ public class SchemaUpgrader implements ApplicationRunner {
     }
 
     private void createReviewTaskSubmissionTable(String db) {
-        createTableIfNotExists(db, "review_task_submission",
-                "CREATE TABLE review_task_submission (" +
+        createTableIfNotExists(db, "bp_review_task_submission",
+                "CREATE TABLE bp_review_task_submission (" +
                         "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
                         "user_id BIGINT NOT NULL COMMENT '用户ID'," +
                         "task_id BIGINT NOT NULL COMMENT '任务ID'," +
@@ -227,8 +227,8 @@ public class SchemaUpgrader implements ApplicationRunner {
     }
 
     private void createUserInviteRelationTable(String db) {
-        createTableIfNotExists(db, "user_invite_relation",
-                "CREATE TABLE user_invite_relation (" +
+        createTableIfNotExists(db, "bp_user_invite_relation",
+                "CREATE TABLE bp_user_invite_relation (" +
                         "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
                         "inviter_user_id BIGINT NOT NULL COMMENT '邀请人用户ID'," +
                         "invitee_user_id BIGINT NOT NULL COMMENT '被邀请人用户ID'," +
@@ -348,7 +348,7 @@ public class SchemaUpgrader implements ApplicationRunner {
 
     private void seedGiftTypes() {
         try {
-            jdbc.execute("INSERT IGNORE INTO gift_type(code, name, gift_category, description, sort_order, status, value_type, target_product_type) VALUES " +
+            jdbc.execute("INSERT IGNORE INTO bp_gift_type(code, name, gift_category, description, sort_order, status, value_type, target_product_type) VALUES " +
                     "('AI_QUOTA', 'AI次数', 'QUOTA', '发放AI生成次数', 1, 1, 'times', 'all')," +
                     "('VIP_DAYS', '会员天数', 'MEMBERSHIP', '发放会员天数', 2, 1, 'days', 'all')," +
                     "('VIP_COUPON', '购会员卡优惠券', 'COUPON', '购买会员卡时可使用的折扣券', 4, 1, 'discount', 'vip')," +
