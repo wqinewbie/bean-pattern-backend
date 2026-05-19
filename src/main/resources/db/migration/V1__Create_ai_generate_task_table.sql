@@ -1,5 +1,5 @@
 -- AI生成任务表
-CREATE TABLE IF NOT EXISTS ai_generate_task (
+CREATE TABLE IF NOT EXISTS bp_ai_generate_task (
   id              BIGINT PRIMARY KEY AUTO_INCREMENT,
   task_id         VARCHAR(64) NOT NULL UNIQUE COMMENT '任务ID',
   user_id         BIGINT NOT NULL COMMENT '用户ID',

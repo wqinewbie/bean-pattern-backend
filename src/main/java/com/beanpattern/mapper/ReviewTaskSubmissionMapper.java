@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.ReviewTaskSubmission;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -44,4 +45,7 @@ public interface ReviewTaskSubmissionMapper {
                            @Param("status") Integer status,
                            @Param("reviewedBy") Long reviewedBy,
                            @Param("reviewRemark") String reviewRemark);
+
+    @Delete("DELETE FROM bp_review_task_submission WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

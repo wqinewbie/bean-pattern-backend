@@ -12,11 +12,13 @@ public class AiGenerateTask {
     private Long userId;
 
     // 请求参数
+    private String imageUrl;
     private String prompt;
     private String style;
-    private Integer size;
+    private String sizeMode;
     private String brand;
     private Integer colorCount;
+    private Boolean mirror;
 
     // 任务状态
     private String status;  // PENDING, PROCESSING, SUCCESS, FAILED
@@ -55,6 +57,14 @@ public class AiGenerateTask {
         this.userId = userId;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     public String getPrompt() {
         return prompt;
     }
@@ -71,12 +81,12 @@ public class AiGenerateTask {
         this.style = style;
     }
 
-    public Integer getSize() {
-        return size;
+    public String getSizeMode() {
+        return sizeMode;
     }
 
-    public void setSize(Integer size) {
-        this.size = size;
+    public void setSizeMode(String sizeMode) {
+        this.sizeMode = sizeMode;
     }
 
     public String getBrand() {
@@ -93,6 +103,14 @@ public class AiGenerateTask {
 
     public void setColorCount(Integer colorCount) {
         this.colorCount = colorCount;
+    }
+
+    public Boolean getMirror() {
+        return mirror;
+    }
+
+    public void setMirror(Boolean mirror) {
+        this.mirror = mirror;
     }
 
     public String getStatus() {

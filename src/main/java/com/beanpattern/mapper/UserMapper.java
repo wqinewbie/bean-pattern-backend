@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.UserEntity;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -93,6 +94,9 @@ public interface UserMapper {
 
     @Update("UPDATE bp_user SET status = #{status}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateStatus(@Param("id") Long id, @Param("status") int status);
+
+    @Delete("DELETE FROM bp_user WHERE id = #{id}")
+    int deleteById(@Param("id") Long id);
 
     @Update("UPDATE bp_user SET vip_level = 1, " +
             "vip_expire_at = DATE_ADD(IF(vip_expire_at IS NULL OR vip_expire_at < NOW(), NOW(), vip_expire_at), INTERVAL #{days} DAY), " +

@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.UserInviteRelation;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -41,4 +42,7 @@ public interface UserInviteRelationMapper {
     int updateStatusAndFirstPaidAt(@Param("id") Long id,
                                    @Param("status") Integer status,
                                    @Param("firstPaidAt") LocalDateTime firstPaidAt);
+
+    @Delete("DELETE FROM bp_user_invite_relation WHERE inviter_user_id = #{userId} OR invitee_user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

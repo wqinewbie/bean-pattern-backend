@@ -71,4 +71,7 @@ public interface BpHistoryMapper {
 
     @Select("SELECT COUNT(*) FROM bp_history WHERE (expires_at IS NULL OR expires_at > NOW())")
     int countAll();
+
+    @Delete("DELETE FROM bp_history WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

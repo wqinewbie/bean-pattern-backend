@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.ShareRecord;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -41,4 +42,7 @@ public interface ShareRecordMapper {
 
     @Update("UPDATE bp_share_record SET reward_status = #{rewardStatus}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateRewardStatus(@Param("id") Long id, @Param("rewardStatus") Integer rewardStatus);
+
+    @Delete("DELETE FROM bp_share_record WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

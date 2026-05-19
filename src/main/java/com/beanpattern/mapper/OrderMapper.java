@@ -88,4 +88,7 @@ public interface OrderMapper {
     int countUserPurchase(@Param("userId") Long userId,
                           @Param("productType") String productType,
                           @Param("packageCode") String packageCode);
+
+    @Delete("DELETE FROM bp_order WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

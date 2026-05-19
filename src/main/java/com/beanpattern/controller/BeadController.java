@@ -1,7 +1,6 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.model.ApiResponse;
-import com.beanpattern.service.AiImageService;
 import com.beanpattern.service.BeadColorService;
 import com.beanpattern.mapper.BeadAdminMapper;
 import org.springframework.web.bind.annotation.*;
@@ -16,14 +15,11 @@ import java.util.Map;
 @RequestMapping("/api/bead")
 public class BeadController {
 
-    private final AiImageService aiImageService;
     private final BeadColorService beadColorService;
     private final BeadAdminMapper beadAdminMapper;
 
-    public BeadController(AiImageService aiImageService,
-                          BeadColorService beadColorService,
+    public BeadController(BeadColorService beadColorService,
                           BeadAdminMapper beadAdminMapper) {
-        this.aiImageService = aiImageService;
         this.beadColorService = beadColorService;
         this.beadAdminMapper = beadAdminMapper;
     }
@@ -204,27 +200,4 @@ public class BeadController {
         return ApiResponse.ok(result);
     }
 
-    @PostMapping("/pattern-ai-text")
-    public ApiResponse<Map<String, Object>> patternAiText(@RequestBody Map<String, Object> body) {
-        String prompt = (String) body.getOrDefault("prompt", "");
-        String style = (String) body.getOrDefault("style", "standard");
-        int size = body.get("size") instanceof Number n ? n.intValue() : 64;
-        if (prompt.isBlank()) {
-            return ApiResponse.fail("prompt is required");
-        }
-
-        try {
-            String resultUrl = aiImageService.generateFromText(prompt, style, size);
-            if (resultUrl.isBlank()) {
-                return ApiResponse.fail("AI service is not configured");
-            }
-            return ApiResponse.ok(Map.of(
-                    "resultUrl", resultUrl,
-                    "patternUrl", "",
-                    "colorStats", ""
-            ));
-        } catch (Exception e) {
-            return ApiResponse.fail("AI generation failed: " + e.getMessage());
-        }
-    }
 }

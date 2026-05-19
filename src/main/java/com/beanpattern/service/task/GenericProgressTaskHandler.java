@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
+
 /**
  * 兼容现有 bp_task_config + user_task_progress 的通用事件型任务。
  */
@@ -37,7 +39,7 @@ public class GenericProgressTaskHandler implements TaskHandler {
 
     @Override
     public TaskCenterItem buildTaskItem(Long userId, TaskConfig config) {
-        UserTaskProgress progress = findProgress(userId, config.getTaskCode());
+        UserTaskProgress progress = findProgress(userId, config);
         int targetCount = progress != null && progress.getTargetCount() != null
                 ? progress.getTargetCount()
                 : readExtraInt(config, "targetCount", 1);
@@ -73,8 +75,23 @@ public class GenericProgressTaskHandler implements TaskHandler {
                 .build();
     }
 
-    private UserTaskProgress findProgress(Long userId, String taskCode) {
-        return userTaskProgressMapper.findByUserIdAndTaskCode(userId, taskCode);
+    private UserTaskProgress findProgress(Long userId, TaskConfig config) {
+        return userTaskProgressMapper.findByUserAndTaskCodeAndPeriod(
+                userId,
+                config.getTaskCode(),
+                getPeriodStart(config.getTaskType())
+        );
+    }
+
+    private LocalDate getPeriodStart(String taskType) {
+        LocalDate now = LocalDate.now();
+        if (taskType == null) return now;
+        return switch (taskType) {
+            case "DAILY" -> now;
+            case "WEEKLY" -> now.minusDays(now.getDayOfWeek().getValue() - 1L);
+            case "ONCE", "SHARE" -> null;
+            default -> now;
+        };
     }
 
     private int readExtraInt(TaskConfig config, String field, int defaultValue) {

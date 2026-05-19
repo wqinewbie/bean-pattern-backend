@@ -27,11 +27,13 @@ public class AiTaskService {
         AiGenerateTask task = new AiGenerateTask();
         task.setTaskId(taskId);
         task.setUserId(userId);
+        task.setImageUrl(request.getImageUrl());
         task.setPrompt(request.getPrompt());
         task.setStyle(request.getStyle());
-        task.setSize(request.getSize());
+        task.setSizeMode(request.getSizeMode());
         task.setBrand(request.getBrand());
         task.setColorCount(request.getColorCount());
+        task.setMirror(request.getMirror() != null ? request.getMirror() : false);
         task.setStatus("PENDING");
         task.setCreatedAt(new Date());
         task.setUpdatedAt(new Date());
@@ -55,6 +57,12 @@ public class AiTaskService {
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", task.getTaskId());
         data.put("status", task.getStatus());
+
+        // 返回后期处理参数，前端可直接用
+        data.put("sizeMode", task.getSizeMode());
+        data.put("brand", task.getBrand());
+        data.put("colorCount", task.getColorCount());
+        data.put("mirror", task.getMirror());
 
         if ("SUCCESS".equals(task.getStatus())) {
             data.put("aiImageUrl", task.getAiImageUrl());

@@ -100,4 +100,7 @@ public interface BpBoxMapper {
 
     @Select("SELECT COUNT(*) FROM bp_box WHERE status!=3")
     int countAll();
+
+    @Delete("DELETE FROM bp_box WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

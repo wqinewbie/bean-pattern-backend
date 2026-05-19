@@ -101,19 +101,6 @@ CREATE TABLE IF NOT EXISTS `bp_order` (
   KEY `idx_paid_at` (`paid_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
 
-CREATE TABLE IF NOT EXISTS `bp_coin_log` (
-  `id`          BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `user_id`     BIGINT NOT NULL,
-  `delta`       INT NOT NULL COMMENT '变化量（正收入负消耗）',
-  `balance`     INT NOT NULL COMMENT '变化后余额快照',
-  `biz_type`    VARCHAR(32) NOT NULL COMMENT 'RECHARGE/AI_USE/CREATOR_INCOME/WITHDRAW/ADMIN',
-  `biz_id`      VARCHAR(64) NULL,
-  `remark`      VARCHAR(256) NULL,
-  `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_time` (`user_id`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='金币流水表';
-
 CREATE TABLE IF NOT EXISTS `bp_creator_pattern` (
   `id`             BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `user_id`        BIGINT NOT NULL,

@@ -83,4 +83,7 @@ public interface BpDraftMapper {
 
     @Select("SELECT COUNT(*) FROM bp_draft WHERE (expires_at IS NULL OR expires_at > NOW())")
     int countAll();
+
+    @Delete("DELETE FROM bp_draft WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

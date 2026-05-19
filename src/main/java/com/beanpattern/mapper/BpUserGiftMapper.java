@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.BpUserGift;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -52,4 +53,7 @@ public interface BpUserGiftMapper {
     @Update("UPDATE bp_user_gift SET status = 'EXPIRED', updated_at = NOW() " +
             "WHERE status = 'UNUSED' AND expire_at IS NOT NULL AND expire_at < NOW()")
     int expireAll();
+
+    @Delete("DELETE FROM bp_user_gift WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

@@ -62,4 +62,7 @@ public interface UserActivityLogMapper {
             "FROM bp_user_activity_log " +
             "WHERE activity_id = #{activityId} ORDER BY created_at DESC LIMIT 200")
     List<UserActivityLog> findByActivityId(@Param("activityId") Long activityId);
+
+    @Delete("DELETE FROM bp_user_activity_log WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

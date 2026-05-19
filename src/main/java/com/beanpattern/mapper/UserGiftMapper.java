@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.UserGift;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -54,4 +55,7 @@ public interface UserGiftMapper {
             "created_at AS createdAt, updated_at AS updatedAt " +
             "FROM user_gift WHERE id = #{id}")
     UserGift findById(@Param("id") Long id);
+
+    @Delete("DELETE FROM user_gift WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

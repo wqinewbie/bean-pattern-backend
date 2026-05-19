@@ -5,6 +5,7 @@ import com.beanpattern.entity.AdminEntity;
 import com.beanpattern.mapper.AdminMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.service.UserDataService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +25,14 @@ public class AdminUserController {
     private final AdminMapper adminMapper;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final UserDataService userDataService;
 
-    public AdminUserController(AdminMapper adminMapper, UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public AdminUserController(AdminMapper adminMapper, UserMapper userMapper, PasswordEncoder passwordEncoder,
+                               UserDataService userDataService) {
         this.adminMapper = adminMapper;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.userDataService = userDataService;
     }
 
     // ─── 用户管理 ───
@@ -72,6 +76,14 @@ public class AdminUserController {
         var user = userMapper.findById(id);
         if (user == null) return ApiResponse.fail("用户不存在");
         userMapper.updateStatus(id, user.getStatus() == 1 ? 0 : 1);
+        return ApiResponse.ok(null);
+    }
+
+    @DeleteMapping("/users/{id}/clear-data")
+    public ApiResponse<Void> clearUserData(@PathVariable Long id) {
+        var user = userMapper.findById(id);
+        if (user == null) return ApiResponse.fail("用户不存在");
+        userDataService.clearUserData(id);
         return ApiResponse.ok(null);
     }
 

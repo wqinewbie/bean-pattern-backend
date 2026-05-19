@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * 用户服务：负责用户创建、查询、资料更新。
  */
@@ -14,13 +16,23 @@ public class UserService {
 
     public static final String DEFAULT_NICK_NAME = "魔法师小豆";
     public static final String DEFAULT_AVATAR_URL = "https://dummyimage.com/200x200/ffe9c2/8b5e3c.png&text=%E8%B1%86";
-    
+
     // 默认配额（非VIP用户）
     public static final int DEFAULT_STORAGE_QUOTA = 10;
     public static final int DEFAULT_DRAFT_QUOTA = 5;
     public static final int DEFAULT_AI_QUOTA = 0;
 
+    private static final long USER_CACHE_TTL_MS = 10_000;
+
+    private final ConcurrentHashMap<String, CachedUser> userCache = new ConcurrentHashMap<>();
     private final UserMapper userMapper;
+
+    private static class CachedUser {
+        final UserEntity user;
+        final long cachedAt;
+        CachedUser(UserEntity user) { this.user = user; this.cachedAt = System.currentTimeMillis(); }
+        boolean isExpired() { return System.currentTimeMillis() - cachedAt > USER_CACHE_TTL_MS; }
+    }
 
     public UserService(UserMapper userMapper) {
         this.userMapper = userMapper;
@@ -35,6 +47,12 @@ public class UserService {
         if (!StringUtils.hasText(openId)) {
             throw new IllegalArgumentException("openId is empty");
         }
+
+        CachedUser cached = userCache.get(openId);
+        if (cached != null && !cached.isExpired()) {
+            return cached.user;
+        }
+
         UserEntity existing = userMapper.findByOpenId(openId);
         if (existing != null) {
             userMapper.touch(existing.getId());
@@ -43,6 +61,7 @@ public class UserService {
                 String avatar = StringUtils.hasText(existing.getAvatarUrl()) ? existing.getAvatarUrl() : DEFAULT_AVATAR_URL;
                 userMapper.updateProfile(existing.getId(), nick, avatar);
             }
+            userCache.put(openId, new CachedUser(existing));
             return existing;
         }
         UserEntity user = new UserEntity();
@@ -55,6 +74,7 @@ public class UserService {
         user.setCurrentDraft(0);
         user.setAiQuota(DEFAULT_AI_QUOTA);
         userMapper.insert(user);
+        userCache.put(openId, new CachedUser(user));
         return user;
     }
 
@@ -64,9 +84,9 @@ public class UserService {
     @Transactional
     public void updateProfile(Long id, String nickName, String avatarUrl) {
         if (id == null) return;
-        // 只在有值时更新，防止覆盖为空
         if (!StringUtils.hasText(nickName)) return;
         userMapper.updateProfile(id, nickName, avatarUrl);
+        evictUserFromCache(id);
     }
 
     /**
@@ -76,6 +96,7 @@ public class UserService {
     public void bindPhone(Long id, String phone) {
         if (id == null || !StringUtils.hasText(phone)) return;
         userMapper.updatePhone(id, phone);
+        evictUserFromCache(id);
     }
     
     /**
@@ -115,7 +136,9 @@ public class UserService {
      */
     @Transactional
     public boolean useAiQuota(Long userId) {
-        return userMapper.consumeOneAiQuota(userId) > 0;
+        boolean result = userMapper.consumeOneAiQuota(userId) > 0;
+        evictUserFromCache(userId);
+        return result;
     }
 
     /**
@@ -125,14 +148,16 @@ public class UserService {
     public void addAiQuota(Long userId, int delta) {
         if (userId == null || delta == 0) return;
         userMapper.addAiQuota(userId, delta);
+        evictUserFromCache(userId);
     }
-    
+
     /**
      * 增加存储使用量
      */
     public void incrementStorageUsage(Long userId) {
         if (userId == null) return;
         userMapper.incrementCurrentStorage(userId);
+        evictUserFromCache(userId);
     }
 
     /**
@@ -141,6 +166,7 @@ public class UserService {
     public void decrementStorageUsage(Long userId) {
         if (userId == null) return;
         userMapper.decrementCurrentStorage(userId);
+        evictUserFromCache(userId);
     }
 
     /**
@@ -149,6 +175,7 @@ public class UserService {
     public void incrementDraftUsage(Long userId) {
         if (userId == null) return;
         userMapper.incrementCurrentDraft(userId);
+        evictUserFromCache(userId);
     }
 
     /**
@@ -156,13 +183,19 @@ public class UserService {
      */
     public void decrementDraftUsage(Long userId) {
         if (userId == null) return;
-        userMapper.decrementCurrentDraft(userId);
+        userMapper.decrementCurrentStorage(userId);
+        evictUserFromCache(userId);
     }
-    
+
     /**
      * 获取用户完整信息
      */
     public UserEntity getUserById(Long userId) {
         return userMapper.findById(userId);
+    }
+
+    private void evictUserFromCache(Long userId) {
+        if (userId == null) return;
+        userCache.values().removeIf(entry -> entry.user.getId() != null && entry.user.getId().equals(userId));
     }
 }

@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.ShareVisitor;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -35,4 +36,7 @@ public interface ShareVisitorMapper {
             "VALUES(#{shareRecordId}, #{shareUserId}, #{visitorOpenid}, #{isNewUser}, #{visitAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ShareVisitor visitor);
+
+    @Delete("DELETE FROM bp_share_visitor WHERE share_user_id = #{shareUserId}")
+    int deleteByShareUserId(@Param("shareUserId") Long shareUserId);
 }

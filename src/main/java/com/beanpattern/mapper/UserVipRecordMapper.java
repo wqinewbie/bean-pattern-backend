@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.UserVipRecord;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -53,4 +54,7 @@ public interface UserVipRecordMapper {
 
     @Update("UPDATE bp_user_vip_record SET ai_reset_at = #{resetAt}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     int updateAiResetAt(@Param("id") Long id, @Param("resetAt") LocalDateTime resetAt);
+
+    @Delete("DELETE FROM bp_user_vip_record WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

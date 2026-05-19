@@ -102,4 +102,7 @@ public interface UserCheckinMapper {
 
     @Select("SELECT COUNT(1) FROM bp_user_checkin WHERE user_id = #{userId}")
     int countByUserId(@Param("userId") Long userId);
+
+    @Delete("DELETE FROM bp_user_checkin WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

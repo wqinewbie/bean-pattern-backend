@@ -51,4 +51,7 @@ public interface UserCheckinStatusMapper {
             "updated_at = NOW() " +
             "WHERE user_id = #{userId}")
     int resetContinuous(@Param("userId") Long userId);
+
+    @Delete("DELETE FROM bp_user_checkin_status WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

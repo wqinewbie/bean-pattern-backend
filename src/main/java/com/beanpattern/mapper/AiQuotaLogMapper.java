@@ -37,4 +37,7 @@ public interface AiQuotaLogMapper {
                    @Param("changeType") String changeType,
                    @Param("bizType") String bizType,
                    @Param("bizId") String bizId);
+
+    @Delete("DELETE FROM bp_ai_quota_log WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

@@ -33,17 +33,12 @@ public class AiTaskController {
 
     /**
      * 创建AI生成任务
-     *
-     * @param request 请求参数
-     * @param httpRequest HTTP请求
-     * @return 任务信息
      */
     @PostMapping("/generate")
     public ApiResponse<Map<String, Object>> generate(
             @RequestBody AiGenerateRequest request,
             HttpServletRequest httpRequest) {
 
-        // 从 X-Session-Id 获取真实用户
         UserEntity user = sessionHelper.requireUser(httpRequest);
 
         boolean success = userService.useAiQuota(user.getId());
@@ -53,7 +48,6 @@ public class AiTaskController {
 
         String taskId;
         try {
-            // 创建Mock任务
             taskId = aiTaskService.createMockTask(request, user.getId());
 
             boolean logged = aiQuotaLogService.tryLogChange(
@@ -89,9 +83,6 @@ public class AiTaskController {
 
     /**
      * 查询任务状态
-     *
-     * @param taskId 任务ID
-     * @return 任务状态信息
      */
     @GetMapping("/task/{taskId}")
     public ApiResponse<Map<String, Object>> getTask(@PathVariable String taskId) {
@@ -99,10 +90,7 @@ public class AiTaskController {
     }
 
     /**
-     * AI服务回调接口（正式版使用）
-     *
-     * @param body 回调数据
-     * @return 处理结果
+     * AI服务回调接口
      */
     @PostMapping("/task/callback")
     public ApiResponse<Void> taskCallback(@RequestBody Map<String, Object> body) {
@@ -120,13 +108,22 @@ public class AiTaskController {
      * AI生成请求参数
      */
     public static class AiGenerateRequest {
+        private String imageUrl;
         private String prompt;
         private String style;
-        private Integer size;
+        private String sizeMode;
         private String brand;
         private Integer colorCount;
+        private Boolean mirror;
 
-        // Getters and Setters
+        public String getImageUrl() {
+            return imageUrl;
+        }
+
+        public void setImageUrl(String imageUrl) {
+            this.imageUrl = imageUrl;
+        }
+
         public String getPrompt() {
             return prompt;
         }
@@ -143,12 +140,12 @@ public class AiTaskController {
             this.style = style;
         }
 
-        public Integer getSize() {
-            return size;
+        public String getSizeMode() {
+            return sizeMode;
         }
 
-        public void setSize(Integer size) {
-            this.size = size;
+        public void setSizeMode(String sizeMode) {
+            this.sizeMode = sizeMode;
         }
 
         public String getBrand() {
@@ -165,6 +162,14 @@ public class AiTaskController {
 
         public void setColorCount(Integer colorCount) {
             this.colorCount = colorCount;
+        }
+
+        public Boolean getMirror() {
+            return mirror;
+        }
+
+        public void setMirror(Boolean mirror) {
+            this.mirror = mirror;
         }
     }
 }

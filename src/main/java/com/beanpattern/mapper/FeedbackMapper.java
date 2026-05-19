@@ -19,4 +19,7 @@ public interface FeedbackMapper {
 
     @Update("UPDATE bp_feedback SET status=#{status} WHERE id=#{id}")
     int updateStatus(@Param("id") Long id, @Param("status") int status);
+
+    @Delete("DELETE FROM bp_feedback WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

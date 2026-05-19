@@ -1,6 +1,7 @@
 package com.beanpattern.mapper;
 
 import com.beanpattern.entity.ShareTrack;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
@@ -40,4 +41,7 @@ public interface ShareTrackMapper {
 
     @Update("UPDATE bp_share_track SET is_valid = #{isValid} WHERE id = #{id}")
     int updateValid(@Param("id") Long id, @Param("isValid") Boolean isValid);
+
+    @Delete("DELETE FROM bp_share_track WHERE sharer_id = #{userId} OR visitor_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

@@ -49,4 +49,7 @@ public interface CreatorPatternMapper {
 
     @Update("UPDATE bp_creator_pattern SET status=#{status}, reject_reason=#{rejectReason}, updated_at=NOW() WHERE id=#{id}")
     int updateStatus(@Param("id") Long id, @Param("status") int status, @Param("rejectReason") String rejectReason);
+
+    @Delete("DELETE FROM bp_creator_pattern WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }

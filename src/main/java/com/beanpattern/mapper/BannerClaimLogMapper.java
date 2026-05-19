@@ -42,4 +42,7 @@ public interface BannerClaimLogMapper {
             "gift_type AS giftType, gift_value AS giftValue, claim_date AS claimDate, created_at AS createdAt " +
             "FROM bp_banner_claim_log WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT 200")
     List<BannerClaimLog> findByUserId(@Param("userId") Long userId);
+
+    @Delete("DELETE FROM bp_banner_claim_log WHERE user_id = #{userId}")
+    int deleteByUserId(@Param("userId") Long userId);
 }
