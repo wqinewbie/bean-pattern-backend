@@ -32,6 +32,16 @@ public interface BpUserGiftMapper {
     @Select("SELECT COUNT(*) FROM bp_user_gift WHERE user_id = #{userId} AND source LIKE CONCAT(#{sourcePrefix}, '%')")
     int countByUserIdAndSourcePrefix(@Param("userId") Long userId, @Param("sourcePrefix") String sourcePrefix);
 
+    @Select("SELECT source FROM bp_user_gift WHERE user_id = #{userId} AND source LIKE CONCAT(#{sourcePrefix}, '%') ORDER BY created_at DESC LIMIT 1")
+    String findLastSourceByPrefix(@Param("userId") Long userId, @Param("sourcePrefix") String sourcePrefix);
+
+    @Select("SELECT COUNT(*) FROM bp_user_gift WHERE source = #{source}")
+    int countBySource(@Param("source") String source);
+
+    @Select("SELECT COALESCE(SUM(al.reward_value), 0) FROM bp_user_activity_log al " +
+            "WHERE al.action_type = 'CLAIM' AND al.activity_code LIKE 'checkin%'")
+    int sumCheckinRewardValue();
+
     @Select("SELECT " + BASE_COLUMNS + " FROM bp_user_gift WHERE user_id = #{userId} AND status = 'UNUSED' " +
             "AND (expire_at IS NULL OR expire_at > NOW()) ORDER BY created_at DESC")
     List<BpUserGift> findAvailableByUserId(@Param("userId") Long userId);

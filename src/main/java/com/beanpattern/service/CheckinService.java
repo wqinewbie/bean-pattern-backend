@@ -4,13 +4,10 @@ import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.RewardItem;
 import com.beanpattern.entity.UserCheckin;
-import com.beanpattern.entity.UserCheckinClaim;
-import com.beanpattern.entity.UserCheckinStatus;
 import com.beanpattern.entity.UserGift;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.CheckinConfigMapper;
-import com.beanpattern.mapper.UserCheckinClaimMapper;
 import com.beanpattern.mapper.UserCheckinMapper;
-import com.beanpattern.mapper.UserCheckinStatusMapper;
 import com.beanpattern.service.task.GiftPackageRewardHelper;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -28,23 +25,21 @@ import java.util.Map;
 public class CheckinService {
 
     private final UserCheckinMapper checkinMapper;
-    private final UserCheckinStatusMapper statusMapper;
-    private final UserCheckinClaimMapper claimMapper;
     private final CheckinConfigMapper checkinConfigMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
 
     private static final int DEFAULT_CONTINUOUS_DAYS_REQUIRED = 3;
     private static final boolean DEFAULT_IS_ACTIVE = true;
+    private static final String CHECKIN_SOURCE = "CHECKIN";
 
     public CheckinService(UserCheckinMapper checkinMapper,
-                         UserCheckinStatusMapper statusMapper,
-                         UserCheckinClaimMapper claimMapper,
                          CheckinConfigMapper checkinConfigMapper,
+                         BpUserGiftMapper bpUserGiftMapper,
                          GiftPackageService giftPackageService) {
         this.checkinMapper = checkinMapper;
-        this.statusMapper = statusMapper;
-        this.claimMapper = claimMapper;
         this.checkinConfigMapper = checkinConfigMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
     }
 
@@ -108,13 +103,16 @@ public class CheckinService {
         LocalDate startDate = today.minusDays(6);
         List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, startDate);
 
-        // 动态计算 totalDays 和 continuousDays（不依赖 bp_user_checkin_status）
         int totalDays = checkinMapper.countByUserId(userId);
-        UserCheckinClaim lastClaim = claimMapper.findLastByUser(userId);
-        LocalDate lastClaimDate = lastClaim != null ? lastClaim.getClaimDate() : null;
+
+        // 从 bp_user_gift 查询最近一次签到领取（source = CHECKIN:yyyy-MM-dd）
+        String lastClaimSource = bpUserGiftMapper.findLastSourceByPrefix(userId, CHECKIN_SOURCE + ":");
+        LocalDate lastClaimDate = extractDateFromCheckinSource(lastClaimSource);
         int continuousDays = calcContinuousDays(recentCheckins, today, lastClaimDate);
         boolean checkedInToday = recentCheckins.stream().anyMatch(c -> today.equals(c.getCheckinDate()));
-        boolean claimedToday = lastClaim != null && today.equals(lastClaim.getClaimDate());
+
+        String todaySource = CHECKIN_SOURCE + ":" + today;
+        boolean claimedToday = bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, todaySource) > 0;
         boolean canClaim = !claimedToday && continuousDays >= config.getContinuousDaysRequired() && config.getIsActive();
 
         // 构建签到日历（最近7天）
@@ -149,6 +147,21 @@ public class CheckinService {
         result.put("isActive", giftPackage != null && config.getIsActive());
 
         return result;
+    }
+
+    /**
+     * 从 bp_user_gift.source（格式 CHECKIN:yyyy-MM-dd）提取日期
+     */
+    private LocalDate extractDateFromCheckinSource(String source) {
+        if (source == null || source.isBlank()) return null;
+        try {
+            int colonIdx = source.lastIndexOf(':');
+            if (colonIdx >= 0 && colonIdx < source.length() - 1) {
+                return LocalDate.parse(source.substring(colonIdx + 1));
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     /**
@@ -208,21 +221,6 @@ public class CheckinService {
             throw new IllegalStateException("今天已经签到过了");
         }
 
-        // 同步更新旧状态表（兼容过渡期，后续版本删除）
-        try {
-            UserCheckinStatus status = statusMapper.findByUserId(userId);
-            if (status == null) {
-                status = new UserCheckinStatus();
-                status.setUserId(userId);
-                try { statusMapper.insert(status); } catch (Exception ignored) {}
-            }
-            status.setContinuousDays(newContinuousDays);
-            status.setTotalDays(checkinMapper.countByUserId(userId));
-            status.setLastCheckinDate(today);
-            status.setCanClaim(canClaim);
-            statusMapper.update(status);
-        } catch (Exception ignored) {}
-
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("continuousDays", newContinuousDays);
@@ -240,16 +238,16 @@ public class CheckinService {
     public Map<String, Object> claimReward(Long userId) {
         LocalDate today = LocalDate.now();
         CheckinConfig config = getActiveConfig();
+        String todaySource = CHECKIN_SOURCE + ":" + today;
 
-        // 检查今天是否已领取
-        UserCheckinClaim alreadyClaimed = claimMapper.findByUserAndDate(userId, today);
-        if (alreadyClaimed != null) {
+        // 检查今天是否已领取（通过 bp_user_gift 记录判断）
+        if (bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, todaySource) > 0) {
             throw new IllegalStateException("今天已领取过签到奖励");
         }
 
-        // 查找上次领取日期，用于计算新一轮连续签到天数
-        UserCheckinClaim lastClaim = claimMapper.findLastByUser(userId);
-        LocalDate lastClaimDate = lastClaim != null ? lastClaim.getClaimDate() : null;
+        // 从 bp_user_gift 查找上次领取日期
+        String lastClaimSource = bpUserGiftMapper.findLastSourceByPrefix(userId, CHECKIN_SOURCE + ":");
+        LocalDate lastClaimDate = extractDateFromCheckinSource(lastClaimSource);
 
         // 动态计算是否可以领取（只统计上次领取之后的连续签到）
         List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, today.minusDays(6));
@@ -268,17 +266,8 @@ public class CheckinService {
         }
         RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
 
-        UserGift packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), "CHECKIN:" + today);
-
-        // 记录领取记录（用于防止重复领取 & 重置连续签到计数起点）
-        UserCheckinClaim claim = new UserCheckinClaim();
-        claim.setUserId(userId);
-        claim.setClaimDate(today);
-        claim.setContinuousDays(continuousDays);
-        claimMapper.insert(claim);
-
-        // 同步更新旧表（兼容过渡期）
-        try { statusMapper.resetContinuous(userId); } catch (Exception ignored) {}
+        // 发放礼品包（自动在 bp_user_gift 写入 CHECKIN:yyyy-MM-dd 记录，用于防重复领取）
+        UserGift packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), todaySource);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -296,11 +285,12 @@ public class CheckinService {
      */
     public Map<String, Object> getAdminStatistics() {
         LocalDate today = LocalDate.now();
+        String todaySource = CHECKIN_SOURCE + ":" + today;
         Map<String, Object> result = new HashMap<>();
         result.put("todayCheckinCount", checkinMapper.countByDate(today));
         result.put("totalCheckinUsers", checkinMapper.countDistinctUsers());
-        result.put("todayClaimCount", claimMapper.countByDate(today));
-        result.put("totalRewardValue", claimMapper.sumRewardValue());
+        result.put("todayClaimCount", bpUserGiftMapper.countBySource(todaySource));
+        result.put("totalRewardValue", bpUserGiftMapper.sumCheckinRewardValue());
         return result;
     }
 
