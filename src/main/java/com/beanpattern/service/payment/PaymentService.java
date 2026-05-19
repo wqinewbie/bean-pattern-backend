@@ -28,7 +28,7 @@ public class PaymentService {
         if (provider == null || provider.isBlank() || "mock".equalsIgnoreCase(provider)) {
             return mockPaymentGateway.createPayment(order);
         }
-        if ("wechat".equalsIgnoreCase(provider)) {
+        if ("midas".equalsIgnoreCase(provider)) {
             return wechatPaymentGateway.createPayment(order);
         }
         throw new IllegalArgumentException("不支持的支付网关: " + provider);

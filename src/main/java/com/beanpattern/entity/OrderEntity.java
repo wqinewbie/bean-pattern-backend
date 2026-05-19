@@ -9,6 +9,7 @@ public class OrderEntity {
     private Long userId;
     private String productType;
     private String packageCode;
+    private String midasProductId;
     private String planName;
     private BigDecimal amount;
     private String status;
@@ -35,6 +36,8 @@ public class OrderEntity {
     public void setProductType(String productType) { this.productType = productType; }
     public String getPackageCode() { return packageCode; }
     public void setPackageCode(String packageCode) { this.packageCode = packageCode; }
+    public String getMidasProductId() { return midasProductId; }
+    public void setMidasProductId(String midasProductId) { this.midasProductId = midasProductId; }
     public String getPlanName() { return planName; }
     public void setPlanName(String planName) { this.planName = planName; }
     public BigDecimal getAmount() { return amount; }

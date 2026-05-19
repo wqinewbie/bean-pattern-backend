@@ -11,7 +11,7 @@ import java.util.List;
 @Mapper
 public interface CardPackageMapper {
 
-    @Select("SELECT id, package_code AS packageCode, package_name AS packageName, " +
+    @Select("SELECT id, package_code AS packageCode, midas_product_id AS midasProductId, package_name AS packageName, " +
             "ai_quota AS aiQuota, price, original_price AS originalPrice, " +
             "vip_price AS vipPrice, tag, sort_order AS sortOrder, " +
             "is_active AS isActive, purchase_limit AS purchaseLimit, " +
@@ -20,7 +20,7 @@ public interface CardPackageMapper {
             "FROM bp_card_package WHERE id = #{id}")
     CardPackage findById(@Param("id") Long id);
 
-    @Select("SELECT id, package_code AS packageCode, package_name AS packageName, " +
+    @Select("SELECT id, package_code AS packageCode, midas_product_id AS midasProductId, package_name AS packageName, " +
             "ai_quota AS aiQuota, price, original_price AS originalPrice, " +
             "vip_price AS vipPrice, tag, sort_order AS sortOrder, " +
             "is_active AS isActive, purchase_limit AS purchaseLimit, " +
@@ -29,7 +29,7 @@ public interface CardPackageMapper {
             "FROM bp_card_package WHERE package_code = #{packageCode}")
     CardPackage findByCode(@Param("packageCode") String packageCode);
 
-    @Select("SELECT id, package_code AS packageCode, package_name AS packageName, " +
+    @Select("SELECT id, package_code AS packageCode, midas_product_id AS midasProductId, package_name AS packageName, " +
             "ai_quota AS aiQuota, price, original_price AS originalPrice, " +
             "vip_price AS vipPrice, tag, sort_order AS sortOrder, " +
             "is_active AS isActive, purchase_limit AS purchaseLimit, " +
@@ -41,7 +41,7 @@ public interface CardPackageMapper {
             "ORDER BY sort_order ASC")
     List<CardPackage> listActive();
 
-    @Select("SELECT id, package_code AS packageCode, package_name AS packageName, " +
+    @Select("SELECT id, package_code AS packageCode, midas_product_id AS midasProductId, package_name AS packageName, " +
             "ai_quota AS aiQuota, price, original_price AS originalPrice, " +
             "vip_price AS vipPrice, tag, sort_order AS sortOrder, " +
             "is_active AS isActive, purchase_limit AS purchaseLimit, " +
@@ -50,16 +50,16 @@ public interface CardPackageMapper {
             "FROM bp_card_package ORDER BY sort_order ASC")
     List<CardPackage> listAll();
 
-    @Insert("INSERT INTO bp_card_package(package_code, package_name, ai_quota, price, " +
+    @Insert("INSERT INTO bp_card_package(package_code, midas_product_id, package_name, ai_quota, price, " +
             "original_price, vip_price, tag, sort_order, is_active, purchase_limit, " +
             "shelf_start_time, shelf_end_time, vip_only) " +
-            "VALUES(#{packageCode}, #{packageName}, #{aiQuota}, #{price}, " +
+            "VALUES(#{packageCode}, #{midasProductId}, #{packageName}, #{aiQuota}, #{price}, " +
             "#{originalPrice}, #{vipPrice}, #{tag}, #{sortOrder}, #{isActive}, " +
             "#{purchaseLimit}, #{shelfStartTime}, #{shelfEndTime}, #{vipOnly})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(CardPackage cardPackage);
 
-    @Update("UPDATE bp_card_package SET package_name = #{packageName}, " +
+    @Update("UPDATE bp_card_package SET midas_product_id = #{midasProductId}, package_name = #{packageName}, " +
             "ai_quota = #{aiQuota}, price = #{price}, " +
             "original_price = #{originalPrice}, vip_price = #{vipPrice}, " +
             "tag = #{tag}, sort_order = #{sortOrder}, is_active = #{isActive}, " +

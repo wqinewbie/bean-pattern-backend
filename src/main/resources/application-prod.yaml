@@ -1,14 +1,15 @@
 payment:
-  provider: ${PAYMENT_PROVIDER:mock}
+  provider: ${PAYMENT_PROVIDER:midas}
   mock:
     auto-paid: ${PAYMENT_MOCK_AUTO_PAID:false}
-  wechat:
-    app-id: ${WECHAT_PAY_APP_ID:${WECHAT_APP_ID:}}
-    mch-id: ${WECHAT_PAY_MCH_ID:}
-    api-v3-key: ${WECHAT_PAY_API_V3_KEY:}
-    private-key-path: ${WECHAT_PAY_PRIVATE_KEY_PATH:}
-    merchant-serial-no: ${WECHAT_PAY_MERCHANT_SERIAL_NO:}
-    notify-url: ${WECHAT_PAY_NOTIFY_URL:}
+  midas:
+    app-id: ${MIDAS_APP_ID:${WECHAT_APP_ID:}}
+    offer-id: ${MIDAS_OFFER_ID:}
+    app-key: ${MIDAS_APP_KEY:}
+    sandbox-app-key: ${MIDAS_SANDBOX_APP_KEY:}
+    notify-url: ${MIDAS_NOTIFY_URL:https://api.pindo.asia/api/pay/midas/notify}
+    notify-token: ${MIDAS_NOTIFY_TOKEN:}
+    sandbox: ${MIDAS_SANDBOX:false}
 
 server:
   port: 8081

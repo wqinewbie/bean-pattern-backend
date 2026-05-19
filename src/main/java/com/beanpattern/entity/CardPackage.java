@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class CardPackage {
     private Long id;
     private String packageCode;        // 套餐代码：c10/c30/c100
+    private String midasProductId;     // 微信虚拟支付道具ID
     private String packageName;        // 套餐名称
     private Integer aiQuota;           // AI次数
     private BigDecimal price;          // 价格

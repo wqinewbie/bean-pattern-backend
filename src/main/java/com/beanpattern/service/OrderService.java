@@ -173,6 +173,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("vip");
         order.setPackageCode(packageCode);
+        order.setMidasProductId(resolveMidasProductId(vipPackage.getMidasProductId(), packageCode));
         order.setPlanName(vipPackage.getPackageName());
         order.setAmount(finalPrice);
         order.setCouponId(couponId);
@@ -252,6 +253,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setProductType("card");
         order.setPackageCode(packageCode);
+        order.setMidasProductId(resolveMidasProductId(cardPackage.getMidasProductId(), packageCode));
         order.setPlanName(cardPackage.getPackageName());
         order.setAmount(finalPrice);
         order.setCouponId(couponId);
@@ -311,6 +313,13 @@ public class OrderService {
         }
         BigDecimal discount = BigDecimal.valueOf(discountValue).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         return originalPrice.multiply(discount).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String resolveMidasProductId(String midasProductId, String packageCode) {
+        if (midasProductId != null && !midasProductId.isBlank()) {
+            return midasProductId;
+        }
+        return packageCode;
     }
 
     /**

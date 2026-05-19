@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `bp_order` (
   `user_id`              BIGINT NOT NULL,
   `product_type`         VARCHAR(32) NOT NULL COMMENT '商品类型：vip/card/gift',
   `package_code`         VARCHAR(64) NOT NULL COMMENT '套餐代码',
+  `midas_product_id`     VARCHAR(128) NULL COMMENT '微信虚拟支付道具ID快照',
   `plan_name`            VARCHAR(64) NOT NULL DEFAULT '' COMMENT '下单时套餐名称快照',
   `amount`               DECIMAL(10,2) NOT NULL,
   `status`               VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PAID/REFUNDED/CANCELLED/TIMEOUT',

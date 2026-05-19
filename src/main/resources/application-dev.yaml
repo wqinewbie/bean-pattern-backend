@@ -2,6 +2,9 @@ payment:
   provider: ${PAYMENT_PROVIDER:mock}
   mock:
     auto-paid: ${PAYMENT_MOCK_AUTO_PAID:true}
+  midas:
+    notify-url: ${MIDAS_NOTIFY_URL:https://api-test.pindo.asia/api/pay/midas/notify}
+    sandbox: ${MIDAS_SANDBOX:true}
 
 server:
   port: 8082

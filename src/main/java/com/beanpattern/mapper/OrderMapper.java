@@ -10,7 +10,7 @@ import java.util.List;
 public interface OrderMapper {
 
     String ORDER_COLUMNS = "id, order_no AS orderNo, user_id AS userId, " +
-            "product_type AS productType, package_code AS packageCode, plan_name AS planName, " +
+            "product_type AS productType, package_code AS packageCode, midas_product_id AS midasProductId, plan_name AS planName, " +
             "product_id AS productId, vip_level_purchased AS vipLevelPurchased, vip_days AS vipDays, " +
             "gift_items AS giftItems, amount, status, expire_at AS expireAt, deliver_status AS deliverStatus, " +
             "deliver_error AS deliverError, paid_at AS paidAt, transaction_id AS transactionId, " +
@@ -49,10 +49,10 @@ public interface OrderMapper {
     @Select("SELECT " + ORDER_COLUMNS + " FROM bp_order WHERE order_no = #{orderNo}")
     OrderEntity findByOrderNo(@Param("orderNo") String orderNo);
 
-    @Insert("INSERT INTO bp_order(order_no, user_id, product_type, package_code, " +
+    @Insert("INSERT INTO bp_order(order_no, user_id, product_type, package_code, midas_product_id, " +
             "plan_name, product_id, vip_level_purchased, vip_days, gift_items, " +
             "amount, status, expire_at, deliver_status, coupon_id) " +
-            "VALUES(#{orderNo}, #{userId}, #{productType}, #{packageCode}, " +
+            "VALUES(#{orderNo}, #{userId}, #{productType}, #{packageCode}, #{midasProductId}, " +
             "#{planName}, #{productId}, #{vipLevelPurchased}, #{vipDays}, #{giftItems}, " +
             "#{amount}, #{status}, #{expireAt}, #{deliverStatus}, #{couponId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")

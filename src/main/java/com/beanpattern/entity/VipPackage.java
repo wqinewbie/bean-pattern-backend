@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class VipPackage {
     private Long id;
     private String packageCode;        // 套餐代码：month/quarter/year
+    private String midasProductId;     // 微信虚拟支付道具ID
     private String packageName;        // 套餐名称
     private Integer durationDays;      // 有效天数
     private BigDecimal price;          // 价格
