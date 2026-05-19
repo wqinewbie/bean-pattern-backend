@@ -125,7 +125,9 @@ public class PaymentController {
 
             String outTradeNo = (String) payloadData.get("OutTradeNo");
             String openId = (String) payloadData.get("OpenId");
-            String productId = (String) payloadData.get("ProductId");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> goodsInfo = (Map<String, Object>) payloadData.get("GoodsInfo");
+            String productId = goodsInfo != null ? (String) goodsInfo.get("ProductId") : (String) payloadData.get("ProductId");
             String transactionId = null;
 
             @SuppressWarnings("unchecked")
