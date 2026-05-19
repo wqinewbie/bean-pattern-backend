@@ -102,7 +102,7 @@ public class CardPackageService {
         }
 
         cardPackageMapper.insert(cardPackage);
-        return cardPackage;
+        return cardPackageMapper.findById(cardPackage.getId());
     }
 
     /**

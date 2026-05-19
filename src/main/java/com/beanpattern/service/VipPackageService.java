@@ -102,7 +102,7 @@ public class VipPackageService {
         }
 
         vipPackageMapper.insert(vipPackage);
-        return vipPackage;
+        return vipPackageMapper.findById(vipPackage.getId());
     }
 
     /**
