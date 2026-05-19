@@ -113,7 +113,7 @@ public class CheckinService {
 
         String todaySource = CHECKIN_SOURCE + ":" + today;
         boolean claimedToday = bpUserGiftMapper.countByUserIdAndSourcePrefix(userId, todaySource) > 0;
-        boolean canClaim = !claimedToday && continuousDays >= config.getContinuousDaysRequired() && config.getIsActive();
+        boolean canClaim = checkedInToday && !claimedToday && continuousDays >= config.getContinuousDaysRequired() && config.getIsActive();
 
         // 构建签到日历（最近7天）
         Map<String, Boolean> calendar = new HashMap<>();
@@ -165,12 +165,26 @@ public class CheckinService {
     }
 
     /**
-     * 计算从指定日期往前推的连续签到天数，截止到 lastClaimDate（不含）或第一个断签日
+     * 计算连续签到天数，截止到 lastClaimDate（不含）或第一个断签日。
+     * 从最近一次签到日期往前推，避免当天未签到时错误返回 0。
      */
     private int calcContinuousDays(List<UserCheckin> recentCheckins, LocalDate today, LocalDate lastClaimDate) {
         if (recentCheckins.isEmpty()) return 0;
+
+        // 从最近一次签到日期开始算，而不是从 today 开始。
+        // 如果用户今天还没签到，连续天数应该基于昨天及之前的签到记录。
+        LocalDate latestCheckin = recentCheckins.stream()
+                .map(UserCheckin::getCheckinDate)
+                .max(LocalDate::compareTo)
+                .orElse(today);
+
+        // 最近一次签到距今超过 1 天，连续签到已中断
+        if (latestCheckin.isBefore(today.minusDays(1))) {
+            return 0;
+        }
+
         int count = 0;
-        LocalDate date = today;
+        LocalDate date = latestCheckin;
         LocalDate stopAt = lastClaimDate != null ? lastClaimDate : LocalDate.MIN;
         while (date.isAfter(stopAt)) {
             final LocalDate d = date;
@@ -198,16 +212,14 @@ public class CheckinService {
             throw new IllegalStateException("今天已经签到过了");
         }
 
-        // 从 bp_user_checkin 记录动态计算连续天数
-        UserCheckin lastCheckin = checkinMapper.findLastByUser(userId);
-        int newContinuousDays;
-        if (lastCheckin == null) {
-            newContinuousDays = 1;
-        } else if (lastCheckin.getCheckinDate().equals(today.minusDays(1))) {
-            newContinuousDays = lastCheckin.getContinuousDays() + 1;
-        } else {
-            newContinuousDays = 1;
-        }
+        // 从实际签到记录计算连续天数，避免依赖可能已过期的 stored continuous_days
+        // （领取奖励后上次签到记录的 continuous_days 不会自动清零）
+        LocalDate startDate = today.minusDays(7);
+        List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, startDate);
+        String lastClaimSource = bpUserGiftMapper.findLastSourceByPrefix(userId, CHECKIN_SOURCE + ":");
+        LocalDate lastClaimDate = extractDateFromCheckinSource(lastClaimSource);
+        int yesterdayContinuous = calcContinuousDays(recentCheckins, today.minusDays(1), lastClaimDate);
+        int newContinuousDays = yesterdayContinuous + 1;
 
         boolean canClaim = (newContinuousDays >= config.getContinuousDaysRequired());
 
@@ -251,6 +263,13 @@ public class CheckinService {
 
         // 动态计算是否可以领取（只统计上次领取之后的连续签到）
         List<UserCheckin> recentCheckins = checkinMapper.findRecentByUser(userId, today.minusDays(6));
+
+        // 今天必须先签到才能领取
+        boolean checkedInToday = recentCheckins.stream().anyMatch(c -> today.equals(c.getCheckinDate()));
+        if (!checkedInToday) {
+            throw new IllegalStateException("今天还未签到");
+        }
+
         int continuousDays = calcContinuousDays(recentCheckins, today, lastClaimDate);
         if (continuousDays < config.getContinuousDaysRequired()) {
             throw new IllegalStateException("暂无可领取的奖励");

@@ -17,8 +17,6 @@ public class UserDataService {
     private final OrderMapper orderMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
     private final UserCheckinMapper userCheckinMapper;
-    private final UserCheckinClaimMapper userCheckinClaimMapper;
-    private final UserCheckinStatusMapper userCheckinStatusMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final UserVipRecordMapper userVipRecordMapper;
     private final BannerClaimLogMapper bannerClaimLogMapper;
@@ -39,8 +37,7 @@ public class UserDataService {
     public UserDataService(UserMapper userMapper, BpBoxMapper bpBoxMapper, BpDraftMapper bpDraftMapper,
                            BpHistoryMapper bpHistoryMapper, OrderMapper orderMapper,
                            BpUserGiftMapper bpUserGiftMapper,
-                           UserCheckinMapper userCheckinMapper, UserCheckinClaimMapper userCheckinClaimMapper,
-                           UserCheckinStatusMapper userCheckinStatusMapper,
+                           UserCheckinMapper userCheckinMapper,
                            UserInviteRelationMapper userInviteRelationMapper,
                            UserVipRecordMapper userVipRecordMapper,
                            BannerClaimLogMapper bannerClaimLogMapper,
@@ -61,8 +58,6 @@ public class UserDataService {
         this.orderMapper = orderMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.userCheckinMapper = userCheckinMapper;
-        this.userCheckinClaimMapper = userCheckinClaimMapper;
-        this.userCheckinStatusMapper = userCheckinStatusMapper;
         this.userInviteRelationMapper = userInviteRelationMapper;
         this.userVipRecordMapper = userVipRecordMapper;
         this.bannerClaimLogMapper = bannerClaimLogMapper;
@@ -88,8 +83,6 @@ public class UserDataService {
         bpHistoryMapper.deleteByUserId(userId);
         creatorPatternMapper.deleteByUserId(userId);
         userCheckinMapper.deleteByUserId(userId);
-        userCheckinClaimMapper.deleteByUserId(userId);
-        userCheckinStatusMapper.deleteByUserId(userId);
         userActivityLogMapper.deleteByUserId(userId);
         userTaskProgressMapper.deleteByUserId(userId);
         bpUserGiftMapper.deleteByUserId(userId);
