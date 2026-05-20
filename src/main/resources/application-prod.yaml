@@ -10,6 +10,7 @@ payment:
     notify-url: ${MIDAS_NOTIFY_URL:https://api.pindo.asia/api/pay/midas/notify}
     notify-token: ${MIDAS_NOTIFY_TOKEN:}
     sandbox: ${MIDAS_SANDBOX:false}
+    mode: ${MIDAS_MODE:short_series_coin}
 
 server:
   port: 8081

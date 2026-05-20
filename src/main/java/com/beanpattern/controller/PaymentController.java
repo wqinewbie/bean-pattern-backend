@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -20,7 +21,7 @@ import java.util.HexFormat;
 import java.util.Map;
 
 /**
- * 支付回调接口 — 微信虚拟支付（米大师 Midas）。
+ * WeChat virtual payment callback endpoint for Midas.
  */
 @RestController
 @RequestMapping("/api/pay")
@@ -28,6 +29,11 @@ public class PaymentController {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String MODE_COIN = "short_series_coin";
+    private static final String MODE_GOODS = "short_series_goods";
+    private static final String EVENT_COIN_PAY = "xpay_coin_pay_notify";
+    private static final String EVENT_GOODS_DELIVER = "xpay_goods_deliver_notify";
 
     private final OrderService orderService;
     private final PaymentProperties paymentProperties;
@@ -44,150 +50,261 @@ public class PaymentController {
         this.userMapper = userMapper;
     }
 
-    /**
-     * 米大师发货回调（同时处理 GET 验证和 POST 通知）。
-     */
     @GetMapping("/midas/notify")
     public String midasVerify(@RequestParam("signature") String signature,
                               @RequestParam("timestamp") String timestamp,
                               @RequestParam("nonce") String nonce,
                               @RequestParam("echostr") String echostr) {
-        // URL 验证：SHA1(token, timestamp, nonce) == signature
         String token = paymentProperties.getMidas().getNotifyToken();
         if (token == null || token.isBlank()) {
-            log.warn("米大师回调 Token 未配置，无法验证 URL");
+            log.warn("Midas notify token is not configured");
             return "";
         }
 
         String[] arr = {token, timestamp, nonce};
         Arrays.sort(arr);
-        String raw = arr[0] + arr[1] + arr[2];
-        String calcSig = sha1Hex(raw);
-
+        String calcSig = sha1Hex(arr[0] + arr[1] + arr[2]);
         if (!calcSig.equals(signature)) {
-            log.warn("米大师 URL 验证签名不匹配: expected={}, actual={}", signature, calcSig);
+            log.warn("Midas URL verification failed: expected={}, actual={}", signature, calcSig);
             return "";
         }
-
-        log.info("米大师 URL 验证通过");
         return echostr;
     }
 
     @PostMapping("/midas/notify")
     public Map<String, Object> midasNotify(@RequestBody Map<String, Object> params) {
         try {
-            log.info("收到米大师回调: {}", params);
+            log.info("Received Midas callback: {}", params);
 
-            String msgType = (String) params.get("MsgType");
-            String event = (String) params.get("Event");
-
+            String msgType = firstString(valueOf(params, "MsgType"), valueOf(params, "msgType"));
+            String event = firstString(valueOf(params, "Event"), valueOf(params, "event"));
             if (!"event".equals(msgType)) {
-                log.warn("非事件消息，忽略: MsgType={}", msgType);
-                return Map.of("ErrCode", -1, "ErrMsg", "非事件消息");
+                log.warn("Unsupported Midas message type: {}", msgType);
+                return fail("unsupported message type");
             }
-            if (!"xpay_goods_deliver_notify".equals(event)) {
-                log.warn("忽略非道具发货事件: Event={}", event);
-                return Map.of("ErrCode", -1, "ErrMsg", "unsupported event");
-            }
-
-            // 提取 Payload 和 PayEventSig
-            @SuppressWarnings("unchecked")
-            Map<String, Object> miniGame = (Map<String, Object>) params.get("MiniGame");
-            if (miniGame == null) {
-                log.error("回调缺少 MiniGame 字段");
-                return Map.of("ErrCode", -1, "ErrMsg", "缺少 MiniGame");
+            if (!EVENT_GOODS_DELIVER.equals(event) && !EVENT_COIN_PAY.equals(event)) {
+                log.warn("Unsupported Midas event: {}", event);
+                return fail("unsupported event");
             }
 
-            String payload = (String) miniGame.get("Payload");
-            String payEventSig = (String) miniGame.get("PayEventSig");
+            CallbackPayload callback = parsePayload(params, event);
+            Map<String, Object> payloadData = callback.payloadData();
+            Integer env = callback.env();
 
-            if (payload == null || payEventSig == null) {
-                log.error("回调缺少 Payload 或 PayEventSig");
-                return Map.of("ErrCode", -1, "ErrMsg", "参数不完整");
+            String outTradeNo = firstString(valueOf(payloadData, "OutTradeNo"), valueOf(payloadData, "outTradeNo"));
+            if (outTradeNo == null || outTradeNo.isBlank()) {
+                log.error("Midas callback missing OutTradeNo");
+                return fail("missing OutTradeNo");
             }
 
-            // 解析 Payload
-            @SuppressWarnings("unchecked")
-            Map<String, Object> payloadData = objectMapper.readValue(payload, Map.class);
-            Integer env = toInteger(payloadData.get("Env"));
-
-            // 验证 PayEventSig = HMAC-SHA256(AppKey, Event + "&" + Payload)
-            String appKey = paymentProperties.getMidas().appKeyForEnv(env);
-            if (appKey == null || appKey.isBlank()) {
-                log.error("PayEventSig 验签失败: env={} 对应 AppKey 未配置", env);
-                return Map.of("ErrCode", -1, "ErrMsg", "AppKey not configured");
-            }
-            String calcSig = hmacSha256Hex(event + "&" + payload, appKey);
-            if (!calcSig.equals(payEventSig)) {
-                log.error("PayEventSig 验证失败: expected={}, actual={}", payEventSig, calcSig);
-                return Map.of("ErrCode", -1, "ErrMsg", "签名验证失败");
-            }
-
-            String outTradeNo = (String) payloadData.get("OutTradeNo");
-            String openId = (String) payloadData.get("OpenId");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> goodsInfo = (Map<String, Object>) payloadData.get("GoodsInfo");
-            String productId = goodsInfo != null ? (String) goodsInfo.get("ProductId") : (String) payloadData.get("ProductId");
-            String transactionId = null;
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> payInfo = (Map<String, Object>) payloadData.get("WeChatPayInfo");
-            if (payInfo != null) {
-                transactionId = (String) payInfo.get("TransactionId");
-            }
-            if (transactionId == null) {
-                transactionId = (String) payloadData.get("MchOrderNo");
-            }
-
-            log.info("米大师回调验签通过: outTradeNo={}, transactionId={}, event={}",
-                    outTradeNo, transactionId, event);
-
-            if (outTradeNo == null) {
-                log.error("回调缺少 OutTradeNo");
-                return Map.of("ErrCode", -1, "ErrMsg", "缺少 OutTradeNo");
-            }
             OrderEntity order = orderMapper.findByOrderNo(outTradeNo);
             if (order == null) {
-                log.error("米大师回调订单不存在: outTradeNo={}", outTradeNo);
-                return Map.of("ErrCode", -1, "ErrMsg", "order not found");
+                log.error("Midas callback order not found: orderNo={}", outTradeNo);
+                return fail("order not found");
             }
+
+            String openId = firstString(
+                    valueOf(payloadData, "OpenId"),
+                    valueOf(payloadData, "openid"),
+                    valueOf(payloadData, "openId")
+            );
             UserEntity user = userMapper.findById(order.getUserId());
             if (user == null || user.getOpenId() == null || !user.getOpenId().equals(openId)) {
-                log.error("米大师回调 OpenId 不匹配: orderNo={}, expected={}, actual={}",
+                log.error("Midas callback openid mismatch: orderNo={}, expected={}, actual={}",
                         outTradeNo, user != null ? user.getOpenId() : null, openId);
-                return Map.of("ErrCode", -1, "ErrMsg", "openid mismatch");
+                return fail("openid mismatch");
             }
-            String expectedProductId = order.getMidasProductId() != null && !order.getMidasProductId().isBlank()
-                    ? order.getMidasProductId()
-                    : order.getPackageCode();
-            if (productId == null || !productId.equals(expectedProductId)) {
-                log.error("米大师回调 ProductId 不匹配: orderNo={}, expected={}, actual={}",
-                        outTradeNo, expectedProductId, productId);
-                return Map.of("ErrCode", -1, "ErrMsg", "product mismatch");
-            }
+
             int expectedEnv = paymentProperties.getMidas().isSandbox() ? 1 : 0;
             if (env != null && env != expectedEnv) {
-                log.error("米大师回调 Env 不匹配: orderNo={}, expected={}, actual={}",
+                log.error("Midas callback env mismatch: orderNo={}, expected={}, actual={}",
                         outTradeNo, expectedEnv, env);
-                return Map.of("ErrCode", -1, "ErrMsg", "env mismatch");
+                return fail("env mismatch");
             }
 
+            @SuppressWarnings("unchecked")
+            Map<String, Object> goodsInfo = (Map<String, Object>) valueOf(payloadData, "GoodsInfo");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> coinInfo = (Map<String, Object>) valueOf(payloadData, "CoinInfo");
+
+            String midasMode = normalizeMode(paymentProperties.getMidas().getMode());
+            if (MODE_GOODS.equals(midasMode)) {
+                Map<String, Object> info = goodsInfo != null ? goodsInfo : payloadData;
+                validateGoodsCallback(outTradeNo, event, order, info);
+            } else if (MODE_COIN.equals(midasMode)) {
+                Map<String, Object> info = coinInfo != null ? coinInfo : (goodsInfo != null ? goodsInfo : payloadData);
+                validateCoinCallback(outTradeNo, event, order, info);
+            } else {
+                log.error("Unsupported Midas mode: {}", midasMode);
+                return fail("unsupported mode");
+            }
+
+            String transactionId = resolveTransactionId(payloadData);
             orderService.handlePaymentCallback(outTradeNo, transactionId != null ? transactionId : outTradeNo);
-
-            return Map.of("ErrCode", 0, "ErrMsg", "Success");
-
+            return success();
         } catch (Exception e) {
-            log.error("处理米大师回调失败", e);
-            return Map.of("ErrCode", -1, "ErrMsg", e.getMessage());
+            log.error("Failed to handle Midas callback", e);
+            return fail(e.getMessage());
         }
     }
 
-    /**
-     * 查询订单支付状态（用于前端轮询）。
-     */
     @GetMapping("/status/{orderNo}")
     public Map<String, Object> getPaymentStatus(@PathVariable String orderNo) {
         return orderService.getPaymentStatus(orderNo);
+    }
+
+    private CallbackPayload parsePayload(Map<String, Object> params, String event) throws Exception {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> miniGame = firstMap(valueOf(params, "MiniGame"), valueOf(params, "miniGame"));
+        if (miniGame == null) {
+            return new CallbackPayload(params, firstInteger(valueOf(params, "Env"), valueOf(params, "env")));
+        }
+
+        String payload = firstString(valueOf(miniGame, "Payload"), valueOf(miniGame, "payload"));
+        String payEventSig = firstString(valueOf(miniGame, "PayEventSig"), valueOf(miniGame, "payEventSig"));
+        if (payload == null || payEventSig == null) {
+            throw new IllegalArgumentException("missing Payload or PayEventSig");
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> payloadData = objectMapper.readValue(payload, Map.class);
+        Integer env = firstInteger(valueOf(payloadData, "Env"), valueOf(payloadData, "env"));
+
+        String appKey = paymentProperties.getMidas().appKeyForEnv(env);
+        if (appKey == null || appKey.isBlank()) {
+            throw new IllegalStateException("Midas appKey is not configured");
+        }
+        String calcSig = hmacSha256Hex(event + "&" + payload, appKey);
+        if (!calcSig.equals(payEventSig)) {
+            throw new IllegalArgumentException("PayEventSig mismatch");
+        }
+        return new CallbackPayload(payloadData, env);
+    }
+
+    private void validateGoodsCallback(String orderNo, String event, OrderEntity order, Map<String, Object> info) {
+        if (!EVENT_GOODS_DELIVER.equals(event)) {
+            throw new IllegalArgumentException("event mismatch");
+        }
+        String productId = firstString(
+                valueOf(info, "ProductId"),
+                valueOf(info, "productId"),
+                valueOf(info, "productid")
+        );
+        String expectedProductId = order.getMidasProductId() != null && !order.getMidasProductId().isBlank()
+                ? order.getMidasProductId()
+                : order.getPackageCode();
+        if (!expectedProductId.equals(productId)) {
+            log.error("Midas ProductId mismatch: orderNo={}, expected={}, actual={}",
+                    orderNo, expectedProductId, productId);
+            throw new IllegalArgumentException("product mismatch");
+        }
+    }
+
+    private void validateCoinCallback(String orderNo, String event, OrderEntity order, Map<String, Object> info) {
+        if (!EVENT_COIN_PAY.equals(event) && !EVENT_GOODS_DELIVER.equals(event)) {
+            throw new IllegalArgumentException("event mismatch");
+        }
+
+        int expectedQuantity = toCentAmount(order);
+        Integer paidQuantity = firstInteger(
+                valueOf(info, "BuyQuantity"),
+                valueOf(info, "buyQuantity"),
+                valueOf(info, "Quantity"),
+                valueOf(info, "quantity")
+        );
+        if (paidQuantity == null) {
+            log.error("Midas coin quantity missing: orderNo={}, info={}", orderNo, info);
+            throw new IllegalArgumentException("quantity missing");
+        }
+        if (paidQuantity != expectedQuantity) {
+            log.error("Midas coin quantity mismatch: orderNo={}, expected={}, actual={}",
+                    orderNo, expectedQuantity, paidQuantity);
+            throw new IllegalArgumentException("quantity mismatch");
+        }
+    }
+
+    private static String resolveTransactionId(Map<String, Object> payloadData) {
+        Map<String, Object> payInfo = firstMap(
+                valueOf(payloadData, "WeChatPayInfo"),
+                valueOf(payloadData, "wechatPayInfo"),
+                valueOf(payloadData, "weChatPayInfo")
+        );
+        String transactionId = firstString(
+                valueOf(payInfo, "TransactionId"),
+                valueOf(payInfo, "transactionId"),
+                valueOf(payloadData, "TransactionId"),
+                valueOf(payloadData, "transactionId")
+        );
+        if (transactionId != null) {
+            return transactionId;
+        }
+        return firstString(valueOf(payInfo, "MchOrderNo"), valueOf(payloadData, "MchOrderNo"));
+    }
+
+    private static String normalizeMode(String mode) {
+        return mode == null || mode.isBlank() ? MODE_COIN : mode;
+    }
+
+    private static Map<String, Object> success() {
+        return Map.of("ErrCode", 0, "ErrMsg", "Success");
+    }
+
+    private static Map<String, Object> fail(String message) {
+        return Map.of("ErrCode", -1, "ErrMsg", message != null ? message : "fail");
+    }
+
+    private static Object valueOf(Map<String, Object> map, String key) {
+        return map != null ? map.get(key) : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> firstMap(Object... values) {
+        for (Object value : values) {
+            if (value instanceof Map<?, ?>) {
+                return (Map<String, Object>) value;
+            }
+        }
+        return null;
+    }
+
+    private static String firstString(Object... values) {
+        for (Object value : values) {
+            if (value instanceof String text && !text.isBlank()) {
+                return text;
+            }
+        }
+        return null;
+    }
+
+    private static Integer firstInteger(Object... values) {
+        for (Object value : values) {
+            Integer parsed = toInteger(value);
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        return null;
+    }
+
+    private static int toCentAmount(OrderEntity order) {
+        return order.getAmount()
+                .movePointRight(2)
+                .setScale(0, RoundingMode.UNNECESSARY)
+                .intValueExact();
+    }
+
+    private static Integer toInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static String sha1Hex(String data) {
@@ -196,7 +313,7 @@ public class PaymentController {
             byte[] hash = md.digest(data.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
-            throw new RuntimeException("SHA1 失败", e);
+            throw new RuntimeException("SHA1 failed", e);
         }
     }
 
@@ -208,21 +325,10 @@ public class PaymentController {
             byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
-            throw new RuntimeException("HMAC-SHA256 失败", e);
+            throw new RuntimeException("HMAC-SHA256 failed", e);
         }
     }
 
-    private static Integer toInteger(Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            try {
-                return Integer.parseInt(text);
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
+    private record CallbackPayload(Map<String, Object> payloadData, Integer env) {
     }
 }

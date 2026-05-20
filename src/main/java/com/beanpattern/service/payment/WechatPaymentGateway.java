@@ -13,26 +13,30 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 微信虚拟支付网关（米大师 Midas）。
- * 签名算法参考：https://developers.weixin.qq.com/miniprogram/dev/platform-capabilities/business-capabilities/virtual-payment.html
+ * WeChat virtual payment gateway (Midas).
  */
 @Component
 public class WechatPaymentGateway implements PaymentGateway {
 
     private static final Logger log = LoggerFactory.getLogger(WechatPaymentGateway.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String MODE_COIN = "short_series_coin";
+    private static final String MODE_GOODS = "short_series_goods";
 
     private final PaymentProperties paymentProperties;
     private final UserMapper userMapper;
     private final WechatAuthService wechatAuthService;
 
-    public WechatPaymentGateway(PaymentProperties paymentProperties, UserMapper userMapper, WechatAuthService wechatAuthService) {
+    public WechatPaymentGateway(PaymentProperties paymentProperties,
+                                UserMapper userMapper,
+                                WechatAuthService wechatAuthService) {
         this.paymentProperties = paymentProperties;
         this.userMapper = userMapper;
         this.wechatAuthService = wechatAuthService;
@@ -43,12 +47,12 @@ public class WechatPaymentGateway implements PaymentGateway {
         PaymentProperties.Midas midas = paymentProperties.getMidas();
 
         if (midas.getOfferId() == null || midas.getOfferId().isBlank()) {
-            throw new IllegalStateException("虚拟支付 OfferID 未配置");
+            throw new IllegalStateException("Midas offerId is not configured");
         }
 
         UserEntity user = userMapper.findById(order.getUserId());
         if (user == null || user.getOpenId() == null || user.getOpenId().isBlank()) {
-            throw new IllegalStateException("用户 openid 缺失");
+            throw new IllegalStateException("User openid is missing");
         }
 
         String openid = user.getOpenId();
@@ -56,27 +60,27 @@ public class WechatPaymentGateway implements PaymentGateway {
         int env = midas.isSandbox() ? 1 : 0;
         String appKey = midas.appKeyForEnv(env);
         if (appKey == null || appKey.isBlank()) {
-            throw new IllegalStateException("虚拟支付 AppKey 未配置");
+            throw new IllegalStateException("Midas appKey is not configured");
         }
-        String productId = resolveProductId(order);
 
-        // 获取 session_key
         String sessionKey = wechatAuthService.getSessionKey(openid);
         if (sessionKey == null || sessionKey.isBlank()) {
-            throw new IllegalStateException("用户 session_key 缺失，请重新登录");
+            throw new IllegalStateException("User session_key is missing, please login again");
         }
 
-        // goodsPrice 单位：分
-        int goodsPrice = order.getAmount().movePointRight(2).intValue();
+        String mode = resolveMode(midas);
+        int goodsPrice = toCentAmount(order);
+        int buyQuantity = MODE_COIN.equals(mode) ? goodsPrice : midas.getBuyQuantity();
 
-        // ---- 构建 signData（无空格 JSON）----
         Map<String, Object> signDataMap = new LinkedHashMap<>();
         signDataMap.put("offerId", offerId);
-        signDataMap.put("buyQuantity", midas.getBuyQuantity());
+        signDataMap.put("buyQuantity", buyQuantity);
         signDataMap.put("env", env);
         signDataMap.put("currencyType", "CNY");
-        signDataMap.put("productId", productId);
-        signDataMap.put("goodsPrice", goodsPrice);
+        if (MODE_GOODS.equals(mode)) {
+            signDataMap.put("productId", resolveProductId(order));
+            signDataMap.put("goodsPrice", goodsPrice);
+        }
         signDataMap.put("outTradeNo", order.getOrderNo());
         signDataMap.put("attach", openid);
 
@@ -84,17 +88,14 @@ public class WechatPaymentGateway implements PaymentGateway {
         try {
             signData = objectMapper.writeValueAsString(signDataMap);
         } catch (Exception e) {
-            throw new RuntimeException("signData 序列化失败", e);
+            throw new RuntimeException("Failed to serialize Midas signData", e);
         }
 
-        // ---- paySig = HMAC-SHA256(AppKey, "requestVirtualPayment&" + signData) ----
         String paySig = hmacSha256Hex("requestVirtualPayment&" + signData, appKey);
-
-        // ---- signature = HMAC-SHA256(session_key, signData) ----
         String signature = hmacSha256Hex(signData, sessionKey);
 
-        log.info("Midas 支付参数: orderNo={}, productId={}, goodsPrice={}, signData={}",
-                order.getOrderNo(), productId, goodsPrice, signData);
+        log.info("Midas payment params: orderNo={}, mode={}, buyQuantity={}, goodsPrice={}, signData={}",
+                order.getOrderNo(), mode, buyQuantity, goodsPrice, signData);
 
         PaymentCreateResult result = new PaymentCreateResult();
         result.setOrderNo(order.getOrderNo());
@@ -104,8 +105,19 @@ public class WechatPaymentGateway implements PaymentGateway {
         result.setSignData(signData);
         result.setPaySig(paySig);
         result.setSignature(signature);
-        result.setMode("short_series_goods");
+        result.setMode(mode);
         return result;
+    }
+
+    private String resolveMode(PaymentProperties.Midas midas) {
+        String mode = midas.getMode();
+        if (mode == null || mode.isBlank()) {
+            return MODE_COIN;
+        }
+        if (!MODE_COIN.equals(mode) && !MODE_GOODS.equals(mode)) {
+            throw new IllegalStateException("Unsupported Midas mode: " + mode);
+        }
+        return mode;
     }
 
     private String resolveProductId(OrderEntity order) {
@@ -113,6 +125,13 @@ public class WechatPaymentGateway implements PaymentGateway {
             return order.getMidasProductId();
         }
         return order.getPackageCode();
+    }
+
+    private int toCentAmount(OrderEntity order) {
+        return order.getAmount()
+                .movePointRight(2)
+                .setScale(0, RoundingMode.UNNECESSARY)
+                .intValueExact();
     }
 
     private static String hmacSha256Hex(String data, String key) {
@@ -123,7 +142,7 @@ public class WechatPaymentGateway implements PaymentGateway {
             byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
-            throw new RuntimeException("HMAC-SHA256 签名失败", e);
+            throw new RuntimeException("Failed to sign HMAC-SHA256", e);
         }
     }
 }

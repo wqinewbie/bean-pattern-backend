@@ -124,8 +124,8 @@ public class GiftService {
         if (newGift != null && newGift.getUserId().equals(userId) && "UNUSED".equals(newGift.getStatus())) {
             if (newGift.getExpireAt() != null && newGift.getExpireAt().isBefore(LocalDateTime.now())) return false;
             if (redeemNow && "GIFT_PACKAGE".equals(newGift.getGiftType())) {
-                GiftPackage gp = giftPackageService.getByCode("UNKNOWN");
-                return false;
+                giftPackageService.redeemPackageGift(userId, giftId);
+                return true;
             }
             bpUserGiftMapper.use(giftId, null);
             // 同步更新旧表

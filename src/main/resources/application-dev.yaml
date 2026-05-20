@@ -5,6 +5,7 @@ payment:
   midas:
     notify-url: ${MIDAS_NOTIFY_URL:https://api-test.pindo.asia/api/pay/midas/notify}
     sandbox: ${MIDAS_SANDBOX:true}
+    mode: ${MIDAS_MODE:short_series_coin}
 
 server:
   port: 8082

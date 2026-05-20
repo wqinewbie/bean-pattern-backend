@@ -38,6 +38,7 @@ public class ReviewTaskHandler implements TaskHandler {
     @Override
     public TaskCenterItem buildTaskItem(Long userId, TaskConfig config) {
         ReviewTaskSubmission latest = reviewTaskService.getLatestSubmission(userId, config.getTaskCode());
+        boolean repeatable = "UNLIMITED".equals(config.getTaskType());
         int status = 0;
         String progressText = "提交内容后进入人工审核";
 
@@ -46,8 +47,8 @@ public class ReviewTaskHandler implements TaskHandler {
             if (status == 0) {
                 progressText = "已提交，待审核";
             } else if (status == 1) {
-                progressText = "审核通过，奖励已发放";
-                status = 2;
+                progressText = repeatable ? "审核通过，奖励已发放，可继续提交" : "审核通过，奖励已发放";
+                status = repeatable ? 0 : 2;
             } else if (status == 2) {
                 progressText = StringUtils.hasText(latest.getReviewRemark())
                         ? "审核驳回：" + latest.getReviewRemark()
@@ -80,7 +81,7 @@ public class ReviewTaskHandler implements TaskHandler {
                 .currentCount(latest != null ? 1 : 0)
                 .targetCount(1)
                 .progressId(latest != null ? latest.getId() : null)
-                .done(latest != null && latest.getStatus() != null && latest.getStatus() == 1)
+                .done(!repeatable && latest != null && latest.getStatus() != null && latest.getStatus() == 1)
                 .canClaim(false)
                 .build();
     }

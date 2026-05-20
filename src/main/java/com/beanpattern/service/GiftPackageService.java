@@ -231,7 +231,7 @@ public class GiftPackageService {
         BpUserGift newGift = BpUserGift.builder()
                 .userId(userId)
                 .giftId(giftPackage.getId())
-                .giftType("COUPON")
+                .giftType(GIFT_PACKAGE_CODE)
                 .giftName(giftPackage.getName())
                 .giftValue(1)
                 .source(source)

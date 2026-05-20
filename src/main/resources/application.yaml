@@ -33,6 +33,7 @@ payment:
     notify-url: ${MIDAS_NOTIFY_URL:https://api.pindo.asia/api/pay/midas/notify}
     notify-token: ${MIDAS_NOTIFY_TOKEN:}
     sandbox: ${MIDAS_SANDBOX:true}
+    mode: ${MIDAS_MODE:short_series_coin}
 
 app:
   # 本地上传目录（相对项目根目录）

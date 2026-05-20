@@ -42,6 +42,8 @@ public class PaymentProperties {
         private boolean sandbox = true;
         /** 道具直购默认 quantity */
         private int buyQuantity = 1;
+        /** Virtual payment mode: short_series_coin / short_series_goods */
+        private String mode = "short_series_coin";
 
         public String getAppId() { return appId; }
         public void setAppId(String appId) { this.appId = appId; }
@@ -59,6 +61,8 @@ public class PaymentProperties {
         public void setSandbox(boolean sandbox) { this.sandbox = sandbox; }
         public int getBuyQuantity() { return buyQuantity; }
         public void setBuyQuantity(int buyQuantity) { this.buyQuantity = buyQuantity; }
+        public String getMode() { return mode; }
+        public void setMode(String mode) { this.mode = mode; }
 
         /** 当前环境生效的 AppKey */
         public String effectiveAppKey() {

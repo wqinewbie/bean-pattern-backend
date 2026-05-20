@@ -184,21 +184,22 @@ public class BpBoxController {
 
         Long boxId = body.get("boxId") != null ? ((Number) body.get("boxId")).longValue() : null;
 
-        // V6.0 新增字段
-        String focusProgress = body.get("focusProgress") != null ? (String) body.get("focusProgress") : null;
-        Integer focusCompletedCells = body.get("focusCompletedCells") != null ? ((Number) body.get("focusCompletedCells")).intValue() : null;
-        Integer focusTotalCells = body.get("focusTotalCells") != null ? ((Number) body.get("focusTotalCells")).intValue() : null;
-
         if (boxId == null) return ApiResponse.fail("boxId 不能为空");
 
         BpBox box = bpBoxService.getById(boxId);
         if (box == null) return ApiResponse.fail("图纸不存在");
         if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
-        // V6.0 新字段
-        box.setFocusProgress(focusProgress);
-        box.setFocusCompletedCells(focusCompletedCells);
-        box.setFocusTotalCells(focusTotalCells);
+        // V6.0 新增字段（只在请求中包含时才设置，避免用 null 覆盖已有值）
+        if (body.containsKey("focusProgress") && body.get("focusProgress") != null) {
+            box.setFocusProgress((String) body.get("focusProgress"));
+        }
+        if (body.containsKey("focusCompletedCells") && body.get("focusCompletedCells") != null) {
+            box.setFocusCompletedCells(((Number) body.get("focusCompletedCells")).intValue());
+        }
+        if (body.containsKey("focusTotalCells") && body.get("focusTotalCells") != null) {
+            box.setFocusTotalCells(((Number) body.get("focusTotalCells")).intValue());
+        }
         
         bpBoxService.update(box);
 
