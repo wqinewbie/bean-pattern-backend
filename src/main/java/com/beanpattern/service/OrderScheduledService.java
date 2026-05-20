@@ -87,7 +87,7 @@ public class OrderScheduledService {
                 } catch (Exception e) {
                     log.error("补偿发货失败: {}", order.getOrderNo(), e);
                     // 更新错误信息
-                    orderMapper.updateDeliverStatus(order.getId(), "FAILED", e.getMessage());
+                    orderMapper.updateDeliverStatus(order.getId(), "FAILED", OrderService.summarizeDeliverError(e));
                 }
             }
 

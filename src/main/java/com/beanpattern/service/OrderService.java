@@ -7,6 +7,8 @@ import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.UserVipRecordMapper;
 import com.beanpattern.model.PageResult;
 import com.beanpattern.model.vo.OrderVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private static final int DELIVER_ERROR_MAX_LENGTH = 500;
 
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
@@ -469,8 +474,8 @@ public class OrderService {
 
                 orderMapper.updateDeliverStatus(order.getId(), "SUCCESS", null);
             } catch (Exception e) {
-                orderMapper.updateDeliverStatus(order.getId(), "FAILED", e.getMessage());
-                throw e;
+                log.error("Deliver goods failed: orderNo={}", order.getOrderNo(), e);
+                orderMapper.updateDeliverStatus(order.getId(), "FAILED", summarizeDeliverError(e));
             }
 
         } finally {
@@ -491,5 +496,16 @@ public class OrderService {
      */
     private String generateOrderNo() {
         return "ORD" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    public static String summarizeDeliverError(Exception e) {
+        String message = e.getMessage();
+        if (message == null || message.isBlank()) {
+            message = e.getClass().getSimpleName();
+        }
+        if (message.length() <= DELIVER_ERROR_MAX_LENGTH) {
+            return message;
+        }
+        return message.substring(0, DELIVER_ERROR_MAX_LENGTH);
     }
 }

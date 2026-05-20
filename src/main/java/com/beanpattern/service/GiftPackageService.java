@@ -115,8 +115,7 @@ public class GiftPackageService {
             if (newGift.getExpireAt() != null && newGift.getExpireAt().isBefore(LocalDateTime.now())) {
                 throw new IllegalStateException("礼品已过期");
             }
-            String pkgCode = resolvePackageCodeFromSource(newGift.getSource());
-            GiftPackage gp = getByCode(pkgCode);
+            GiftPackage gp = resolveGiftPackage(newGift);
             if (gp == null || gp.getStatus() == null || gp.getStatus() != 1) {
                 throw new IllegalStateException("礼品包不存在或未启用");
             }
@@ -246,6 +245,22 @@ public class GiftPackageService {
     private String resolvePackageCodeFromSource(String source) {
         if (!StringUtils.hasText(source)) return "";
         return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX) ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length()) : "";
+    }
+
+    private GiftPackage resolveGiftPackage(BpUserGift gift) {
+        String packageCode = resolvePackageCodeFromSource(gift.getSource());
+        if (StringUtils.hasText(packageCode)) {
+            GiftPackage giftPackage = getByCode(packageCode);
+            if (giftPackage != null) {
+                return giftPackage;
+            }
+        }
+
+        if (gift.getGiftId() != null) {
+            return giftPackageMapper.findById(gift.getGiftId());
+        }
+
+        return null;
     }
 
     private String resolvePackageCode(UserGift gift) {
