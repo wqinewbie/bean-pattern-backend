@@ -6,6 +6,7 @@ import com.beanpattern.mapper.VipPackageMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,6 +96,7 @@ public class VipPackageService {
      */
     @Transactional
     public VipPackage create(VipPackage vipPackage) {
+        normalize(vipPackage);
         // 检查套餐代码是否已存在
         VipPackage existing = vipPackageMapper.findByCode(vipPackage.getPackageCode());
         if (existing != null) {
@@ -110,6 +112,7 @@ public class VipPackageService {
      */
     @Transactional
     public VipPackage update(VipPackage vipPackage) {
+        normalize(vipPackage);
         VipPackage existing = vipPackageMapper.findById(vipPackage.getId());
         if (existing == null) {
             throw new IllegalArgumentException("套餐不存在");
@@ -149,5 +152,43 @@ public class VipPackageService {
             throw new IllegalArgumentException("套餐不存在");
         }
         vipPackageMapper.deleteById(id);
+    }
+
+    private void normalize(VipPackage vipPackage) {
+        if (vipPackage == null) {
+            throw new IllegalArgumentException("套餐不能为空");
+        }
+        if (vipPackage.getPackageCode() == null || vipPackage.getPackageCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("套餐代码不能为空");
+        }
+        if (vipPackage.getPackageName() == null || vipPackage.getPackageName().trim().isEmpty()) {
+            throw new IllegalArgumentException("套餐名称不能为空");
+        }
+        vipPackage.setPackageCode(vipPackage.getPackageCode().trim());
+        vipPackage.setPackageName(vipPackage.getPackageName().trim());
+        if (vipPackage.getDurationDays() == null || vipPackage.getDurationDays() <= 0) {
+            vipPackage.setDurationDays(30);
+        }
+        if (vipPackage.getPrice() == null) {
+            vipPackage.setPrice(BigDecimal.ZERO);
+        }
+        if (vipPackage.getOriginalPrice() == null) {
+            vipPackage.setOriginalPrice(vipPackage.getPrice());
+        }
+        if (vipPackage.getAiQuotaGift() == null || vipPackage.getAiQuotaGift() < 0) {
+            vipPackage.setAiQuotaGift(0);
+        }
+        if (vipPackage.getSortOrder() == null) {
+            vipPackage.setSortOrder(0);
+        }
+        if (vipPackage.getIsActive() == null) {
+            vipPackage.setIsActive(true);
+        }
+        if (vipPackage.getVipOnly() == null) {
+            vipPackage.setVipOnly(false);
+        }
+        if (vipPackage.getPurchaseLimit() != null && vipPackage.getPurchaseLimit() <= 0) {
+            vipPackage.setPurchaseLimit(null);
+        }
     }
 }

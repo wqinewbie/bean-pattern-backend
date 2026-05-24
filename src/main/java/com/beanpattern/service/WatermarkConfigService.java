@@ -42,6 +42,7 @@ public class WatermarkConfigService {
      * 保存全局水印配置
      */
     public WatermarkConfig save(WatermarkConfig config) {
+        normalize(config);
         WatermarkConfig existing = mapper.getConfig();
         if (existing != null) {
             config.setId(existing.getId());
@@ -138,5 +139,33 @@ public class WatermarkConfigService {
         config.setSpacingYRatio(0.18);
         config.setOpacity(0.25);
         return config;
+    }
+
+    private void normalize(WatermarkConfig config) {
+        WatermarkConfig defaults = getDefaultConfig();
+        if (config.getAppName() == null || config.getAppName().isBlank()) {
+            config.setAppName(defaults.getAppName());
+        }
+        if (config.getDefaultText() == null || config.getDefaultText().isBlank()) {
+            config.setDefaultText(defaults.getDefaultText());
+        }
+        if (config.getFontSize() == null || config.getFontSize() < 10) {
+            config.setFontSize(defaults.getFontSize());
+        }
+        if (config.getColor() == null || config.getColor().isBlank()) {
+            config.setColor(defaults.getColor());
+        }
+        if (config.getAngle() == null) {
+            config.setAngle(defaults.getAngle());
+        }
+        if (config.getSpacingXRatio() == null || config.getSpacingXRatio() <= 0) {
+            config.setSpacingXRatio(defaults.getSpacingXRatio());
+        }
+        if (config.getSpacingYRatio() == null || config.getSpacingYRatio() <= 0) {
+            config.setSpacingYRatio(defaults.getSpacingYRatio());
+        }
+        if (config.getOpacity() == null || config.getOpacity() < 0 || config.getOpacity() > 1) {
+            config.setOpacity(defaults.getOpacity());
+        }
     }
 }

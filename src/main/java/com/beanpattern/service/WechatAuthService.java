@@ -107,7 +107,7 @@ public class WechatAuthService {
         }
     }
 
-    private String getAccessToken() {
+    public String getAccessToken() {
         long now = Instant.now().getEpochSecond();
         if (StringUtils.hasText(cachedAccessToken) && cachedAccessTokenExpireAt > now + 60) {
             return cachedAccessToken;

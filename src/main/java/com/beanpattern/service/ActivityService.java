@@ -39,8 +39,14 @@ public class ActivityService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(activity.getStartAt()) || now.isAfter(activity.getEndAt())) {
-            throw new IllegalStateException("活动未开始或已结束");
+        if (!Boolean.TRUE.equals(activity.getStatus())) {
+            throw new IllegalStateException("活动已下架");
+        }
+        if (now.isBefore(activity.getStartAt())) {
+            throw new IllegalStateException("活动未开始");
+        }
+        if (now.isAfter(activity.getEndAt())) {
+            throw new IllegalStateException("活动已过期");
         }
 
         boolean participated = false;

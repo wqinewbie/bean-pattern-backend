@@ -20,9 +20,12 @@ public interface BpDraftMapper {
     @Update("""
             UPDATE bp_draft SET
                 name=#{name},
+                source_type=#{sourceType},
                 brand=#{brand},
                 color_count=#{colorCount},
                 grid_size=#{gridSize},
+                box_id=#{boxId},
+                expires_at=#{expiresAt},
                 mapped_pixel_data=#{mappedPixelData},
                 updated_at=CURRENT_TIMESTAMP
             WHERE id=#{id}

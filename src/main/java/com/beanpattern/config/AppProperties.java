@@ -75,11 +75,14 @@ public class AppProperties {
     public static class Wechat {
         private String appId;
         private String appSecret;
+        private String reviewTaskResultTemplateId;
 
         public String getAppId() { return appId; }
         public void setAppId(String appId) { this.appId = appId; }
         public String getAppSecret() { return appSecret; }
         public void setAppSecret(String appSecret) { this.appSecret = appSecret; }
+        public String getReviewTaskResultTemplateId() { return reviewTaskResultTemplateId; }
+        public void setReviewTaskResultTemplateId(String reviewTaskResultTemplateId) { this.reviewTaskResultTemplateId = reviewTaskResultTemplateId; }
     }
 
     public static class Ai {

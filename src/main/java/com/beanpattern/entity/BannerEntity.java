@@ -1,8 +1,10 @@
 package com.beanpattern.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 
 public class BannerEntity {
+    private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
     private Long id;
     private String title;
     private String subTitle;
@@ -15,9 +17,13 @@ public class BannerEntity {
     private String bgColor;
     private Integer sortOrder;
     private Integer status;
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime startAt;
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime endAt;
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime createdAt;
+    @JsonFormat(pattern = DATE_TIME_PATTERN)
     private LocalDateTime updatedAt;
 
     public Long getId() { return id; }

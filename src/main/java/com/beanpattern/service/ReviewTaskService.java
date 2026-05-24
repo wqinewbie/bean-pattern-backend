@@ -20,13 +20,19 @@ public class ReviewTaskService {
     private final ReviewTaskSubmissionMapper reviewTaskSubmissionMapper;
     private final TaskConfigMapper taskConfigMapper;
     private final TaskRewardService taskRewardService;
+    private final NotificationService notificationService;
+    private final WechatSubscribeMessageService wechatSubscribeMessageService;
 
     public ReviewTaskService(ReviewTaskSubmissionMapper reviewTaskSubmissionMapper,
                              TaskConfigMapper taskConfigMapper,
-                             TaskRewardService taskRewardService) {
+                             TaskRewardService taskRewardService,
+                             NotificationService notificationService,
+                             WechatSubscribeMessageService wechatSubscribeMessageService) {
         this.reviewTaskSubmissionMapper = reviewTaskSubmissionMapper;
         this.taskConfigMapper = taskConfigMapper;
         this.taskRewardService = taskRewardService;
+        this.notificationService = notificationService;
+        this.wechatSubscribeMessageService = wechatSubscribeMessageService;
     }
 
     public ReviewTaskSubmission getLatestSubmission(Long userId, String taskCode) {
@@ -81,6 +87,10 @@ public class ReviewTaskService {
             if (config != null) {
                 taskRewardService.grantTaskPackage(submission.getUserId(), config, "REVIEW_TASK");
             }
+        } else if (status == 2) {
+            String remark = StringUtils.hasText(reviewRemark) ? reviewRemark : "未通过";
+            notificationService.createReviewTaskResultNotification(submission.getUserId(), submission.getTaskCode(), "驳回", remark);
+            wechatSubscribeMessageService.sendReviewTaskResult(submission.getUserId(), submission.getTaskCode(), "驳回", remark);
         }
         return reviewTaskSubmissionMapper.findById(submissionId);
     }

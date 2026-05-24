@@ -53,6 +53,7 @@ public class AdminBoxController {
             m.put("gridSize", box.getGridSize() != null ? box.getGridSize() : 0);
             m.put("coverUrl", box.getCoverUrl() != null ? box.getCoverUrl() : "");
             m.put("sourceUrl", box.getSourceUrl() != null ? box.getSourceUrl() : "");
+            m.put("mappedPixelData", box.getMappedPixelData() != null ? box.getMappedPixelData() : "");
             m.put("createdAt", box.getCreatedAt() != null ? box.getCreatedAt().toString() : "");
             return m;
         }).collect(Collectors.toList());
@@ -119,6 +120,7 @@ public class AdminBoxController {
             m.put("brand", draft.getBrand() != null ? draft.getBrand() : "");
             m.put("colorCount", draft.getColorCount() != null ? draft.getColorCount() : 0);
             m.put("gridSize", draft.getGridSize() != null ? draft.getGridSize() : 0);
+            m.put("mappedPixelData", draft.getMappedPixelData() != null ? draft.getMappedPixelData() : "");
             m.put("createdAt", draft.getCreatedAt() != null ? draft.getCreatedAt().toString() : "");
             m.put("updatedAt", draft.getUpdatedAt() != null ? draft.getUpdatedAt().toString() : "");
             return m;
@@ -187,6 +189,7 @@ public class AdminBoxController {
             m.put("gridSize", h.getGridSize() != null ? h.getGridSize() : 0);
             m.put("sourceUrl", h.getSourceUrl() != null ? h.getSourceUrl() : "");
             m.put("boxId", h.getBoxId());
+            m.put("mappedPixelData", h.getMappedPixelData() != null ? h.getMappedPixelData() : "");
             m.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : "");
             m.put("expiresAt", h.getExpiresAt() != null ? h.getExpiresAt().toString() : "");
             return m;
@@ -202,6 +205,28 @@ public class AdminBoxController {
         }
 
         return ApiResponse.ok(Map.of("list", result, "total", total));
+    }
+
+    @GetMapping("/user-history/{id}")
+    public ApiResponse<Map<String, Object>> historyDetail(@PathVariable Long id) {
+        var h = bpHistoryMapper.findById(id);
+        if (h == null) return ApiResponse.fail("record not found");
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", h.getId());
+        m.put("userId", h.getUserId());
+        var user = userMapper.findById(h.getUserId());
+        m.put("userName", user != null ? user.getNickName() : "User#" + h.getUserId());
+        m.put("name", h.getName() != null ? h.getName() : "");
+        m.put("sourceType", h.getSourceType() != null ? h.getSourceType() : "");
+        m.put("brand", h.getBrand() != null ? h.getBrand() : "");
+        m.put("colorCount", h.getColorCount() != null ? h.getColorCount() : 0);
+        m.put("gridSize", h.getGridSize() != null ? h.getGridSize() : 0);
+        m.put("sourceUrl", h.getSourceUrl() != null ? h.getSourceUrl() : "");
+        m.put("boxId", h.getBoxId());
+        m.put("mappedPixelData", h.getMappedPixelData() != null ? h.getMappedPixelData() : "");
+        m.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : "");
+        m.put("expiresAt", h.getExpiresAt() != null ? h.getExpiresAt().toString() : "");
+        return ApiResponse.ok(m);
     }
 
     @DeleteMapping("/user-history/{id}")

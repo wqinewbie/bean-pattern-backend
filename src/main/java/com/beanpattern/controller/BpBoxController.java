@@ -41,7 +41,7 @@ public class BpBoxController {
      * 保存图纸到图纸箱
      */
     @PostMapping("/save")
-    public ApiResponse<BpBox> save(@Valid @RequestBody BpBox box, HttpServletRequest request) {
+    public ApiResponse<java.util.Map<String, Object>> save(@Valid @RequestBody BpBox box, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
@@ -72,8 +72,16 @@ public class BpBoxController {
             }
         }
         System.out.println("保存后的图纸ID: " + box.getId());
-        
-        return ApiResponse.ok(box);
+
+        PrivilegeService.LimitStatus afterStatus = privilegeService.getPatternBoxLimitStatus(user.getId());
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("id", box.getId());
+        result.put("box", box);
+        result.put("capacityFull", !afterStatus.canAdd());
+        result.put("capacityCurrent", afterStatus.current());
+        result.put("capacityLimit", afterStatus.limit());
+        result.put("capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）");
+        return ApiResponse.ok(result);
     }
 
     /**
@@ -160,16 +168,18 @@ public class BpBoxController {
      * 更新图纸信息（名称等）
      */
     @PutMapping("/update")
-    public ApiResponse<Void> update(@Valid @RequestBody BpBox box, HttpServletRequest request) {
+    public ApiResponse<Void> update(@RequestBody BpBox box, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
+        if (box.getId() == null) return ApiResponse.fail("id 不能为空");
+        if (box.getName() == null || box.getName().trim().isEmpty()) return ApiResponse.fail("name 不能为空");
 
         BpBox existing = bpBoxService.getById(box.getId());
         if (existing == null) return ApiResponse.fail("图纸不存在");
         if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
         // 只更新名称，避免传输大量 mappedPixelData
-        bpBoxService.updateName(box.getId(), box.getName());
+        bpBoxService.updateName(box.getId(), box.getName().trim());
         return ApiResponse.ok(null);
     }
 

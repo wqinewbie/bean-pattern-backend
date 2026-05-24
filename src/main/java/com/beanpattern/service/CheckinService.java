@@ -250,6 +250,9 @@ public class CheckinService {
     public Map<String, Object> claimReward(Long userId) {
         LocalDate today = LocalDate.now();
         CheckinConfig config = getActiveConfig();
+        if (!Boolean.TRUE.equals(config.getIsActive())) {
+            throw new IllegalStateException("签到暂未开启");
+        }
         String todaySource = CHECKIN_SOURCE + ":" + today;
 
         // 检查今天是否已领取（通过 bp_user_gift 记录判断）

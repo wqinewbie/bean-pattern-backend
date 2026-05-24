@@ -152,7 +152,8 @@ public class BpHistoryController {
         if (history.getBoxId() != null) {
             return ApiResponse.ok(Map.of(
                     "boxId", history.getBoxId(),
-                    "message", "已保存到图纸箱"
+                    "message", "已保存到图纸箱",
+                    "alreadySaved", true
             ));
         }
         PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
@@ -180,9 +181,15 @@ public class BpHistoryController {
         // 更新时光机关联
         bpHistoryService.linkBoxId(historyId, box.getId());
 
+        PrivilegeService.LimitStatus afterStatus = privilegeService.getPatternBoxLimitStatus(user.getId());
         return ApiResponse.ok(Map.of(
                 "boxId", box.getId(),
-                "message", "已保存到图纸箱"
+                "message", "已保存到图纸箱",
+                "alreadySaved", false,
+                "capacityFull", !afterStatus.canAdd(),
+                "capacityCurrent", afterStatus.current(),
+                "capacityLimit", afterStatus.limit(),
+                "capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）"
         ));
     }
 }

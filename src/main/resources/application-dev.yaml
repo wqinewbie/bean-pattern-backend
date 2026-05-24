@@ -40,6 +40,7 @@ app:
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
+    review-task-result-template-id: ${WECHAT_REVIEW_TASK_RESULT_TEMPLATE_ID:}
 
   ai:
     api-url: ${AI_API_URL:}

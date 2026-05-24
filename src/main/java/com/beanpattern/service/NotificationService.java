@@ -217,6 +217,31 @@ public class NotificationService {
         return notification;
     }
 
+    @Transactional
+    public UserNotification createReviewTaskResultNotification(Long userId, String taskCode, String resultText, String remark) {
+        NotificationTemplate template = notificationTemplateService.getByCode("review_task_result");
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("taskCode", taskCode == null ? "" : taskCode);
+        variables.put("result", resultText == null ? "" : resultText);
+        variables.put("remark", remark == null ? "" : remark);
+        if (template != null && template.getIsActive()) {
+            return createNotificationFromTemplate(userId, template, variables);
+        }
+
+        UserNotification notification = UserNotification.builder()
+                .userId(userId)
+                .type("review_task")
+                .templateCode("review_task_result")
+                .title("任务审核结果通知")
+                .content("您的任务审核结果：" + variables.get("result") + (remark == null || remark.isBlank() ? "" : "，原因：" + remark))
+                .icon("📩")
+                .actionType("NONE")
+                .isRead(false)
+                .build();
+        notificationMapper.insert(notification);
+        return notification;
+    }
+
     /**
      * 从模板创建通知（通用方法）
      */

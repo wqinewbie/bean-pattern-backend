@@ -168,6 +168,7 @@ public class OrderService {
             UserGift coupon = validateAndGetCoupon(userId, couponId, "VIP_COUPON");
             finalPrice = applyDiscount(finalPrice, coupon.getValue());
         }
+        finalPrice = requirePayableAmount(finalPrice);
 
         // 生成订单号
         String orderNo = generateOrderNo();
@@ -248,6 +249,7 @@ public class OrderService {
             UserGift coupon = validateAndGetCoupon(userId, couponId, "CARD_COUPON", "VIP_CARD_COUPON");
             finalPrice = applyDiscount(finalPrice, coupon.getValue());
         }
+        finalPrice = requirePayableAmount(finalPrice);
 
         // 生成订单号
         String orderNo = generateOrderNo();
@@ -320,6 +322,17 @@ public class OrderService {
         return originalPrice.multiply(discount).setScale(2, RoundingMode.HALF_UP);
     }
 
+    private BigDecimal requirePayableAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("订单金额必须大于0");
+        }
+        try {
+            return amount.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException("订单金额最多支持两位小数");
+        }
+    }
+
     private String resolveMidasProductId(String midasProductId, String packageCode) {
         if (midasProductId != null && !midasProductId.isBlank()) {
             return midasProductId;
@@ -341,6 +354,8 @@ public class OrderService {
             deliverCard(order);
         } else if ("gift".equals(productType)) {
             deliverGift(order);
+        } else {
+            throw new IllegalArgumentException("不支持的商品类型: " + productType);
         }
     }
 
@@ -356,6 +371,9 @@ public class OrderService {
 
         // 获取用户当前会员到期时间
         UserEntity user = userMapper.findById(order.getUserId());
+        if (user == null) {
+            throw new IllegalArgumentException("用户不存在");
+        }
         LocalDateTime currentExpireAt = user.getVipExpireAt();
         LocalDateTime now = LocalDateTime.now();
 

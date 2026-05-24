@@ -41,7 +41,7 @@ public class BpDraftController {
      * 保存草稿（新建或更新）
      */
     @PostMapping("/save")
-    public ApiResponse<BpDraft> save(@RequestBody BpDraft draft, HttpServletRequest request) {
+    public ApiResponse<Map<String, Object>> save(@RequestBody BpDraft draft, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
@@ -49,6 +49,9 @@ public class BpDraftController {
             BpDraft existing = bpDraftService.getById(draft.getId());
             if (existing == null) return ApiResponse.fail("草稿不存在");
             if (!existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权操作");
+            if (draft.getSourceType() == null) draft.setSourceType(existing.getSourceType());
+            if (draft.getBoxId() == null) draft.setBoxId(existing.getBoxId());
+            if (draft.getExpiresAt() == null) draft.setExpiresAt(existing.getExpiresAt());
         } else {
             PrivilegeService.LimitStatus status = privilegeService.getDraftBoxLimitStatus(user.getId());
             if (!status.canAdd()) {
@@ -58,7 +61,15 @@ public class BpDraftController {
 
         draft.setUserId(user.getId());
         bpDraftService.save(draft);
-        return ApiResponse.ok(draft);
+        PrivilegeService.LimitStatus afterStatus = privilegeService.getDraftBoxLimitStatus(user.getId());
+        return ApiResponse.ok(Map.of(
+                "id", draft.getId(),
+                "draft", draft,
+                "capacityFull", !afterStatus.canAdd(),
+                "capacityCurrent", afterStatus.current(),
+                "capacityLimit", afterStatus.limit(),
+                "capacityMessage", "草稿箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）"
+        ));
     }
 
     /**
@@ -173,7 +184,8 @@ public class BpDraftController {
         if (draft.getBoxId() != null) {
             return ApiResponse.ok(Map.of(
                     "boxId", draft.getBoxId(),
-                    "message", "已保存到图纸箱"
+                    "message", "已保存到图纸箱",
+                    "alreadySaved", true
             ));
         }
         PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
@@ -208,7 +220,10 @@ public class BpDraftController {
 
         return ApiResponse.ok(Map.of(
                 "boxId", box.getId(),
-                "message", "已保存到图纸箱"
+                "message", "已保存到图纸箱",
+                "alreadySaved", false,
+                "capacityFull", !privilegeService.getPatternBoxLimitStatus(user.getId()).canAdd(),
+                "capacityMessage", "图纸箱容量已满"
         ));
     }
 }

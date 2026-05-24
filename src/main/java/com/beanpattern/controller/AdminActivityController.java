@@ -118,6 +118,18 @@ public class AdminActivityController {
         if ("CLAIM".equals(activity.getButtonAction()) && !"GIFT".equals(activity.getActivityType())) {
             throw new IllegalArgumentException("领取按钮只能用于已绑定礼品包的礼品活动");
         }
+        String buttonAction = activity.getButtonAction();
+        if ("EXTERNAL".equals(buttonAction)) {
+            throw new IllegalArgumentException("活动跳转URL仅支持小程序内部页面路径");
+        }
+        if ("JUMP".equals(buttonAction) || "NAVIGATE".equals(buttonAction)) {
+            if (!StringUtils.hasText(activity.getButtonUrl())) {
+                throw new IllegalArgumentException("活动跳转URL不能为空");
+            }
+            if (!activity.getButtonUrl().startsWith("/pages/")) {
+                throw new IllegalArgumentException("活动跳转URL仅支持小程序内部页面路径");
+            }
+        }
     }
 
     private String normalizeJson(String value, String fieldName) {

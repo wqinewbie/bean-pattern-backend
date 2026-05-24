@@ -6,6 +6,7 @@ import com.beanpattern.mapper.OrderMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,6 +96,7 @@ public class CardPackageService {
      */
     @Transactional
     public CardPackage create(CardPackage cardPackage) {
+        normalize(cardPackage);
         // 检查套餐代码是否已存在
         CardPackage existing = cardPackageMapper.findByCode(cardPackage.getPackageCode());
         if (existing != null) {
@@ -110,6 +112,7 @@ public class CardPackageService {
      */
     @Transactional
     public CardPackage update(CardPackage cardPackage) {
+        normalize(cardPackage);
         CardPackage existing = cardPackageMapper.findById(cardPackage.getId());
         if (existing == null) {
             throw new IllegalArgumentException("套餐不存在");
@@ -149,5 +152,43 @@ public class CardPackageService {
             throw new IllegalArgumentException("套餐不存在");
         }
         cardPackageMapper.deleteById(id);
+    }
+
+    private void normalize(CardPackage cardPackage) {
+        if (cardPackage == null) {
+            throw new IllegalArgumentException("套餐不能为空");
+        }
+        if (cardPackage.getPackageCode() == null || cardPackage.getPackageCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("套餐代码不能为空");
+        }
+        if (cardPackage.getPackageName() == null || cardPackage.getPackageName().trim().isEmpty()) {
+            throw new IllegalArgumentException("套餐名称不能为空");
+        }
+        cardPackage.setPackageCode(cardPackage.getPackageCode().trim());
+        cardPackage.setPackageName(cardPackage.getPackageName().trim());
+        if (cardPackage.getAiQuota() == null || cardPackage.getAiQuota() <= 0) {
+            cardPackage.setAiQuota(1);
+        }
+        if (cardPackage.getPrice() == null) {
+            cardPackage.setPrice(BigDecimal.ZERO);
+        }
+        if (cardPackage.getOriginalPrice() == null) {
+            cardPackage.setOriginalPrice(cardPackage.getPrice());
+        }
+        if (cardPackage.getVipPrice() != null && cardPackage.getVipPrice().compareTo(BigDecimal.ZERO) < 0) {
+            cardPackage.setVipPrice(null);
+        }
+        if (cardPackage.getSortOrder() == null) {
+            cardPackage.setSortOrder(0);
+        }
+        if (cardPackage.getIsActive() == null) {
+            cardPackage.setIsActive(true);
+        }
+        if (cardPackage.getVipOnly() == null) {
+            cardPackage.setVipOnly(false);
+        }
+        if (cardPackage.getPurchaseLimit() != null && cardPackage.getPurchaseLimit() <= 0) {
+            cardPackage.setPurchaseLimit(null);
+        }
     }
 }

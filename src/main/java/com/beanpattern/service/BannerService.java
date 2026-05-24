@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,6 +46,12 @@ public class BannerService {
         if (!"CLAIM_GIFT".equals(banner.getActionType())) {
             throw new IllegalArgumentException("该Banner不支持领取礼品");
         }
+        LocalDateTime nowDateTime = LocalDateTime.now();
+        if (banner.getStatus() == null || banner.getStatus() != 1
+                || (banner.getStartAt() != null && nowDateTime.isBefore(banner.getStartAt()))
+                || (banner.getEndAt() != null && nowDateTime.isAfter(banner.getEndAt()))) {
+            throw new IllegalStateException("活动已过期");
+        }
 
         try {
             JsonNode config = objectMapper.readTree(banner.getActionConfig());
@@ -55,7 +62,7 @@ public class BannerService {
             if ("ONCE".equals(limit)) {
                 int count = claimLogMapper.countByUserAndBanner(userId, bannerCode);
                 if (count > 0) {
-                    throw new IllegalStateException("您已领取过该礼品");
+                    throw new IllegalStateException("已经参加过了哟");
                 }
             } else if ("DAILY".equals(limit)) {
                 int count = claimLogMapper.countByUserAndBannerAndDate(userId, bannerCode, today);
