@@ -76,6 +76,9 @@ public class SchemaUpgrader implements ApplicationRunner {
         createReviewTaskSubmissionTable(db);
         createUserInviteRelationTable(db);
         createWatermarkTables(db);
+        createAiMagicStyleTable(db);
+        ensureCommercePackageTables(db);
+        ensurePopupConfigTable(db);
         createSysDictTable(db);
         seedSysDictItems();
         enforceBannerUtf8mb4();
@@ -270,7 +273,150 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "UNIQUE KEY uk_user_id(user_id)" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='用户水印配置表（VIP功能）'");
 
+        addColumn(db, "bp_watermark_config", "app_name", "ALTER TABLE `bp_watermark_config` ADD COLUMN `app_name` VARCHAR(128) NOT NULL DEFAULT 'PinBean' AFTER `id`");
+        addColumn(db, "bp_watermark_config", "default_text", "ALTER TABLE `bp_watermark_config` ADD COLUMN `default_text` VARCHAR(128) NOT NULL DEFAULT 'PinBean' AFTER `app_name`");
+        addColumn(db, "bp_watermark_config", "font_size", "ALTER TABLE `bp_watermark_config` ADD COLUMN `font_size` INT NOT NULL DEFAULT 24 AFTER `default_text`");
+        addColumn(db, "bp_watermark_config", "color", "ALTER TABLE `bp_watermark_config` ADD COLUMN `color` VARCHAR(64) NOT NULL DEFAULT 'rgba(100,100,100,0.25)' AFTER `font_size`");
+        addColumn(db, "bp_watermark_config", "angle", "ALTER TABLE `bp_watermark_config` ADD COLUMN `angle` INT NOT NULL DEFAULT -30 AFTER `color`");
+        addColumn(db, "bp_watermark_config", "spacing_x_ratio", "ALTER TABLE `bp_watermark_config` ADD COLUMN `spacing_x_ratio` DECIMAL(5,2) NOT NULL DEFAULT 0.22 AFTER `angle`");
+        addColumn(db, "bp_watermark_config", "spacing_y_ratio", "ALTER TABLE `bp_watermark_config` ADD COLUMN `spacing_y_ratio` DECIMAL(5,2) NOT NULL DEFAULT 0.18 AFTER `spacing_x_ratio`");
+        addColumn(db, "bp_watermark_config", "opacity", "ALTER TABLE `bp_watermark_config` ADD COLUMN `opacity` DECIMAL(5,2) NOT NULL DEFAULT 0.25 AFTER `spacing_y_ratio`");
+        addColumn(db, "bp_watermark_config", "created_at", "ALTER TABLE `bp_watermark_config` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `opacity`");
+        addColumn(db, "bp_watermark_config", "updated_at", "ALTER TABLE `bp_watermark_config` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+
+        addColumn(db, "bp_user_watermark_config", "user_id", "ALTER TABLE `bp_user_watermark_config` ADD COLUMN `user_id` BIGINT NOT NULL AFTER `id`");
+        addColumn(db, "bp_user_watermark_config", "enabled", "ALTER TABLE `bp_user_watermark_config` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `user_id`");
+        addColumn(db, "bp_user_watermark_config", "custom_text", "ALTER TABLE `bp_user_watermark_config` ADD COLUMN `custom_text` VARCHAR(128) NULL AFTER `enabled`");
+        addColumn(db, "bp_user_watermark_config", "created_at", "ALTER TABLE `bp_user_watermark_config` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `custom_text`");
+        addColumn(db, "bp_user_watermark_config", "updated_at", "ALTER TABLE `bp_user_watermark_config` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+
         seedWatermarkConfig();
+    }
+
+    private void createAiMagicStyleTable(String db) {
+        createTableIfNotExists(db, "bp_ai_magic_style",
+                "CREATE TABLE bp_ai_magic_style (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "name VARCHAR(64) NOT NULL," +
+                        "icon VARCHAR(512) NULL," +
+                        "tag VARCHAR(64) NULL," +
+                        "description VARCHAR(256) NULL," +
+                        "prompt_template VARCHAR(512) NULL," +
+                        "sort_order INT NOT NULL DEFAULT 0," +
+                        "enabled TINYINT(1) NOT NULL DEFAULT 1," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "KEY idx_enabled_sort(enabled, sort_order)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='AI magic style config'");
+        addColumn(db, "bp_ai_magic_style", "icon", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `icon` VARCHAR(512) NULL AFTER `name`");
+        addColumn(db, "bp_ai_magic_style", "tag", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `tag` VARCHAR(64) NULL AFTER `icon`");
+        addColumn(db, "bp_ai_magic_style", "description", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `description` VARCHAR(256) NULL AFTER `tag`");
+        addColumn(db, "bp_ai_magic_style", "prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `prompt_template` VARCHAR(512) NULL AFTER `description`");
+        addColumn(db, "bp_ai_magic_style", "sort_order", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0 AFTER `prompt_template`");
+        addColumn(db, "bp_ai_magic_style", "enabled", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`");
+        addColumn(db, "bp_ai_magic_style", "created_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `enabled`");
+        addColumn(db, "bp_ai_magic_style", "updated_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+        copyLegacyAiMagicStyles(db);
+    }
+
+    private void copyLegacyAiMagicStyles(String db) {
+        try {
+            Integer legacyCount = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME='ai_magic_style'",
+                    Integer.class, db);
+            if (legacyCount == null || legacyCount == 0) return;
+            jdbc.execute("INSERT IGNORE INTO bp_ai_magic_style(id, name, icon, tag, description, prompt_template, sort_order, enabled, created_at, updated_at) " +
+                    "SELECT id, name, icon, tag, description, prompt_template, COALESCE(sort_order, 0), COALESCE(enabled, 1), COALESCE(created_at, NOW()), COALESCE(updated_at, NOW()) " +
+                    "FROM ai_magic_style");
+            log.info("[SchemaUpgrader] legacy ai_magic_style copied to bp_ai_magic_style");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] copy legacy ai_magic_style failed: {}", e.getMessage());
+        }
+    }
+
+    private void ensureCommercePackageTables(String db) {
+        createTableIfNotExists(db, "bp_vip_package",
+                "CREATE TABLE bp_vip_package (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "package_code VARCHAR(64) NOT NULL UNIQUE," +
+                        "midas_product_id VARCHAR(128) NULL," +
+                        "package_name VARCHAR(128) NOT NULL," +
+                        "duration_days INT NOT NULL DEFAULT 30," +
+                        "price DECIMAL(10,2) NOT NULL DEFAULT 0," +
+                        "original_price DECIMAL(10,2) NOT NULL DEFAULT 0," +
+                        "ai_quota_gift INT NOT NULL DEFAULT 0," +
+                        "tag VARCHAR(64) NULL," +
+                        "sort_order INT NOT NULL DEFAULT 0," +
+                        "is_active TINYINT(1) NOT NULL DEFAULT 1," +
+                        "purchase_limit INT NULL," +
+                        "shelf_start_time DATETIME NULL," +
+                        "shelf_end_time DATETIME NULL," +
+                        "vip_only TINYINT(1) NOT NULL DEFAULT 0," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='VIP package config'");
+        addColumn(db, "bp_vip_package", "midas_product_id", "ALTER TABLE `bp_vip_package` ADD COLUMN `midas_product_id` VARCHAR(128) NULL AFTER `package_code`");
+        addColumn(db, "bp_vip_package", "purchase_limit", "ALTER TABLE `bp_vip_package` ADD COLUMN `purchase_limit` INT NULL AFTER `is_active`");
+        addColumn(db, "bp_vip_package", "shelf_start_time", "ALTER TABLE `bp_vip_package` ADD COLUMN `shelf_start_time` DATETIME NULL AFTER `purchase_limit`");
+        addColumn(db, "bp_vip_package", "shelf_end_time", "ALTER TABLE `bp_vip_package` ADD COLUMN `shelf_end_time` DATETIME NULL AFTER `shelf_start_time`");
+        addColumn(db, "bp_vip_package", "vip_only", "ALTER TABLE `bp_vip_package` ADD COLUMN `vip_only` TINYINT(1) NOT NULL DEFAULT 0 AFTER `shelf_end_time`");
+
+        createTableIfNotExists(db, "bp_card_package",
+                "CREATE TABLE bp_card_package (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "package_code VARCHAR(64) NOT NULL UNIQUE," +
+                        "midas_product_id VARCHAR(128) NULL," +
+                        "package_name VARCHAR(128) NOT NULL," +
+                        "ai_quota INT NOT NULL DEFAULT 1," +
+                        "price DECIMAL(10,2) NOT NULL DEFAULT 0," +
+                        "original_price DECIMAL(10,2) NOT NULL DEFAULT 0," +
+                        "vip_price DECIMAL(10,2) NULL," +
+                        "tag VARCHAR(64) NULL," +
+                        "sort_order INT NOT NULL DEFAULT 0," +
+                        "is_active TINYINT(1) NOT NULL DEFAULT 1," +
+                        "purchase_limit INT NULL," +
+                        "shelf_start_time DATETIME NULL," +
+                        "shelf_end_time DATETIME NULL," +
+                        "vip_only TINYINT(1) NOT NULL DEFAULT 0," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='Card package config'");
+        addColumn(db, "bp_card_package", "midas_product_id", "ALTER TABLE `bp_card_package` ADD COLUMN `midas_product_id` VARCHAR(128) NULL AFTER `package_code`");
+        addColumn(db, "bp_card_package", "purchase_limit", "ALTER TABLE `bp_card_package` ADD COLUMN `purchase_limit` INT NULL AFTER `is_active`");
+        addColumn(db, "bp_card_package", "shelf_start_time", "ALTER TABLE `bp_card_package` ADD COLUMN `shelf_start_time` DATETIME NULL AFTER `purchase_limit`");
+        addColumn(db, "bp_card_package", "shelf_end_time", "ALTER TABLE `bp_card_package` ADD COLUMN `shelf_end_time` DATETIME NULL AFTER `shelf_start_time`");
+        addColumn(db, "bp_card_package", "vip_only", "ALTER TABLE `bp_card_package` ADD COLUMN `vip_only` TINYINT(1) NOT NULL DEFAULT 0 AFTER `shelf_end_time`");
+    }
+
+    private void ensurePopupConfigTable(String db) {
+        createTableIfNotExists(db, "bp_popup_config",
+                "CREATE TABLE bp_popup_config (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "`key` VARCHAR(64) NOT NULL UNIQUE," +
+                        "title VARCHAR(128) NOT NULL," +
+                        "content TEXT NULL," +
+                        "image_url VARCHAR(1024) NULL," +
+                        "button_text VARCHAR(64) NULL," +
+                        "button_url VARCHAR(512) NULL," +
+                        "priority INT NOT NULL DEFAULT 0," +
+                        "enabled TINYINT(1) NOT NULL DEFAULT 1," +
+                        "start_time DATETIME NULL," +
+                        "end_time DATETIME NULL," +
+                        "show_interval INT NOT NULL DEFAULT 0," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "KEY idx_active_time(enabled, start_time, end_time)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='Popup config'");
+        addColumn(db, "bp_popup_config", "image_url", "ALTER TABLE `bp_popup_config` ADD COLUMN `image_url` VARCHAR(1024) NULL AFTER `content`");
+        addColumn(db, "bp_popup_config", "button_text", "ALTER TABLE `bp_popup_config` ADD COLUMN `button_text` VARCHAR(64) NULL AFTER `image_url`");
+        addColumn(db, "bp_popup_config", "button_url", "ALTER TABLE `bp_popup_config` ADD COLUMN `button_url` VARCHAR(512) NULL AFTER `button_text`");
+        addColumn(db, "bp_popup_config", "priority", "ALTER TABLE `bp_popup_config` ADD COLUMN `priority` INT NOT NULL DEFAULT 0 AFTER `button_url`");
+        addColumn(db, "bp_popup_config", "enabled", "ALTER TABLE `bp_popup_config` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `priority`");
+        addColumn(db, "bp_popup_config", "start_time", "ALTER TABLE `bp_popup_config` ADD COLUMN `start_time` DATETIME NULL AFTER `enabled`");
+        addColumn(db, "bp_popup_config", "end_time", "ALTER TABLE `bp_popup_config` ADD COLUMN `end_time` DATETIME NULL AFTER `start_time`");
+        addColumn(db, "bp_popup_config", "show_interval", "ALTER TABLE `bp_popup_config` ADD COLUMN `show_interval` INT NOT NULL DEFAULT 0 AFTER `end_time`");
+        addColumn(db, "bp_popup_config", "created_at", "ALTER TABLE `bp_popup_config` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `show_interval`");
+        addColumn(db, "bp_popup_config", "updated_at", "ALTER TABLE `bp_popup_config` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
     }
 
     private void seedWatermarkConfig() {
@@ -607,4 +753,3 @@ public class SchemaUpgrader implements ApplicationRunner {
         }
     }
 }
-

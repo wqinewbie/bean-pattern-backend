@@ -183,6 +183,25 @@ public class BpBoxController {
         return ApiResponse.ok(null);
     }
 
+    @PutMapping("/rename")
+    public ApiResponse<Void> rename(@RequestBody java.util.Map<String, Object> body, HttpServletRequest request) {
+        var user = sessionHelper.requireCompleteProfileUser(request);
+        if (user == null) return ApiResponse.fail("璇峰厛鐧诲綍");
+
+        Long id = body.get("id") != null ? ((Number) body.get("id")).longValue() : null;
+        String name = body.get("name") != null ? String.valueOf(body.get("name")) : null;
+
+        if (id == null) return ApiResponse.fail("id 涓嶈兘涓虹┖");
+        if (name == null || name.trim().isEmpty()) return ApiResponse.fail("name 涓嶈兘涓虹┖");
+
+        BpBox existing = bpBoxService.getById(id);
+        if (existing == null) return ApiResponse.fail("鍥剧焊涓嶅瓨鍦?");
+        if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("鏃犳潈淇敼");
+
+        bpBoxService.updateName(id, name.trim());
+        return ApiResponse.ok(null);
+    }
+
     /**
      * POST /api/box/progress
      * 保存沉浸模式进度（V6.0支持新字段）
