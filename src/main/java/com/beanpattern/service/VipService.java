@@ -45,8 +45,8 @@ public class VipService {
      * 获取用户VIP等级
      */
     public int getUserVipLevel(Long userId) {
-        UserVipRecord record = getActiveVipRecord(userId);
-        return record != null ? record.getVipLevel() : 0;
+        UserEntity user = userMapper.findById(userId);
+        return isVipUser(user) ? user.getVipLevel() : 0;
     }
 
     /**
@@ -54,7 +54,16 @@ public class VipService {
      * 标准：存在有效VIP记录（status=1、未过期、vipLevel>0）
      */
     public boolean isVip(Long userId) {
-        return getActiveVipRecord(userId) != null;
+        UserEntity user = userMapper.findById(userId);
+        return isVipUser(user);
+    }
+
+    private boolean isVipUser(UserEntity user) {
+        return user != null
+                && user.getVipLevel() != null
+                && user.getVipLevel() > 0
+                && user.getVipExpireAt() != null
+                && user.getVipExpireAt().isAfter(LocalDateTime.now());
     }
 
     /**
