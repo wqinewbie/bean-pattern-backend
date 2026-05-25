@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+
 /**
  * 社交发帖等审核型任务的任务中心聚合实现。
  */
@@ -57,6 +59,11 @@ public class ReviewTaskHandler implements TaskHandler {
                 progressText = "已提交，待审核";
             } else if (status == 1) {
                 int progressStatus = progress != null && progress.getStatus() != null ? progress.getStatus() : 2;
+                if (progress != null && progressStatus == 2 && isApprovalNewerThanProgress(latest, progress)) {
+                    LocalDateTime completedAt = latest.getReviewedAt() != null ? latest.getReviewedAt() : LocalDateTime.now();
+                    userTaskProgressMapper.updateProgress(progress.getId(), 1, 1, completedAt);
+                    progressStatus = 1;
+                }
                 if (progressStatus == 1) {
                     progressText = "审核通过，待领取奖励";
                     status = 1;
@@ -105,6 +112,15 @@ public class ReviewTaskHandler implements TaskHandler {
                 .done(done)
                 .canClaim(canClaim)
                 .build();
+    }
+
+    private boolean isApprovalNewerThanProgress(ReviewTaskSubmission latest, UserTaskProgress progress) {
+        if (latest == null || latest.getReviewedAt() == null || progress == null) return false;
+        LocalDateTime progressTime = progress.getClaimedAt();
+        if (progressTime == null) progressTime = progress.getCompletedAt();
+        if (progressTime == null) progressTime = progress.getUpdatedAt();
+        if (progressTime == null) progressTime = progress.getCreatedAt();
+        return progressTime == null || latest.getReviewedAt().isAfter(progressTime);
     }
 
     private String readExtraText(TaskConfig config, String field, String defaultValue) {

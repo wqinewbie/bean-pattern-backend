@@ -118,8 +118,6 @@ public class ReviewTaskService {
             progress.setPeriodStart(null);
             userTaskProgressMapper.insert(progress);
         }
-        if (progress.getStatus() == null || progress.getStatus() != 2) {
-            userTaskProgressMapper.updateProgress(progress.getId(), 1, 1, java.time.LocalDateTime.now());
-        }
+        userTaskProgressMapper.updateProgress(progress.getId(), 1, 1, java.time.LocalDateTime.now());
     }
 }
