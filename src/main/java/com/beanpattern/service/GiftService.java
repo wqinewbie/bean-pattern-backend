@@ -10,8 +10,10 @@ import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftTypeMapper;
 import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +31,8 @@ public class GiftService {
     private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final NotificationService notificationService;
+    private final UserMapper userMapper;
+    private final AiQuotaLogService aiQuotaLogService;
 
     public GiftService(GiftTypeMapper giftTypeMapper,
                        GiftTypeConfigMapper giftTypeConfigMapper,
@@ -36,7 +40,9 @@ public class GiftService {
                        UserGiftMapper userGiftMapper,
                        BpUserGiftMapper bpUserGiftMapper,
                        GiftPackageService giftPackageService,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       UserMapper userMapper,
+                       AiQuotaLogService aiQuotaLogService) {
         this.giftTypeMapper = giftTypeMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.giftItemMapper = giftItemMapper;
@@ -44,6 +50,8 @@ public class GiftService {
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.notificationService = notificationService;
+        this.userMapper = userMapper;
+        this.aiQuotaLogService = aiQuotaLogService;
     }
 
     /**
@@ -127,7 +135,9 @@ public class GiftService {
                 giftPackageService.redeemPackageGift(userId, giftId);
                 return true;
             }
-            bpUserGiftMapper.use(giftId, null);
+            int updated = bpUserGiftMapper.use(giftId, null);
+            if (updated <= 0) return false;
+            grantDirectGiftBenefit(userId, newGift);
             // 同步更新旧表
             userGiftMapper.use(giftId);
             return true;
@@ -143,7 +153,9 @@ public class GiftService {
             return true;
         }
 
-        userGiftMapper.use(giftId);
+        int updated = userGiftMapper.use(giftId);
+        if (updated <= 0) return false;
+        grantLegacyGiftBenefit(userId, gift);
         return true;
     }
 
@@ -228,6 +240,45 @@ public class GiftService {
         }
         GiftType type = giftTypeMapper.findById(giftTypeId);
         return type != null ? type.getGiftCategory() : "OTHER";
+    }
+
+    private void grantDirectGiftBenefit(Long userId, BpUserGift gift) {
+        String giftType = normalizeCode(gift.getGiftType());
+        if (!isAiQuotaGift(giftType)) {
+            return;
+        }
+        int amount = gift.getGiftValue() != null ? gift.getGiftValue() : 0;
+        if (amount <= 0) {
+            return;
+        }
+        userMapper.addAiQuota(userId, amount);
+        aiQuotaLogService.logChange(userId, "GIFT", amount,
+                "USER_GIFT", String.valueOf(gift.getId()),
+                StringUtils.hasText(gift.getGiftName()) ? "使用礼品获得AI次数：" + gift.getGiftName() : "使用礼品获得AI次数");
+    }
+
+    private void grantLegacyGiftBenefit(Long userId, UserGift gift) {
+        String giftCode = normalizeCode(gift.getGiftCode());
+        String giftCategory = normalizeCode(gift.getGiftCategory());
+        if (!isAiQuotaGift(giftCode) && !isAiQuotaGift(giftCategory)) {
+            return;
+        }
+        int amount = gift.getValue() != null ? gift.getValue() : 0;
+        if (amount <= 0) {
+            return;
+        }
+        userMapper.addAiQuota(userId, amount);
+        aiQuotaLogService.logChange(userId, "GIFT", amount,
+                "LEGACY_USER_GIFT", String.valueOf(gift.getId()),
+                StringUtils.hasText(gift.getGiftName()) ? "使用礼品获得AI次数：" + gift.getGiftName() : "使用礼品获得AI次数");
+    }
+
+    private boolean isAiQuotaGift(String type) {
+        return "AI_QUOTA".equals(type) || "AI_COUNT".equals(type) || "AI_TIMES".equals(type);
+    }
+
+    private String normalizeCode(String code) {
+        return code == null ? "" : code.trim().toUpperCase();
     }
 
     private void fillUsageHint(UserGift gift) {
