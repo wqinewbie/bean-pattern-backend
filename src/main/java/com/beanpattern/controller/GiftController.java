@@ -3,6 +3,8 @@ package com.beanpattern.controller;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.GiftItem;
 import com.beanpattern.entity.GiftType;
+import com.beanpattern.entity.UserEntity;
+import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.vo.GiftVO;
 import com.beanpattern.service.GiftService;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -26,10 +30,12 @@ public class GiftController {
 
     private final SessionHelper sessionHelper;
     private final GiftService giftService;
+    private final UserMapper userMapper;
 
-    public GiftController(SessionHelper sessionHelper, GiftService giftService) {
+    public GiftController(SessionHelper sessionHelper, GiftService giftService, UserMapper userMapper) {
         this.giftService = giftService;
         this.sessionHelper = sessionHelper;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -92,8 +98,8 @@ public class GiftController {
      * 使用礼品
      */
     @PostMapping("/use")
-    public ApiResponse<String> useGift(@RequestBody Map<String, Object> body,
-                                       HttpServletRequest request) {
+    public ApiResponse<Map<String, Object>> useGift(@RequestBody Map<String, Object> body,
+                                                    HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
         Long giftId = toLong(body.get("giftId"));
         if (giftId == null) {
@@ -103,10 +109,22 @@ public class GiftController {
         boolean redeemNow = Boolean.TRUE.equals(body.get("redeemNow"));
         boolean success = giftService.useGift(user.getId(), giftId, redeemNow);
         if (success) {
-            return ApiResponse.ok(redeemNow ? "兑换成功" : "使用成功");
+            UserEntity latestUser = userMapper.findById(user.getId());
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", redeemNow ? "兑换成功" : "使用成功");
+            result.put("user", buildUserBenefitSnapshot(latestUser));
+            return ApiResponse.ok(result);
         } else {
             return ApiResponse.fail(redeemNow ? "兑换失败" : "使用失败");
         }
+    }
+
+    private Map<String, Object> buildUserBenefitSnapshot(UserEntity user) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("aiQuota", user != null && user.getAiQuota() != null ? user.getAiQuota() : 0);
+        snapshot.put("vipLevel", user != null && user.getVipLevel() != null ? user.getVipLevel() : 0);
+        snapshot.put("vipExpireAt", user != null && user.getVipExpireAt() != null ? user.getVipExpireAt().toString() : null);
+        return snapshot;
     }
 
     private Long toLong(Object value) {
