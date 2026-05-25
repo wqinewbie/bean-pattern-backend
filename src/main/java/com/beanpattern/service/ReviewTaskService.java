@@ -2,9 +2,10 @@ package com.beanpattern.service;
 
 import com.beanpattern.entity.ReviewTaskSubmission;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.UserTaskProgress;
 import com.beanpattern.mapper.ReviewTaskSubmissionMapper;
 import com.beanpattern.mapper.TaskConfigMapper;
+import com.beanpattern.mapper.UserTaskProgressMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -19,18 +20,18 @@ public class ReviewTaskService {
 
     private final ReviewTaskSubmissionMapper reviewTaskSubmissionMapper;
     private final TaskConfigMapper taskConfigMapper;
-    private final TaskRewardService taskRewardService;
+    private final UserTaskProgressMapper userTaskProgressMapper;
     private final NotificationService notificationService;
     private final WechatSubscribeMessageService wechatSubscribeMessageService;
 
     public ReviewTaskService(ReviewTaskSubmissionMapper reviewTaskSubmissionMapper,
                              TaskConfigMapper taskConfigMapper,
-                             TaskRewardService taskRewardService,
+                             UserTaskProgressMapper userTaskProgressMapper,
                              NotificationService notificationService,
                              WechatSubscribeMessageService wechatSubscribeMessageService) {
         this.reviewTaskSubmissionMapper = reviewTaskSubmissionMapper;
         this.taskConfigMapper = taskConfigMapper;
-        this.taskRewardService = taskRewardService;
+        this.userTaskProgressMapper = userTaskProgressMapper;
         this.notificationService = notificationService;
         this.wechatSubscribeMessageService = wechatSubscribeMessageService;
     }
@@ -85,7 +86,7 @@ public class ReviewTaskService {
         if (status == 1) {
             TaskConfig config = taskConfigMapper.findByCode(submission.getTaskCode());
             if (config != null) {
-                taskRewardService.grantTaskPackage(submission.getUserId(), config, "REVIEW_TASK");
+                markPendingClaim(submission.getUserId(), config);
             }
         } else if (status == 2) {
             String remark = StringUtils.hasText(reviewRemark) ? reviewRemark : "未通过";
@@ -98,5 +99,27 @@ public class ReviewTaskService {
     private boolean isReviewTask(TaskConfig config) {
         String extra = config.getExtraConfig();
         return extra != null && extra.contains("REVIEW_TASK");
+    }
+
+    private void markPendingClaim(Long userId, TaskConfig config) {
+        UserTaskProgress progress = userTaskProgressMapper.findByUserAndTaskCodeAndPeriod(
+                userId,
+                config.getTaskCode(),
+                null
+        );
+        if (progress == null) {
+            progress = new UserTaskProgress();
+            progress.setUserId(userId);
+            progress.setTaskId(config.getId());
+            progress.setTaskCode(config.getTaskCode());
+            progress.setCurrentCount(1);
+            progress.setTargetCount(1);
+            progress.setStatus(1);
+            progress.setPeriodStart(null);
+            userTaskProgressMapper.insert(progress);
+        }
+        if (progress.getStatus() == null || progress.getStatus() != 2) {
+            userTaskProgressMapper.updateProgress(progress.getId(), 1, 1, java.time.LocalDateTime.now());
+        }
     }
 }

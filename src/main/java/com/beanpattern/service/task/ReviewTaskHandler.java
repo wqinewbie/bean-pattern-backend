@@ -4,6 +4,8 @@ import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.ReviewTaskSubmission;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
+import com.beanpattern.entity.UserTaskProgress;
+import com.beanpattern.mapper.UserTaskProgressMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.ReviewTaskService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,11 +21,15 @@ public class ReviewTaskHandler implements TaskHandler {
 
     private final ReviewTaskService reviewTaskService;
     private final GiftPackageService giftPackageService;
+    private final UserTaskProgressMapper userTaskProgressMapper;
     private final ObjectMapper objectMapper;
 
-    public ReviewTaskHandler(ReviewTaskService reviewTaskService, GiftPackageService giftPackageService) {
+    public ReviewTaskHandler(ReviewTaskService reviewTaskService,
+                             GiftPackageService giftPackageService,
+                             UserTaskProgressMapper userTaskProgressMapper) {
         this.reviewTaskService = reviewTaskService;
         this.giftPackageService = giftPackageService;
+        this.userTaskProgressMapper = userTaskProgressMapper;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -38,17 +44,32 @@ public class ReviewTaskHandler implements TaskHandler {
     @Override
     public TaskCenterItem buildTaskItem(Long userId, TaskConfig config) {
         ReviewTaskSubmission latest = reviewTaskService.getLatestSubmission(userId, config.getTaskCode());
+        UserTaskProgress progress = userTaskProgressMapper.findByUserAndTaskCodeAndPeriod(userId, config.getTaskCode(), null);
         boolean repeatable = "UNLIMITED".equals(config.getTaskType());
         int status = 0;
         String progressText = "提交内容后进入人工审核";
+        boolean canClaim = false;
+        boolean done = false;
 
         if (latest != null && latest.getStatus() != null) {
             status = latest.getStatus();
             if (status == 0) {
                 progressText = "已提交，待审核";
             } else if (status == 1) {
-                progressText = repeatable ? "审核通过，奖励已发放，可继续提交" : "审核通过，奖励已发放";
-                status = repeatable ? 0 : 2;
+                int progressStatus = progress != null && progress.getStatus() != null ? progress.getStatus() : 2;
+                if (progressStatus == 1) {
+                    progressText = "审核通过，待领取奖励";
+                    status = 1;
+                    canClaim = true;
+                } else if (progressStatus == 2) {
+                    progressText = repeatable ? "审核通过，奖励已领取，可继续提交" : "审核通过，奖励已领取";
+                    status = repeatable ? 0 : 2;
+                    done = !repeatable;
+                } else {
+                    progressText = "审核通过，待领取奖励";
+                    status = 1;
+                    canClaim = true;
+                }
             } else if (status == 2) {
                 progressText = StringUtils.hasText(latest.getReviewRemark())
                         ? "审核驳回：" + latest.getReviewRemark()
@@ -80,9 +101,9 @@ public class ReviewTaskHandler implements TaskHandler {
                 .status(status)
                 .currentCount(latest != null ? 1 : 0)
                 .targetCount(1)
-                .progressId(latest != null ? latest.getId() : null)
-                .done(!repeatable && latest != null && latest.getStatus() != null && latest.getStatus() == 1)
-                .canClaim(false)
+                .progressId(progress != null ? progress.getId() : null)
+                .done(done)
+                .canClaim(canClaim)
                 .build();
     }
 

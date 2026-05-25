@@ -185,12 +185,12 @@ public class TaskService {
         if (config == null) {
             throw new IllegalArgumentException("Task config not found");
         }
-        if (!isGenericProgressTask(config)) {
+        if (!isGenericProgressTask(config) && !isReviewTask(config)) {
             throw new IllegalArgumentException("该任务奖励需通过对应业务接口领取");
         }
 
         userTaskProgressMapper.claim(progressId);
-        return taskRewardService.grantTaskPackage(userId, config, "TASK");
+        return taskRewardService.grantTaskPackage(userId, config, isReviewTask(config) ? "REVIEW_TASK" : "TASK");
     }
 
     /**
@@ -303,6 +303,11 @@ public class TaskService {
     private boolean isGenericProgressTask(TaskConfig config) {
         String handlerType = readExtraText(config, "handlerType", "GENERIC_PROGRESS");
         return "GENERIC_PROGRESS".equals(handlerType) || "EVENT_TASK".equals(handlerType);
+    }
+
+    private boolean isReviewTask(TaskConfig config) {
+        String handlerType = readExtraText(config, "handlerType", "");
+        return "REVIEW_TASK".equals(handlerType);
     }
 
     private int readExtraInt(TaskConfig config, String field, int defaultValue) {
