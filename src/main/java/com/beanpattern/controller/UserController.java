@@ -44,19 +44,22 @@ public class UserController {
     @GetMapping("/profile")
     public ApiResponse<UserVO> profile(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
-        return ApiResponse.ok(UserVO.from(user));
+        UserEntity latestUser = userMapper.findById(user.getId());
+        return ApiResponse.ok(UserVO.from(latestUser != null ? latestUser : user));
     }
 
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> stats(HttpServletRequest request) {
         UserEntity user = sessionHelper.requireUser(request);
+        UserEntity latestUser = userMapper.findById(user.getId());
+        UserEntity statsUser = latestUser != null ? latestUser : user;
         return ApiResponse.ok(Map.of(
-                "storageUsed", user.getCurrentStorage() != null ? user.getCurrentStorage() : 0,
-                "storageQuota", user.getStorageQuota() != null ? user.getStorageQuota() : 0,
-                "draftUsed", user.getCurrentDraft() != null ? user.getCurrentDraft() : 0,
-                "draftQuota", user.getDraftQuota() != null ? user.getDraftQuota() : 0,
-                "aiQuota", user.getAiQuota() != null ? user.getAiQuota() : 0,
-                "vipLevel", user.getVipLevel() != null ? user.getVipLevel() : 0
+                "storageUsed", statsUser.getCurrentStorage() != null ? statsUser.getCurrentStorage() : 0,
+                "storageQuota", statsUser.getStorageQuota() != null ? statsUser.getStorageQuota() : 0,
+                "draftUsed", statsUser.getCurrentDraft() != null ? statsUser.getCurrentDraft() : 0,
+                "draftQuota", statsUser.getDraftQuota() != null ? statsUser.getDraftQuota() : 0,
+                "aiQuota", statsUser.getAiQuota() != null ? statsUser.getAiQuota() : 0,
+                "vipLevel", statsUser.getVipLevel() != null ? statsUser.getVipLevel() : 0
         ));
     }
 

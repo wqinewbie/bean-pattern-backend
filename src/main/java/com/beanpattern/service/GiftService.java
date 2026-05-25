@@ -10,7 +10,6 @@ import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftTypeMapper;
 import com.beanpattern.mapper.UserGiftMapper;
-import com.beanpattern.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -31,7 +30,7 @@ public class GiftService {
     private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final NotificationService notificationService;
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final AiQuotaLogService aiQuotaLogService;
 
     public GiftService(GiftTypeMapper giftTypeMapper,
@@ -41,7 +40,7 @@ public class GiftService {
                        BpUserGiftMapper bpUserGiftMapper,
                        GiftPackageService giftPackageService,
                        NotificationService notificationService,
-                       UserMapper userMapper,
+                       UserService userService,
                        AiQuotaLogService aiQuotaLogService) {
         this.giftTypeMapper = giftTypeMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
@@ -50,7 +49,7 @@ public class GiftService {
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.notificationService = notificationService;
-        this.userMapper = userMapper;
+        this.userService = userService;
         this.aiQuotaLogService = aiQuotaLogService;
     }
 
@@ -251,7 +250,7 @@ public class GiftService {
         if (amount <= 0) {
             return;
         }
-        userMapper.addAiQuota(userId, amount);
+        userService.addAiQuota(userId, amount);
         aiQuotaLogService.logChange(userId, "GIFT", amount,
                 "USER_GIFT", String.valueOf(gift.getId()),
                 StringUtils.hasText(gift.getGiftName()) ? "使用礼品获得AI次数：" + gift.getGiftName() : "使用礼品获得AI次数");
@@ -267,7 +266,7 @@ public class GiftService {
         if (amount <= 0) {
             return;
         }
-        userMapper.addAiQuota(userId, amount);
+        userService.addAiQuota(userId, amount);
         aiQuotaLogService.logChange(userId, "GIFT", amount,
                 "LEGACY_USER_GIFT", String.valueOf(gift.getId()),
                 StringUtils.hasText(gift.getGiftName()) ? "使用礼品获得AI次数：" + gift.getGiftName() : "使用礼品获得AI次数");

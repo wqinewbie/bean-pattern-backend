@@ -151,6 +151,13 @@ public class UserService {
         evictUserFromCache(userId);
     }
 
+    @Transactional
+    public void addVipDays(Long userId, int days) {
+        if (userId == null || days <= 0) return;
+        userMapper.addVipDays(userId, days);
+        evictUserFromCache(userId);
+    }
+
     /**
      * 增加存储使用量
      */

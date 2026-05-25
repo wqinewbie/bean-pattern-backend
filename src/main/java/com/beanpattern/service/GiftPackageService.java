@@ -8,7 +8,6 @@ import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftPackageMapper;
 import com.beanpattern.mapper.GiftTypeConfigMapper;
 import com.beanpattern.mapper.UserGiftMapper;
-import com.beanpattern.mapper.UserMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,7 @@ public class GiftPackageService {
     private final GiftTypeConfigMapper giftTypeConfigMapper;
     private final UserGiftMapper userGiftMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final AiQuotaLogService aiQuotaLogService;
     private final ObjectMapper objectMapper;
 
@@ -37,13 +36,13 @@ public class GiftPackageService {
                               GiftTypeConfigMapper giftTypeConfigMapper,
                               UserGiftMapper userGiftMapper,
                               BpUserGiftMapper bpUserGiftMapper,
-                              UserMapper userMapper,
+                              UserService userService,
                               AiQuotaLogService aiQuotaLogService) {
         this.giftPackageMapper = giftPackageMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
         this.userGiftMapper = userGiftMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
-        this.userMapper = userMapper;
+        this.userService = userService;
         this.aiQuotaLogService = aiQuotaLogService;
         this.objectMapper = new ObjectMapper();
     }
@@ -291,7 +290,7 @@ public class GiftPackageService {
     private void grantSingle(Long userId, String type, double value, int expireDays, String bizType, String bizId, String description) {
         if ("AI_QUOTA".equals(type) || "AI_COUNT".equals(type)) {
             int amount = (int) value;
-            userMapper.addAiQuota(userId, amount);
+            userService.addAiQuota(userId, amount);
             aiQuotaLogService.logChange(userId, "GIFT", amount,
                     StringUtils.hasText(bizType) ? bizType : "GIFT_PACKAGE",
                     StringUtils.hasText(bizId) ? bizId : "",
@@ -299,7 +298,7 @@ public class GiftPackageService {
             return;
         }
         if ("VIP_DAYS".equals(type)) {
-            userMapper.addVipDays(userId, (int) value);
+            userService.addVipDays(userId, (int) value);
             return;
         }
 
