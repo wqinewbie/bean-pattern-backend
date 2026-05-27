@@ -302,6 +302,7 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "tag VARCHAR(64) NULL," +
                         "description VARCHAR(256) NULL," +
                         "prompt_template VARCHAR(512) NULL," +
+                        "model_key VARCHAR(64) NULL," +
                         "sort_order INT NOT NULL DEFAULT 0," +
                         "enabled TINYINT(1) NOT NULL DEFAULT 1," +
                         "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
@@ -312,7 +313,8 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_ai_magic_style", "tag", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `tag` VARCHAR(64) NULL AFTER `icon`");
         addColumn(db, "bp_ai_magic_style", "description", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `description` VARCHAR(256) NULL AFTER `tag`");
         addColumn(db, "bp_ai_magic_style", "prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `prompt_template` VARCHAR(512) NULL AFTER `description`");
-        addColumn(db, "bp_ai_magic_style", "sort_order", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0 AFTER `prompt_template`");
+        addColumn(db, "bp_ai_magic_style", "model_key", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `model_key` VARCHAR(64) NULL AFTER `prompt_template`");
+        addColumn(db, "bp_ai_magic_style", "sort_order", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0 AFTER `model_key`");
         addColumn(db, "bp_ai_magic_style", "enabled", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`");
         addColumn(db, "bp_ai_magic_style", "created_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `enabled`");
         addColumn(db, "bp_ai_magic_style", "updated_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");

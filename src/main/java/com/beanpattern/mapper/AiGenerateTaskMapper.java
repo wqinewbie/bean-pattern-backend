@@ -51,6 +51,15 @@ public interface AiGenerateTaskMapper {
             "FROM bp_ai_generate_task WHERE user_id = #{userId} ORDER BY created_at DESC")
     java.util.List<AiGenerateTask> findByUserId(Long userId);
 
+    @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
+            "size_mode AS sizeMode, brand, color_count AS colorCount, mirror, " +
+            "status, ai_image_url AS aiImageUrl, error_message AS errorMessage, " +
+            "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_ai_generate_task WHERE status IN ('PENDING', 'PROCESSING') " +
+            "AND created_at < #{cutoff} ORDER BY created_at ASC LIMIT #{limit}")
+    java.util.List<AiGenerateTask> findTimedOutActiveTasks(@Param("cutoff") java.util.Date cutoff,
+                                                           @Param("limit") int limit);
+
     @Delete("DELETE FROM bp_ai_generate_task WHERE user_id = #{userId}")
     int deleteByUserId(@Param("userId") Long userId);
 }

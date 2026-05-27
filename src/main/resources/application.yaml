@@ -8,6 +8,11 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
 
 mybatis:
   configuration:
@@ -55,3 +60,12 @@ app:
     # AI 图片处理接口地址与密钥（未配置时走降级：返回原图 URL）
     api-url: ${AI_API_URL:}
     api-key: ${AI_API_KEY:}
+  ai-service:
+    enabled: ${AI_SERVICE_ENABLED:false}
+    mock-enabled: ${AI_MOCK_ENABLED:true}
+    default-model-key: ${AI_DEFAULT_MODEL_KEY:seadance-2.0}
+    callback-token: ${AI_CALLBACK_TOKEN:dev-ai-callback-token}
+    queue-name: ${AI_QUEUE_NAME:ai.generate.request}
+    exchange-name: ${AI_EXCHANGE_NAME:ai.generate.exchange}
+    routing-key: ${AI_ROUTING_KEY:ai.generate}
+    task-timeout-minutes: ${AI_TASK_TIMEOUT_MINUTES:15}

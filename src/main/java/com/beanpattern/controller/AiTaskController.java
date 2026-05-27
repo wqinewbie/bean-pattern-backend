@@ -1,8 +1,10 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.config.AiServiceProperties;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.UserEntity;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.UnauthorizedException;
 import com.beanpattern.service.AiQuotaLogService;
 import com.beanpattern.service.AiTaskService;
 import com.beanpattern.service.UserService;
@@ -31,6 +33,9 @@ public class AiTaskController {
     @Autowired
     private SessionHelper sessionHelper;
 
+    @Autowired
+    private AiServiceProperties aiServiceProperties;
+
     /**
      * 创建AI生成任务
      */
@@ -48,7 +53,7 @@ public class AiTaskController {
 
         String taskId;
         try {
-            taskId = aiTaskService.createMockTask(request, user.getId());
+            taskId = aiTaskService.createTask(request, user.getId());
 
             boolean logged = aiQuotaLogService.tryLogChange(
                 user.getId(),
@@ -93,7 +98,12 @@ public class AiTaskController {
      * AI服务回调接口
      */
     @PostMapping("/task/callback")
-    public ApiResponse<Void> taskCallback(@RequestBody Map<String, Object> body) {
+    public ApiResponse<Void> taskCallback(@RequestBody Map<String, Object> body,
+                                          @RequestHeader(value = "X-AI-Service-Token", required = false) String token) {
+        if (!aiServiceProperties.getCallbackToken().equals(token)) {
+            throw new UnauthorizedException("invalid ai service token");
+        }
+
         String taskId = (String) body.get("taskId");
         String status = (String) body.get("status");
         String aiImageUrl = (String) body.get("aiImageUrl");

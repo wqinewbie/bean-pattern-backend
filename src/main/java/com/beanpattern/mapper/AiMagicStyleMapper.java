@@ -7,7 +7,7 @@ import java.util.List;
 @Mapper
 public interface AiMagicStyleMapper {
 
-    String BASE_COLUMNS = "id, name, icon, tag, description, prompt_template AS promptTemplate, " +
+    String BASE_COLUMNS = "id, name, icon, tag, description, prompt_template AS promptTemplate, model_key AS modelKey, " +
             "sort_order AS sortOrder, enabled, created_at AS createdAt, updated_at AS updatedAt";
 
     @Select("SELECT " + BASE_COLUMNS + " FROM bp_ai_magic_style WHERE enabled = 1 ORDER BY sort_order ASC")
@@ -22,13 +22,14 @@ public interface AiMagicStyleMapper {
     @Select("SELECT " + BASE_COLUMNS + " FROM bp_ai_magic_style WHERE name = #{name} AND enabled = 1")
     AiMagicStyle findByName(String name);
 
-    @Insert("INSERT INTO bp_ai_magic_style (name, icon, tag, description, prompt_template, sort_order, enabled) " +
-            "VALUES (#{name}, #{icon}, #{tag}, #{description}, #{promptTemplate}, #{sortOrder}, #{enabled})")
+    @Insert("INSERT INTO bp_ai_magic_style (name, icon, tag, description, prompt_template, model_key, sort_order, enabled) " +
+            "VALUES (#{name}, #{icon}, #{tag}, #{description}, #{promptTemplate}, #{modelKey}, #{sortOrder}, #{enabled})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(AiMagicStyle style);
 
     @Update("UPDATE bp_ai_magic_style SET name = #{name}, icon = #{icon}, " +
             "tag = #{tag}, description = #{description}, prompt_template = #{promptTemplate}, " +
+            "model_key = #{modelKey}, " +
             "sort_order = #{sortOrder}, enabled = #{enabled}, updated_at = NOW() WHERE id = #{id}")
     int update(AiMagicStyle style);
 
