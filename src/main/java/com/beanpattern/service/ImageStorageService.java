@@ -10,13 +10,18 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.InputStream;
+import java.net.URLDecoder;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Service
@@ -107,6 +112,58 @@ public class ImageStorageService {
         s3Client().putObject(request, body);
     }
 
+    public StoredImage readPublicUrl(String publicUrl) {
+        String key = resolveKeyFromPublicUrl(publicUrl);
+        ResponseBytes<GetObjectResponse> object = s3Client().getObjectAsBytes(GetObjectRequest.builder()
+                .bucket(appProperties.getS3().getBucket())
+                .key(key)
+                .build());
+        String contentType = object.response().contentType();
+        if (!StringUtils.hasText(contentType)) {
+            contentType = "application/octet-stream";
+        }
+        return new StoredImage(object.asByteArray(), contentType);
+    }
+
+    private String resolveKeyFromPublicUrl(String publicUrl) {
+        if (!StringUtils.hasText(publicUrl)) {
+            throw new IllegalArgumentException("image url is empty");
+        }
+
+        AppProperties.S3 s3 = appProperties.getS3();
+        String publicBaseUrl = trimTrailingSlash(s3.getPublicBaseUrl());
+        if (!StringUtils.hasText(publicBaseUrl)) {
+            throw new IllegalStateException("S3 publicBaseUrl is empty");
+        }
+
+        URI requested = URI.create(publicUrl);
+        URI allowedBase = URI.create(publicBaseUrl);
+        if (!equalsIgnoreCase(requested.getScheme(), allowedBase.getScheme())
+                || !equalsIgnoreCase(requested.getHost(), allowedBase.getHost())) {
+            throw new IllegalArgumentException("image url host is not allowed");
+        }
+
+        String basePath = trimTrailingSlash(allowedBase.getPath());
+        String path = requested.getPath();
+        if (basePath == null) basePath = "";
+        if (!path.startsWith(basePath)) {
+            throw new IllegalArgumentException("image url path is not allowed");
+        }
+
+        String key = path.substring(basePath.length());
+        while (key.startsWith("/")) {
+            key = key.substring(1);
+        }
+        if (s3.isUrlIncludeBucket() && key.startsWith(s3.getBucket() + "/")) {
+            key = key.substring(s3.getBucket().length() + 1);
+        }
+        key = URLDecoder.decode(key, StandardCharsets.UTF_8);
+        if (!StringUtils.hasText(key) || key.contains("..")) {
+            throw new IllegalArgumentException("invalid image key");
+        }
+        return key;
+    }
+
     private S3Client s3Client() {
         if (s3Client != null) {
             return s3Client;
@@ -168,6 +225,12 @@ public class ImageStorageService {
         }
         return s;
     }
+
+    private boolean equalsIgnoreCase(String a, String b) {
+        return a == null ? b == null : a.equalsIgnoreCase(b);
+    }
+
+    public record StoredImage(byte[] bytes, String contentType) {}
 
     private String guessExtension(String originalFilename) {
         if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {

@@ -8,6 +8,8 @@ import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.AiMagicStyleMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.AiGenerateMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -20,6 +22,8 @@ import java.util.Random;
 
 @Service
 public class AiTaskService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiTaskService.class);
 
     @Autowired
     private AiGenerateTaskMapper taskMapper;
@@ -95,9 +99,14 @@ public class AiTaskService {
     }
 
     public void updateTaskStatus(String taskId, String status, String aiImageUrl, String errorMessage) {
+        if (!StringUtils.hasText(taskId)) {
+            throw new IllegalArgumentException("taskId不能为空");
+        }
+
         AiGenerateTask task = taskMapper.findByTaskId(taskId);
         if (task == null) {
-            return;
+            log.warn("[Callback] task not found: taskId={}", taskId);
+            throw new IllegalArgumentException("AI任务不存在: " + taskId);
         }
 
         validateCallbackStatus(status, aiImageUrl, errorMessage);
