@@ -16,6 +16,8 @@ public class AiGenerateTask {
     private String prompt;
     private String style;
     private String sizeMode;
+    private Integer gridMin;
+    private Integer gridMax;
     private String brand;
     private Integer colorCount;
     private Boolean mirror;
@@ -25,6 +27,13 @@ public class AiGenerateTask {
 
     // 结果数据
     private String aiImageUrl;
+    private String rawAiImageUrl;
+    private Integer detectedGridWidth;
+    private Integer detectedGridHeight;
+    private Integer finalGridWidth;
+    private Integer finalGridHeight;
+    private String perfectPixelStatus;
+    private String perfectPixelError;
     private String errorMessage;
 
     // 时间戳
@@ -89,6 +98,22 @@ public class AiGenerateTask {
         this.sizeMode = sizeMode;
     }
 
+    public Integer getGridMin() {
+        return gridMin;
+    }
+
+    public void setGridMin(Integer gridMin) {
+        this.gridMin = gridMin;
+    }
+
+    public Integer getGridMax() {
+        return gridMax;
+    }
+
+    public void setGridMax(Integer gridMax) {
+        this.gridMax = gridMax;
+    }
+
     public String getBrand() {
         return brand;
     }
@@ -127,6 +152,62 @@ public class AiGenerateTask {
 
     public void setAiImageUrl(String aiImageUrl) {
         this.aiImageUrl = aiImageUrl;
+    }
+
+    public String getRawAiImageUrl() {
+        return rawAiImageUrl;
+    }
+
+    public void setRawAiImageUrl(String rawAiImageUrl) {
+        this.rawAiImageUrl = rawAiImageUrl;
+    }
+
+    public Integer getDetectedGridWidth() {
+        return detectedGridWidth;
+    }
+
+    public void setDetectedGridWidth(Integer detectedGridWidth) {
+        this.detectedGridWidth = detectedGridWidth;
+    }
+
+    public Integer getDetectedGridHeight() {
+        return detectedGridHeight;
+    }
+
+    public void setDetectedGridHeight(Integer detectedGridHeight) {
+        this.detectedGridHeight = detectedGridHeight;
+    }
+
+    public Integer getFinalGridWidth() {
+        return finalGridWidth;
+    }
+
+    public void setFinalGridWidth(Integer finalGridWidth) {
+        this.finalGridWidth = finalGridWidth;
+    }
+
+    public Integer getFinalGridHeight() {
+        return finalGridHeight;
+    }
+
+    public void setFinalGridHeight(Integer finalGridHeight) {
+        this.finalGridHeight = finalGridHeight;
+    }
+
+    public String getPerfectPixelStatus() {
+        return perfectPixelStatus;
+    }
+
+    public void setPerfectPixelStatus(String perfectPixelStatus) {
+        this.perfectPixelStatus = perfectPixelStatus;
+    }
+
+    public String getPerfectPixelError() {
+        return perfectPixelError;
+    }
+
+    public void setPerfectPixelError(String perfectPixelError) {
+        this.perfectPixelError = perfectPixelError;
     }
 
     public String getErrorMessage() {

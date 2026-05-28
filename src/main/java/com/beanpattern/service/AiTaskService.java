@@ -15,8 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -81,9 +83,18 @@ public class AiTaskService {
 
         // 返回后期处理参数，前端可直接用
         data.put("sizeMode", task.getSizeMode());
+        data.put("gridMin", task.getGridMin());
+        data.put("gridMax", task.getGridMax());
         data.put("brand", task.getBrand());
         data.put("colorCount", task.getColorCount());
         data.put("mirror", task.getMirror());
+        data.put("rawAiImageUrl", task.getRawAiImageUrl());
+        data.put("detectedGridWidth", task.getDetectedGridWidth());
+        data.put("detectedGridHeight", task.getDetectedGridHeight());
+        data.put("finalGridWidth", task.getFinalGridWidth());
+        data.put("finalGridHeight", task.getFinalGridHeight());
+        data.put("perfectPixelStatus", task.getPerfectPixelStatus());
+        data.put("perfectPixelError", task.getPerfectPixelError());
 
         if ("SUCCESS".equals(task.getStatus())) {
             data.put("aiImageUrl", task.getAiImageUrl());
@@ -96,6 +107,61 @@ public class AiTaskService {
         }
 
         return ApiResponse.ok(data);
+    }
+
+    public void updateTaskStatus(String taskId,
+                                 String status,
+                                 String aiImageUrl,
+                                 String rawAiImageUrl,
+                                 String errorMessage,
+                                 Integer gridMin,
+                                 Integer gridMax,
+                                 Integer detectedGridWidth,
+                                 Integer detectedGridHeight,
+                                 Integer finalGridWidth,
+                                 Integer finalGridHeight,
+                                 String perfectPixelStatus,
+                                 String perfectPixelError) {
+        updateTaskStatus(taskId, status, aiImageUrl, errorMessage);
+
+        if (!isFinalStatus(status)) {
+            return;
+        }
+
+        AiGenerateTask task = taskMapper.findByTaskId(taskId);
+        if (task == null || !isFinalStatus(task.getStatus())) {
+            return;
+        }
+
+        if (StringUtils.hasText(rawAiImageUrl)) {
+            task.setRawAiImageUrl(rawAiImageUrl);
+        }
+        if (gridMin != null) {
+            task.setGridMin(gridMin);
+        }
+        if (gridMax != null) {
+            task.setGridMax(gridMax);
+        }
+        if (detectedGridWidth != null) {
+            task.setDetectedGridWidth(detectedGridWidth);
+        }
+        if (detectedGridHeight != null) {
+            task.setDetectedGridHeight(detectedGridHeight);
+        }
+        if (finalGridWidth != null) {
+            task.setFinalGridWidth(finalGridWidth);
+        }
+        if (finalGridHeight != null) {
+            task.setFinalGridHeight(finalGridHeight);
+        }
+        if (StringUtils.hasText(perfectPixelStatus)) {
+            task.setPerfectPixelStatus(perfectPixelStatus);
+        }
+        if (perfectPixelError != null) {
+            task.setPerfectPixelError(perfectPixelError);
+        }
+        task.setUpdatedAt(new Date());
+        taskMapper.updateById(task);
     }
 
     public void updateTaskStatus(String taskId, String status, String aiImageUrl, String errorMessage) {
@@ -151,6 +217,13 @@ public class AiTaskService {
         message.setStyle(task.getStyle());
         message.setPromptTemplate(promptTemplate);
         message.setModelKey(modelKey);
+        message.setSizeMode(task.getSizeMode());
+        message.setGridMin(task.getGridMin());
+        message.setGridMax(task.getGridMax());
+        message.setCandidateGrids(candidateGrids(task.getSizeMode(), task.getGridMin(), task.getGridMax()));
+        message.setBrand(task.getBrand());
+        message.setColorCount(task.getColorCount());
+        message.setMirror(task.getMirror());
         message.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(task.getCreatedAt()));
         return message;
     }
@@ -164,7 +237,11 @@ public class AiTaskService {
         task.setImageUrl(request.getImageUrl());
         task.setPrompt(request.getPrompt());
         task.setStyle(request.getStyle());
-        task.setSizeMode(request.getSizeMode());
+        String sizeMode = StringUtils.hasText(request.getSizeMode()) ? request.getSizeMode() : "default";
+        task.setSizeMode(sizeMode);
+        int[] gridRange = resolveGridRange(sizeMode, request.getGridMin(), request.getGridMax());
+        task.setGridMin(gridRange[0]);
+        task.setGridMax(gridRange[1]);
         task.setBrand(request.getBrand());
         task.setColorCount(request.getColorCount());
         task.setMirror(request.getMirror() != null ? request.getMirror() : false);
@@ -174,6 +251,26 @@ public class AiTaskService {
 
         taskMapper.insert(task);
         return task;
+    }
+
+    private int[] resolveGridRange(String sizeMode, Integer requestMin, Integer requestMax) {
+        int min = requestMin != null ? requestMin : ("small".equalsIgnoreCase(sizeMode) ? 24 : 30);
+        int max = requestMax != null ? requestMax : ("small".equalsIgnoreCase(sizeMode) ? 40 : 80);
+        if (min > max) {
+            int tmp = min;
+            min = max;
+            max = tmp;
+        }
+        return new int[]{min, max};
+    }
+
+    private List<Integer> candidateGrids(String sizeMode, Integer gridMin, Integer gridMax) {
+        List<Integer> base = "small".equalsIgnoreCase(sizeMode)
+                ? Arrays.asList(24, 28, 32, 36, 40)
+                : Arrays.asList(32, 36, 40, 44, 48, 56, 64, 72, 80);
+        int min = gridMin != null ? gridMin : ("small".equalsIgnoreCase(sizeMode) ? 24 : 30);
+        int max = gridMax != null ? gridMax : ("small".equalsIgnoreCase(sizeMode) ? 40 : 80);
+        return base.stream().filter(value -> value >= min && value <= max).toList();
     }
 
     private void validateCallbackStatus(String status, String aiImageUrl, String errorMessage) {

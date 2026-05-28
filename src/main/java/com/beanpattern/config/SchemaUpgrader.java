@@ -58,6 +58,17 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_image_task", "is_public",   "ALTER TABLE `bp_image_task` ADD COLUMN `is_public` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_saved`");
         addColumn(db, "bp_image_task", "title",       "ALTER TABLE `bp_image_task` ADD COLUMN `title` VARCHAR(128) NULL AFTER `is_public`");
 
+        // bp_ai_generate_task
+        addColumn(db, "bp_ai_generate_task", "raw_ai_image_url", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `raw_ai_image_url` VARCHAR(1024) NULL COMMENT 'AI raw generated image URL' AFTER `ai_image_url`");
+        addColumn(db, "bp_ai_generate_task", "grid_min", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_min` INT NULL COMMENT 'requested min grid size' AFTER `size_mode`");
+        addColumn(db, "bp_ai_generate_task", "grid_max", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_max` INT NULL COMMENT 'requested max grid size' AFTER `grid_min`");
+        addColumn(db, "bp_ai_generate_task", "detected_grid_width", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `detected_grid_width` INT NULL COMMENT 'Perfect Pixel detected grid width' AFTER `raw_ai_image_url`");
+        addColumn(db, "bp_ai_generate_task", "detected_grid_height", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `detected_grid_height` INT NULL COMMENT 'Perfect Pixel detected grid height' AFTER `detected_grid_width`");
+        addColumn(db, "bp_ai_generate_task", "final_grid_width", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `final_grid_width` INT NULL COMMENT 'final sampling grid width' AFTER `detected_grid_height`");
+        addColumn(db, "bp_ai_generate_task", "final_grid_height", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `final_grid_height` INT NULL COMMENT 'final sampling grid height' AFTER `final_grid_width`");
+        addColumn(db, "bp_ai_generate_task", "perfect_pixel_status", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `perfect_pixel_status` VARCHAR(32) NULL COMMENT 'SUCCESS/FAILED/SKIPPED' AFTER `final_grid_height`");
+        addColumn(db, "bp_ai_generate_task", "perfect_pixel_error", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `perfect_pixel_error` VARCHAR(1024) NULL COMMENT 'Perfect Pixel error message' AFTER `perfect_pixel_status`");
+
         // bp_banner
         addColumn(db, "bp_checkin_config", "gift_package_code", "ALTER TABLE `bp_checkin_config` ADD COLUMN `gift_package_code` VARCHAR(64) NULL COMMENT '签到奖励礼品包编码' AFTER `continuous_days_required`");
         addColumn(db, "bp_activity_config", "gift_package_code", "ALTER TABLE `bp_activity_config` ADD COLUMN `gift_package_code` VARCHAR(64) NULL COMMENT '活动绑定礼品包编码' AFTER `activity_type`");

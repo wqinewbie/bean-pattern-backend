@@ -1,5 +1,7 @@
 package com.beanpattern.model;
 
+import java.util.List;
+
 public class AiGenerateMessage {
 
     private String taskId;
@@ -8,6 +10,13 @@ public class AiGenerateMessage {
     private String style;
     private String promptTemplate;
     private String modelKey;
+    private String sizeMode;
+    private Integer gridMin;
+    private Integer gridMax;
+    private List<Integer> candidateGrids;
+    private String brand;
+    private Integer colorCount;
+    private Boolean mirror;
     private String createdAt;
 
     public String getTaskId() {
@@ -56,6 +65,62 @@ public class AiGenerateMessage {
 
     public void setModelKey(String modelKey) {
         this.modelKey = modelKey;
+    }
+
+    public String getSizeMode() {
+        return sizeMode;
+    }
+
+    public void setSizeMode(String sizeMode) {
+        this.sizeMode = sizeMode;
+    }
+
+    public Integer getGridMin() {
+        return gridMin;
+    }
+
+    public void setGridMin(Integer gridMin) {
+        this.gridMin = gridMin;
+    }
+
+    public Integer getGridMax() {
+        return gridMax;
+    }
+
+    public void setGridMax(Integer gridMax) {
+        this.gridMax = gridMax;
+    }
+
+    public List<Integer> getCandidateGrids() {
+        return candidateGrids;
+    }
+
+    public void setCandidateGrids(List<Integer> candidateGrids) {
+        this.candidateGrids = candidateGrids;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public Integer getColorCount() {
+        return colorCount;
+    }
+
+    public void setColorCount(Integer colorCount) {
+        this.colorCount = colorCount;
+    }
+
+    public Boolean getMirror() {
+        return mirror;
+    }
+
+    public void setMirror(Boolean mirror) {
+        this.mirror = mirror;
     }
 
     public String getCreatedAt() {

@@ -107,11 +107,42 @@ public class AiTaskController {
         String taskId = (String) body.get("taskId");
         String status = (String) body.get("status");
         String aiImageUrl = (String) body.get("aiImageUrl");
+        String rawAiImageUrl = (String) body.get("rawAiImageUrl");
         String errorMessage = (String) body.get("errorMessage");
+        Integer gridMin = toInteger(body.get("gridMin"));
+        Integer gridMax = toInteger(body.get("gridMax"));
+        Integer detectedGridWidth = toInteger(body.get("detectedGridWidth"));
+        Integer detectedGridHeight = toInteger(body.get("detectedGridHeight"));
+        Integer finalGridWidth = toInteger(body.get("finalGridWidth"));
+        Integer finalGridHeight = toInteger(body.get("finalGridHeight"));
+        String perfectPixelStatus = (String) body.get("perfectPixelStatus");
+        String perfectPixelError = (String) body.get("perfectPixelError");
 
-        aiTaskService.updateTaskStatus(taskId, status, aiImageUrl, errorMessage);
+        aiTaskService.updateTaskStatus(
+                taskId,
+                status,
+                aiImageUrl,
+                rawAiImageUrl,
+                errorMessage,
+                gridMin,
+                gridMax,
+                detectedGridWidth,
+                detectedGridHeight,
+                finalGridWidth,
+                finalGridHeight,
+                perfectPixelStatus,
+                perfectPixelError
+        );
 
         return ApiResponse.ok(null);
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) return null;
+        return Integer.parseInt(text);
     }
 
     /**
@@ -122,6 +153,8 @@ public class AiTaskController {
         private String prompt;
         private String style;
         private String sizeMode;
+        private Integer gridMin;
+        private Integer gridMax;
         private String brand;
         private Integer colorCount;
         private Boolean mirror;
@@ -156,6 +189,22 @@ public class AiTaskController {
 
         public void setSizeMode(String sizeMode) {
             this.sizeMode = sizeMode;
+        }
+
+        public Integer getGridMin() {
+            return gridMin;
+        }
+
+        public void setGridMin(Integer gridMin) {
+            this.gridMin = gridMin;
+        }
+
+        public Integer getGridMax() {
+            return gridMax;
+        }
+
+        public void setGridMax(Integer gridMax) {
+            this.gridMax = gridMax;
         }
 
         public String getBrand() {

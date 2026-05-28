@@ -12,9 +12,9 @@ public interface AiGenerateTaskMapper {
     /**
      * 插入任务
      */
-    @Insert("INSERT INTO bp_ai_generate_task (task_id, user_id, image_url, prompt, style, size_mode, brand, color_count, mirror, " +
+    @Insert("INSERT INTO bp_ai_generate_task (task_id, user_id, image_url, prompt, style, size_mode, grid_min, grid_max, brand, color_count, mirror, " +
             "status, created_at, updated_at) " +
-            "VALUES (#{taskId}, #{userId}, #{imageUrl}, #{prompt}, #{style}, #{sizeMode}, #{brand}, #{colorCount}, #{mirror}, " +
+            "VALUES (#{taskId}, #{userId}, #{imageUrl}, #{prompt}, #{style}, #{sizeMode}, #{gridMin}, #{gridMax}, #{brand}, #{colorCount}, #{mirror}, " +
             "#{status}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(AiGenerateTask task);
@@ -23,8 +23,11 @@ public interface AiGenerateTaskMapper {
      * 根据taskId查询
      */
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
-            "size_mode AS sizeMode, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, error_message AS errorMessage, " +
+            "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
+            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
+            "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
+            "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE task_id = #{taskId}")
     AiGenerateTask findByTaskId(String taskId);
@@ -35,6 +38,13 @@ public interface AiGenerateTaskMapper {
     @Update("UPDATE bp_ai_generate_task SET " +
             "status = #{status}, " +
             "ai_image_url = #{aiImageUrl}, " +
+            "raw_ai_image_url = #{rawAiImageUrl}, " +
+            "detected_grid_width = #{detectedGridWidth}, " +
+            "detected_grid_height = #{detectedGridHeight}, " +
+            "final_grid_width = #{finalGridWidth}, " +
+            "final_grid_height = #{finalGridHeight}, " +
+            "perfect_pixel_status = #{perfectPixelStatus}, " +
+            "perfect_pixel_error = #{perfectPixelError}, " +
             "error_message = #{errorMessage}, " +
             "completed_at = #{completedAt}, " +
             "updated_at = #{updatedAt} " +
@@ -45,15 +55,21 @@ public interface AiGenerateTaskMapper {
      * 根据用户ID查询任务列表
      */
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
-            "size_mode AS sizeMode, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, error_message AS errorMessage, " +
+            "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
+            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
+            "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
+            "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE user_id = #{userId} ORDER BY created_at DESC")
     java.util.List<AiGenerateTask> findByUserId(Long userId);
 
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
-            "size_mode AS sizeMode, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, error_message AS errorMessage, " +
+            "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
+            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
+            "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
+            "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE status IN ('PENDING', 'PROCESSING') " +
             "AND created_at < #{cutoff} ORDER BY created_at ASC LIMIT #{limit}")
