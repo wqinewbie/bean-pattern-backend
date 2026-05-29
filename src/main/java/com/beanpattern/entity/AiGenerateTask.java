@@ -34,6 +34,8 @@ public class AiGenerateTask {
     private Integer finalGridHeight;
     private String perfectPixelStatus;
     private String perfectPixelError;
+    private String mappedPixelData;
+    private Long historyId;
     private String errorMessage;
 
     // 时间戳
@@ -208,6 +210,22 @@ public class AiGenerateTask {
 
     public void setPerfectPixelError(String perfectPixelError) {
         this.perfectPixelError = perfectPixelError;
+    }
+
+    public String getMappedPixelData() {
+        return mappedPixelData;
+    }
+
+    public void setMappedPixelData(String mappedPixelData) {
+        this.mappedPixelData = mappedPixelData;
+    }
+
+    public Long getHistoryId() {
+        return historyId;
+    }
+
+    public void setHistoryId(Long historyId) {
+        this.historyId = historyId;
     }
 
     public String getErrorMessage() {

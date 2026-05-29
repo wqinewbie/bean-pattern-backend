@@ -75,7 +75,6 @@ public class SchemaUpgrader implements ApplicationRunner {
         relaxActivityClaimUniqueIndex();
 
         // bp_banner
-        addColumn(db, "bp_banner", "bg_color",   "ALTER TABLE `bp_banner` ADD COLUMN `bg_color` VARCHAR(32) NULL DEFAULT '' AFTER `tag_text`");
         addColumn(db, "bp_banner", "action_type", "ALTER TABLE `bp_banner` ADD COLUMN `action_type` VARCHAR(32) NULL DEFAULT 'NONE' AFTER `link_value`");
         addColumn(db, "bp_banner", "action_config", "ALTER TABLE `bp_banner` ADD COLUMN `action_config` TEXT NULL AFTER `action_type`");
         addColumn(db, "bp_box", "cover_url", "ALTER TABLE `bp_box` ADD COLUMN `cover_url` VARCHAR(1024) NULL COMMENT '封面图URL' AFTER `source_url`");

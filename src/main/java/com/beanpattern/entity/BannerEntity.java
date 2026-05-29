@@ -14,7 +14,6 @@ public class BannerEntity {
     private String actionType;
     private String actionConfig;
     private String tagText;
-    private String bgColor;
     private Integer sortOrder;
     private Integer status;
     @JsonFormat(pattern = DATE_TIME_PATTERN)
@@ -44,8 +43,6 @@ public class BannerEntity {
     public void setActionConfig(String actionConfig) { this.actionConfig = actionConfig; }
     public String getTagText() { return tagText; }
     public void setTagText(String tagText) { this.tagText = tagText; }
-    public String getBgColor() { return bgColor; }
-    public void setBgColor(String bgColor) { this.bgColor = bgColor; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
     public Integer getStatus() { return status; }

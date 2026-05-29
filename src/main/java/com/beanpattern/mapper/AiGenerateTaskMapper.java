@@ -13,9 +13,9 @@ public interface AiGenerateTaskMapper {
      * 插入任务
      */
     @Insert("INSERT INTO bp_ai_generate_task (task_id, user_id, image_url, prompt, style, size_mode, grid_min, grid_max, brand, color_count, mirror, " +
-            "status, created_at, updated_at) " +
+            "status, mapped_pixel_data, history_id, created_at, updated_at) " +
             "VALUES (#{taskId}, #{userId}, #{imageUrl}, #{prompt}, #{style}, #{sizeMode}, #{gridMin}, #{gridMax}, #{brand}, #{colorCount}, #{mirror}, " +
-            "#{status}, #{createdAt}, #{updatedAt})")
+            "#{status}, #{mappedPixelData}, #{historyId}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(AiGenerateTask task);
 
@@ -28,6 +28,7 @@ public interface AiGenerateTaskMapper {
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
+            "mapped_pixel_data AS mappedPixelData, history_id AS historyId, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE task_id = #{taskId}")
     AiGenerateTask findByTaskId(String taskId);
@@ -46,6 +47,8 @@ public interface AiGenerateTaskMapper {
             "perfect_pixel_status = #{perfectPixelStatus}, " +
             "perfect_pixel_error = #{perfectPixelError}, " +
             "error_message = #{errorMessage}, " +
+            "mapped_pixel_data = #{mappedPixelData}, " +
+            "history_id = #{historyId}, " +
             "completed_at = #{completedAt}, " +
             "updated_at = #{updatedAt} " +
             "WHERE id = #{id}")
@@ -60,6 +63,7 @@ public interface AiGenerateTaskMapper {
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
+            "mapped_pixel_data AS mappedPixelData, history_id AS historyId, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE user_id = #{userId} ORDER BY created_at DESC")
     java.util.List<AiGenerateTask> findByUserId(Long userId);
@@ -70,6 +74,7 @@ public interface AiGenerateTaskMapper {
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
+            "mapped_pixel_data AS mappedPixelData, history_id AS historyId, " +
             "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
             "FROM bp_ai_generate_task WHERE status IN ('PENDING', 'PROCESSING') " +
             "AND created_at < #{cutoff} ORDER BY created_at ASC LIMIT #{limit}")

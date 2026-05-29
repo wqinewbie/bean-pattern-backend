@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class BpHistory {
     private Long id;
     private Long userId;
+    private String taskId;       // 关联的AI任务ID
     private String sourceType;   // LOCAL, AI
     private String brand;        // 品牌
     private Integer colorCount;  // 色数

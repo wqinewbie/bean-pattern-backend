@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 public class AiServiceProperties {
 
     private boolean enabled = false;
-    private boolean mockEnabled = true;
     private String defaultModelKey = "seadance-2.0";
     private String callbackToken = "dev-ai-callback-token";
     private String queueName = "ai.generate.request";
@@ -22,14 +21,6 @@ public class AiServiceProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public boolean isMockEnabled() {
-        return mockEnabled;
-    }
-
-    public void setMockEnabled(boolean mockEnabled) {
-        this.mockEnabled = mockEnabled;
     }
 
     public String getDefaultModelKey() {

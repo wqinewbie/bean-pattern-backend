@@ -8,6 +8,7 @@ import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.AiMagicStyleMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.model.AiGenerateMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +32,6 @@ public class AiTaskService {
     private AiGenerateTaskMapper taskMapper;
 
     @Autowired
-    private AiMockGenerateService mockGenerateService;
-
-    @Autowired
     private AiMagicStyleMapper aiMagicStyleMapper;
 
     @Autowired
@@ -42,13 +40,17 @@ public class AiTaskService {
     @Autowired
     private AiServiceProperties aiServiceProperties;
 
+    @Autowired
+    private AiHistoryAutoSaveService aiHistoryAutoSaveService;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     public String createTask(AiGenerateRequest request, Long userId) {
         AiGenerateTask task = createPendingTask(request, userId);
         String taskId = task.getTaskId();
 
-        if (aiServiceProperties.isMockEnabled() || !aiServiceProperties.isEnabled()) {
-            mockGenerateService.mockAiGenerate(taskId);
-            System.out.println("[Mock] 任务创建: " + taskId);
+        if (!aiServiceProperties.isEnabled()) {
+            System.out.println("[AI] 服务未启用，任务保持 PENDING: " + taskId);
             return taskId;
         }
 
@@ -61,13 +63,6 @@ public class AiTaskService {
         }
 
         return taskId;
-    }
-
-    public String createMockTask(AiGenerateRequest request, Long userId) {
-        AiGenerateTask task = createPendingTask(request, userId);
-        mockGenerateService.mockAiGenerate(task.getTaskId());
-        System.out.println("[Mock] 任务创建: " + task.getTaskId());
-        return task.getTaskId();
     }
 
     public ApiResponse<Map<String, Object>> getTaskStatus(String taskId) {
@@ -99,6 +94,18 @@ public class AiTaskService {
         if ("SUCCESS".equals(task.getStatus())) {
             data.put("aiImageUrl", task.getAiImageUrl());
             data.put("completedAt", task.getCompletedAt());
+            data.put("historyId", task.getHistoryId());
+            if (StringUtils.hasText(task.getMappedPixelData())) {
+                try {
+                    Object mappedPixelData = objectMapper.readValue(
+                            task.getMappedPixelData(),
+                            objectMapper.getTypeFactory().constructCollectionType(List.class,
+                                    objectMapper.getTypeFactory().constructCollectionType(List.class, Map.class)));
+                    data.put("mappedPixelData", mappedPixelData);
+                } catch (Exception e) {
+                    log.warn("解析 mappedPixelData 失败: {}", task.getTaskId(), e);
+                }
+            }
         } else if ("FAILED".equals(task.getStatus())) {
             data.put("errorMessage", task.getErrorMessage());
             data.put("completedAt", task.getCompletedAt());
@@ -162,6 +169,10 @@ public class AiTaskService {
         }
         task.setUpdatedAt(new Date());
         taskMapper.updateById(task);
+
+        if ("SUCCESS".equals(status) && StringUtils.hasText(aiImageUrl)) {
+            aiHistoryAutoSaveService.processAndSaveHistory(task);
+        }
     }
 
     public void updateTaskStatus(String taskId, String status, String aiImageUrl, String errorMessage) {
