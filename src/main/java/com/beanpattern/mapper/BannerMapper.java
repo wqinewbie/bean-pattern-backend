@@ -37,7 +37,7 @@ public interface BannerMapper {
             "FROM bp_banner WHERE id = #{id}")
     BannerEntity findById(@Param("id") Long id);
 
-    @Insert("INSERT INTO bp_banner(title, sub_title, image_url, tag_text, bg_color, link_type, link_value, action_type, action_config, sort_order, status, start_at, end_at) " +
+    @Insert("INSERT INTO bp_banner(title, sub_title, image_url, tag_text, link_type, link_value, action_type, action_config, sort_order, status, start_at, end_at) " +
             "VALUES(#{title}, #{subTitle}, #{imageUrl}, #{tagText}, #{linkType}, #{linkValue}, #{actionType}, #{actionConfig}, #{sortOrder}, #{status}, #{startAt}, #{endAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BannerEntity banner);

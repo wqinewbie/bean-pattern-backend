@@ -390,6 +390,7 @@ public class OrderService {
         // 创建VIP记录（确保 isVip() 能够正确识别）
         UserVipRecord vipRecord = new UserVipRecord();
         vipRecord.setUserId(order.getUserId());
+        vipRecord.setProductId(order.getProductId());
         vipRecord.setProductCode(order.getPackageCode());
         vipRecord.setVipLevel(1);
         vipRecord.setOrderId(order.getId());
