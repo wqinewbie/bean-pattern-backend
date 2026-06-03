@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.util.*;
 
@@ -35,30 +36,29 @@ public class AiImageProcessor {
      */
     public ProcessedResult process(String imageUrl, String brand, int colorCount,
                                     boolean mirror, int gridSize, int similarityThreshold) {
-        // 1. 下载并采样
-        int[][][] rgbGrid = sampleImage(imageUrl, gridSize);
+        return processGrid(sampleImage(imageUrl, gridSize), brand, colorCount, mirror, similarityThreshold);
+    }
 
-        // 2. 匹配珠子颜色
+    public ProcessedResult process(byte[] imageBytes, String brand, int colorCount,
+                                    boolean mirror, int gridSize, int similarityThreshold) {
+        return processGrid(sampleImageBytes(imageBytes, gridSize), brand, colorCount, mirror, similarityThreshold);
+    }
+
+    private ProcessedResult processGrid(int[][][] rgbGrid, String brand, int colorCount,
+                                        boolean mirror, int similarityThreshold) {
         BeadColor[][] matchedGrid = beadColorService.matchGrid(rgbGrid, brand, colorCount, "standard");
-
-        // 3. 转换为 mappedPixelData
         MappedResult mapped = convertToMappedPixelData(matchedGrid);
 
-        // 4. 合并相近色
         if (similarityThreshold > 0) {
             mapped = mergeSimilarColors(mapped, similarityThreshold);
         }
 
-        // 5. 镜像
         if (mirror) {
             mapped = mirrorGridRows(mapped);
         }
 
-        // 6. 重新统计（合并/镜像后 colorStats 可能变了）
         List<Map<String, Object>> colorStats = calcColorStats(mapped.mappedPixelData);
         int totalBeads = colorStats.stream().mapToInt(c -> ((Number) c.get("count")).intValue()).sum();
-
-        // 7. 重新生成 gridData 和 colorPalette
         List<List<String>> gridData = buildGridData(mapped.mappedPixelData);
         List<Map<String, Object>> colorPalette = buildColorPalette(colorStats);
 
@@ -147,6 +147,72 @@ public class AiImageProcessor {
     /**
      * 将 BeadColor 网格转换为 mappedPixelData 格式
      */
+    private int[][][] sampleImageBytes(byte[] imageBytes, int gridSize) {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image == null) {
+                throw new RuntimeException("unable to read image bytes");
+            }
+
+            int w = image.getWidth();
+            int h = image.getHeight();
+            double aspect = (double) w / h;
+            int gw, gh;
+            if (aspect >= 1) {
+                gw = gridSize;
+                gh = Math.max(1, (int) Math.round(gridSize / aspect));
+            } else {
+                gh = gridSize;
+                gw = Math.max(1, (int) Math.round(gridSize * aspect));
+            }
+
+            double cellW = (double) w / gw;
+            double cellH = (double) h / gh;
+            int[][][] rgbGrid = new int[gh][gw][3];
+
+            for (int gy = 0; gy < gh; gy++) {
+                int y0 = (int) Math.floor(gy * cellH);
+                int y1 = (int) Math.floor((gy + 1) * cellH);
+
+                for (int gx = 0; gx < gw; gx++) {
+                    int x0 = (int) Math.floor(gx * cellW);
+                    int x1 = (int) Math.floor((gx + 1) * cellW);
+
+                    long sumR = 0, sumG = 0, sumB = 0;
+                    int count = 0;
+
+                    for (int y = y0; y < y1; y++) {
+                        for (int x = x0; x < x1; x++) {
+                            int px = Math.min(x, w - 1);
+                            int py = Math.min(y, h - 1);
+                            int rgb = image.getRGB(px, py);
+                            if (((rgb >> 24) & 0xff) < 128) continue;
+                            sumR += (rgb >> 16) & 0xff;
+                            sumG += (rgb >> 8) & 0xff;
+                            sumB += rgb & 0xff;
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        rgbGrid[gy][gx] = new int[]{
+                                (int) (sumR / count),
+                                (int) (sumG / count),
+                                (int) (sumB / count)
+                        };
+                    } else {
+                        rgbGrid[gy][gx] = new int[]{255, 255, 255};
+                    }
+                }
+            }
+
+            return rgbGrid;
+        } catch (Exception e) {
+            log.error("sample image bytes failed", e);
+            throw new RuntimeException("sample image failed: " + e.getMessage(), e);
+        }
+    }
+
     private MappedResult convertToMappedPixelData(BeadColor[][] matchedGrid) {
         List<List<Map<String, Object>>> mappedPixelData = new ArrayList<>();
         Map<String, Map<String, Object>> colorStatsMap = new LinkedHashMap<>();
@@ -205,7 +271,7 @@ public class AiImageProcessor {
         // 统计颜色频率
         Map<String, Integer> counts = new LinkedHashMap<>();
         Map<String, Map<String, Object>> colorMap = new LinkedHashMap<>();
-        for (List<Map<String, Object>> row : data) {
+                    for (List<Map<String, Object>> row : data) {
             for (Map<String, Object> cell : row) {
                 if (Boolean.TRUE.equals(cell.get("isExternal"))) continue;
                 String id = (String) cell.get("id");
@@ -245,7 +311,7 @@ public class AiImageProcessor {
                 if (colorDistance(colorA, colorB) < th) {
                     replaced.add(bId);
                     // 替换所有 bId 为 aId 的颜色
-                    for (List<Map<String, Object>> row : data) {
+        for (List<Map<String, Object>> row : data) {
                         for (int x = 0; x < row.size(); x++) {
                             Map<String, Object> cell = row.get(x);
                             if (bId.equals(cell.get("id"))) {

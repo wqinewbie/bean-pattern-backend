@@ -64,6 +64,10 @@ public class BpDraftService {
         return bpDraftMapper.linkBoxId(draftId, boxId);
     }
 
+    public int clearBoxId(Long boxId) {
+        return bpDraftMapper.clearBoxId(boxId);
+    }
+
     public List<BpDraft> listExpired() {
         return bpDraftMapper.listExpired();
     }

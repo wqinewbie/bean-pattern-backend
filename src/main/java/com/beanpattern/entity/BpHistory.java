@@ -7,17 +7,16 @@ import java.time.LocalDateTime;
 public class BpHistory {
     private Long id;
     private Long userId;
-    private String taskId;       // 关联的AI任务ID
-    private String sourceType;   // LOCAL, AI
-    private String brand;        // 品牌
-    private Integer colorCount;  // 色数
-    private String name;         // 图纸名称
-    private Integer gridSize;    // 尺寸
-    private Long boxId;          // 关联图纸箱ID
-    private String sourceUrl;    // 原图URL
-
-    private String mappedPixelData; // 主图案JSON(二维像素对象)
-
-    private LocalDateTime expiresAt; // 过期时间
+    private String taskId;
+    private String sourceType;
+    private String brand;
+    private Integer colorCount;
+    private String name;
+    private Integer gridSize;
+    private Long boxId;
+    private String sourceUrl;
+    private String mappedPixelData;
+    private String aiStyle;
+    private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
 }

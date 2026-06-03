@@ -3,7 +3,6 @@ package com.beanpattern.service.task;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.beanpattern.service.InviteCodeService;
@@ -18,14 +17,12 @@ public class InviteRechargeTaskHandler implements TaskHandler {
     private static final String CLAIM_SOURCE_PREFIX = "INVITE_RECHARGE_GIFT:";
 
     private final InviteCodeService inviteCodeService;
-    private final UserGiftMapper userGiftMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public InviteRechargeTaskHandler(InviteCodeService inviteCodeService, UserGiftMapper userGiftMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
+    public InviteRechargeTaskHandler(InviteCodeService inviteCodeService, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
         this.inviteCodeService = inviteCodeService;
-        this.userGiftMapper = userGiftMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();

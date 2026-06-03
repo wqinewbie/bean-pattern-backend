@@ -4,7 +4,7 @@ import com.beanpattern.entity.CheckinConfig;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.RewardItem;
 import com.beanpattern.entity.UserCheckin;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.CheckinConfigMapper;
 import com.beanpattern.mapper.UserCheckinMapper;
@@ -289,7 +289,7 @@ public class CheckinService {
         RewardItem rewardInfo = GiftPackageRewardHelper.parseRewardInfo(giftPackage);
 
         // 发放礼品包（自动在 bp_user_gift 写入 CHECKIN:yyyy-MM-dd 记录，用于防重复领取）
-        UserGift packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), todaySource);
+        BpUserGift packageGift = giftPackageService.grantPackageToUser(userId, config.getGiftPackageCode(), todaySource);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

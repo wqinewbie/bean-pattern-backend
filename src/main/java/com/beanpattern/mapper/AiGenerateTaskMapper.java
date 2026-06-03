@@ -24,7 +24,7 @@ public interface AiGenerateTaskMapper {
      */
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
             "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "status, ai_image_url AS aiImageUrl, ai_image_key AS aiImageKey, raw_ai_image_url AS rawAiImageUrl, raw_ai_image_key AS rawAiImageKey, " +
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
@@ -39,7 +39,9 @@ public interface AiGenerateTaskMapper {
     @Update("UPDATE bp_ai_generate_task SET " +
             "status = #{status}, " +
             "ai_image_url = #{aiImageUrl}, " +
+            "ai_image_key = #{aiImageKey}, " +
             "raw_ai_image_url = #{rawAiImageUrl}, " +
+            "raw_ai_image_key = #{rawAiImageKey}, " +
             "detected_grid_width = #{detectedGridWidth}, " +
             "detected_grid_height = #{detectedGridHeight}, " +
             "final_grid_width = #{finalGridWidth}, " +
@@ -59,7 +61,7 @@ public interface AiGenerateTaskMapper {
      */
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
             "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "status, ai_image_url AS aiImageUrl, ai_image_key AS aiImageKey, raw_ai_image_url AS rawAiImageUrl, raw_ai_image_key AS rawAiImageKey, " +
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
@@ -70,7 +72,7 @@ public interface AiGenerateTaskMapper {
 
     @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
             "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
-            "status, ai_image_url AS aiImageUrl, raw_ai_image_url AS rawAiImageUrl, " +
+            "status, ai_image_url AS aiImageUrl, ai_image_key AS aiImageKey, raw_ai_image_url AS rawAiImageUrl, raw_ai_image_key AS rawAiImageKey, " +
             "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
             "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
             "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +

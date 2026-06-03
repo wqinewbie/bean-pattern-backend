@@ -60,6 +60,15 @@ public class BpDraftController {
         }
 
         draft.setUserId(user.getId());
+        if (draft.getBoxId() != null) {
+            BpBox linkedBox = bpBoxService.getById(draft.getBoxId());
+            if (linkedBox == null || (linkedBox.getStatus() != null && linkedBox.getStatus() == BpBox.STATUS_DELETED)) {
+                return ApiResponse.fail("关联图纸不存在");
+            }
+            if (linkedBox.getUserId() == null || !linkedBox.getUserId().equals(user.getId())) {
+                return ApiResponse.fail("无权关联该图纸");
+            }
+        }
         bpDraftService.save(draft);
         PrivilegeService.LimitStatus afterStatus = privilegeService.getDraftBoxLimitStatus(user.getId());
         return ApiResponse.ok(Map.of(
@@ -68,7 +77,7 @@ public class BpDraftController {
                 "capacityFull", !afterStatus.canAdd(),
                 "capacityCurrent", afterStatus.current(),
                 "capacityLimit", afterStatus.limit(),
-                "capacityMessage", "草稿箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）"
+                "capacityMessage", "草稿箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "），请删除草稿或升级会员"
         ));
     }
 
@@ -218,12 +227,15 @@ public class BpDraftController {
         // 更新草稿箱关联
         bpDraftService.linkBoxId(draftId, box.getId());
 
+        PrivilegeService.LimitStatus afterStatus = privilegeService.getPatternBoxLimitStatus(user.getId());
         return ApiResponse.ok(Map.of(
                 "boxId", box.getId(),
                 "message", "已保存到图纸箱",
                 "alreadySaved", false,
-                "capacityFull", !privilegeService.getPatternBoxLimitStatus(user.getId()).canAdd(),
-                "capacityMessage", "图纸箱容量已满"
+                "capacityFull", !afterStatus.canAdd(),
+                "capacityCurrent", afterStatus.current(),
+                "capacityLimit", afterStatus.limit(),
+                "capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "），请删除图纸或升级会员"
         ));
     }
 }

@@ -1,13 +1,13 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.BpUserGift;
+import com.beanpattern.entity.GiftItem;
 import com.beanpattern.entity.GiftPackage;
+import com.beanpattern.entity.GiftType;
 import com.beanpattern.entity.GiftTypeConfig;
-import com.beanpattern.entity.UserGift;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftPackageMapper;
 import com.beanpattern.mapper.GiftTypeConfigMapper;
-import com.beanpattern.mapper.UserGiftMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,6 @@ public class GiftPackageService {
 
     private final GiftPackageMapper giftPackageMapper;
     private final GiftTypeConfigMapper giftTypeConfigMapper;
-    private final UserGiftMapper userGiftMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
     private final UserService userService;
     private final AiQuotaLogService aiQuotaLogService;
@@ -34,13 +33,11 @@ public class GiftPackageService {
 
     public GiftPackageService(GiftPackageMapper giftPackageMapper,
                               GiftTypeConfigMapper giftTypeConfigMapper,
-                              UserGiftMapper userGiftMapper,
                               BpUserGiftMapper bpUserGiftMapper,
                               UserService userService,
                               AiQuotaLogService aiQuotaLogService) {
         this.giftPackageMapper = giftPackageMapper;
         this.giftTypeConfigMapper = giftTypeConfigMapper;
-        this.userGiftMapper = userGiftMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.userService = userService;
         this.aiQuotaLogService = aiQuotaLogService;
@@ -62,10 +59,10 @@ public class GiftPackageService {
 
     public GiftPackage save(GiftPackage giftPackage) {
         if (!StringUtils.hasText(giftPackage.getPackageCode())) {
-            throw new IllegalArgumentException("礼品包编码不能为空");
+            throw new IllegalArgumentException("Gift package code cannot be empty");
         }
         if (!StringUtils.hasText(giftPackage.getName())) {
-            throw new IllegalArgumentException("礼品包名称不能为空");
+            throw new IllegalArgumentException("Gift package name cannot be empty");
         }
         validateItems(giftPackage.getItemsJson());
         if (giftPackage.getStatus() == null) giftPackage.setStatus(1);
@@ -83,83 +80,52 @@ public class GiftPackageService {
     }
 
     @Transactional
-    public UserGift grantPackageToUser(Long userId, String packageCode) {
-        GiftPackage giftPackage = getByCode(packageCode);
-        if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
-            throw new IllegalArgumentException("礼品包不存在或未启用");
-        }
-        return createPackageGift(userId, giftPackage, "GIFT_PACKAGE:" + giftPackage.getPackageCode());
+    public BpUserGift grantPackageToUser(Long userId, String packageCode) {
+        GiftPackage giftPackage = requireActivePackage(packageCode);
+        return createPackageGift(userId, giftPackage, GIFT_PACKAGE_SOURCE_PREFIX + giftPackage.getPackageCode());
     }
 
     @Transactional
-    public UserGift grantPackageToUser(Long userId, String packageCode, String source) {
-        GiftPackage giftPackage = getByCode(packageCode);
-        if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
-            throw new IllegalArgumentException("礼品包不存在或未启用");
-        }
+    public BpUserGift grantPackageToUser(Long userId, String packageCode, String source) {
+        GiftPackage giftPackage = requireActivePackage(packageCode);
         return createPackageGift(userId, giftPackage, source);
     }
 
     @Transactional
     public void redeemPackageGift(Long userId, Long userGiftId) {
-        // 先查新表 bp_user_gift
-        BpUserGift newGift = bpUserGiftMapper.findById(userGiftId);
-        if (newGift != null && userId.equals(newGift.getUserId())) {
-            if (!"UNUSED".equals(newGift.getStatus())) {
-                throw new IllegalStateException("礼品已使用或不可用");
-            }
-            if (!GIFT_PACKAGE_CODE.equals(newGift.getGiftType())) {
-                throw new IllegalArgumentException("该礼品不支持立即兑换");
-            }
-            if (newGift.getExpireAt() != null && newGift.getExpireAt().isBefore(LocalDateTime.now())) {
-                throw new IllegalStateException("礼品已过期");
-            }
-            GiftPackage gp = resolveGiftPackage(newGift);
-            if (gp == null || gp.getStatus() == null || gp.getStatus() != 1) {
-                throw new IllegalStateException("礼品包不存在或未启用");
-            }
-            int updated = bpUserGiftMapper.use(userGiftId, null);
-            if (updated <= 0) throw new IllegalStateException("礼品兑换失败，请稍后重试");
-            userGiftMapper.use(userGiftId); // 同步旧表
-            int expireDays = gp.getExpireDays() != null && gp.getExpireDays() > 0 ? gp.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
-            grantItemsJsonToUser(userId, gp.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(userGiftId), "兑换礼品包：" + gp.getName());
-            return;
-        }
-
-        // 回退到旧表
-        UserGift gift = userGiftMapper.findById(userGiftId);
+        BpUserGift gift = bpUserGiftMapper.findById(userGiftId);
         if (gift == null || !userId.equals(gift.getUserId())) {
-            throw new IllegalArgumentException("礼品不存在");
+            throw new IllegalArgumentException("Gift does not exist");
         }
-        if (gift.getStatus() == null || gift.getStatus() != 0) {
-            throw new IllegalStateException("礼品已使用或不可用");
+        if (!"UNUSED".equals(gift.getStatus())) {
+            throw new IllegalStateException("Gift is already used or unavailable");
         }
-        if (!GIFT_PACKAGE_CODE.equals(gift.getGiftCode())) {
-            throw new IllegalArgumentException("该礼品不支持立即兑换");
+        if (!GIFT_PACKAGE_CODE.equals(gift.getGiftType())) {
+            throw new IllegalArgumentException("Gift cannot be redeemed as a package");
         }
         if (gift.getExpireAt() != null && gift.getExpireAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalStateException("礼品已过期");
+            throw new IllegalStateException("Gift has expired");
         }
 
-        String packageCode = resolvePackageCode(gift);
-        GiftPackage giftPackage = getByCode(packageCode);
+        GiftPackage giftPackage = resolveGiftPackage(gift);
         if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
-            throw new IllegalStateException("礼品包不存在或未启用");
+            throw new IllegalStateException("Gift package does not exist or is disabled");
         }
 
-        int updated = userGiftMapper.use(gift.getId());
+        int updated = bpUserGiftMapper.use(userGiftId, null);
         if (updated <= 0) {
-            throw new IllegalStateException("礼品兑换失败，请稍后重试");
+            throw new IllegalStateException("Gift redemption failed, please try again later");
         }
 
         int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
                 ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
-        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), expireDays, "GIFT_PACKAGE", String.valueOf(gift.getId()), "兑换礼品包：" + giftPackage.getName());
+        grantItemsJsonToUser(userId, giftPackage.getItemsJson(), expireDays,
+                GIFT_PACKAGE_CODE, String.valueOf(gift.getId()), "Redeem gift package: " + giftPackage.getName());
     }
 
     @Transactional
     public void grantItemsJsonToUser(Long userId, String itemsJson) {
-        grantItemsJsonToUser(userId, itemsJson, DEFAULT_PACKAGE_EXPIRE_DAYS, "GIFT_PACKAGE", "", "发放礼品包权益");
+        grantItemsJsonToUser(userId, itemsJson, DEFAULT_PACKAGE_EXPIRE_DAYS, GIFT_PACKAGE_CODE, "", "Grant gift package benefits");
     }
 
     @Transactional
@@ -172,7 +138,7 @@ public class GiftPackageService {
         try {
             JsonNode items = objectMapper.readTree(itemsJson);
             if (!items.isArray()) {
-                throw new IllegalArgumentException("礼品配置必须是数组");
+                throw new IllegalArgumentException("Gift config must be an array");
             }
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
@@ -182,51 +148,46 @@ public class GiftPackageService {
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            throw new IllegalArgumentException("礼品配置格式错误: " + e.getMessage());
+            throw new IllegalArgumentException("Invalid gift config: " + e.getMessage());
         }
+    }
+
+    private GiftPackage requireActivePackage(String packageCode) {
+        GiftPackage giftPackage = getByCode(packageCode);
+        if (giftPackage == null || giftPackage.getStatus() == null || giftPackage.getStatus() != 1) {
+            throw new IllegalArgumentException("Gift package does not exist or is disabled");
+        }
+        return giftPackage;
     }
 
     private void validateItems(String itemsJson) {
         if (!StringUtils.hasText(itemsJson)) {
-            throw new IllegalArgumentException("礼品明细不能为空");
+            throw new IllegalArgumentException("Gift items cannot be empty");
         }
         try {
             JsonNode items = objectMapper.readTree(itemsJson);
             if (!items.isArray() || items.isEmpty()) {
-                throw new IllegalArgumentException("礼品明细必须是非空数组");
+                throw new IllegalArgumentException("Gift items must be a non-empty array");
             }
             for (JsonNode item : items) {
                 String type = readText(item, "type", readText(item, "gift_type", ""));
                 double value = readDouble(item, "value", readDouble(item, "gift_value", 0));
-                if (!StringUtils.hasText(type)) throw new IllegalArgumentException("礼品类型不能为空");
-                if (value <= 0) throw new IllegalArgumentException("礼品数量必须大于0");
+                if (!StringUtils.hasText(type)) throw new IllegalArgumentException("Gift type cannot be empty");
+                if (value <= 0) throw new IllegalArgumentException("Gift value must be greater than 0");
                 GiftTypeConfig typeConfig = giftTypeConfigMapper.findByCode(type);
-                if (typeConfig == null) throw new IllegalArgumentException("未配置的礼品类型: " + type);
+                if (typeConfig == null) throw new IllegalArgumentException("Gift type is not configured: " + type);
             }
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            throw new IllegalArgumentException("礼品明细JSON格式错误: " + e.getMessage());
+            throw new IllegalArgumentException("Invalid gift items JSON: " + e.getMessage());
         }
     }
 
-    private UserGift createPackageGift(Long userId, GiftPackage giftPackage, String source) {
+    private BpUserGift createPackageGift(Long userId, GiftPackage giftPackage, String source) {
         int expireDays = giftPackage.getExpireDays() != null && giftPackage.getExpireDays() > 0
                 ? giftPackage.getExpireDays() : DEFAULT_PACKAGE_EXPIRE_DAYS;
-        UserGift gift = new UserGift();
-        gift.setUserId(userId);
-        gift.setGiftItemId(giftPackage.getId());
-        gift.setGiftCode(GIFT_PACKAGE_CODE);
-        gift.setGiftName(giftPackage.getName());
-        gift.setGiftCategory("COUPON");
-        gift.setValue(1);
-        gift.setSource(source);
-        gift.setExpireAt(LocalDateTime.now().plusDays(expireDays));
-        gift.setStatus(0);
-        userGiftMapper.insert(gift);
-
-        // 同步写入新表 bp_user_gift
-        BpUserGift newGift = BpUserGift.builder()
+        BpUserGift gift = BpUserGift.builder()
                 .userId(userId)
                 .giftId(giftPackage.getId())
                 .giftType(GIFT_PACKAGE_CODE)
@@ -236,14 +197,8 @@ public class GiftPackageService {
                 .status("UNUSED")
                 .expireAt(LocalDateTime.now().plusDays(expireDays))
                 .build();
-        bpUserGiftMapper.insert(newGift);
-
+        bpUserGiftMapper.insert(gift);
         return gift;
-    }
-
-    private String resolvePackageCodeFromSource(String source) {
-        if (!StringUtils.hasText(source)) return "";
-        return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX) ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length()) : "";
     }
 
     private GiftPackage resolveGiftPackage(BpUserGift gift) {
@@ -254,37 +209,15 @@ public class GiftPackageService {
                 return giftPackage;
             }
         }
-
         if (gift.getGiftId() != null) {
             return giftPackageMapper.findById(gift.getGiftId());
         }
-
         return null;
     }
 
-    private String resolvePackageCode(UserGift gift) {
-        String packageCode = extractPackageCode(gift.getSource());
-        if (StringUtils.hasText(packageCode)) {
-            return packageCode;
-        }
-
-        if (gift.getGiftItemId() != null) {
-            GiftPackage giftPackage = giftPackageMapper.findById(gift.getGiftItemId());
-            if (giftPackage != null && StringUtils.hasText(giftPackage.getPackageCode())) {
-                return giftPackage.getPackageCode();
-            }
-        }
-
-        return "";
-    }
-
-    private String extractPackageCode(String source) {
-        if (!StringUtils.hasText(source)) {
-            return "";
-        }
-        return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX)
-                ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length())
-                : "";
+    private String resolvePackageCodeFromSource(String source) {
+        if (!StringUtils.hasText(source)) return "";
+        return source.startsWith(GIFT_PACKAGE_SOURCE_PREFIX) ? source.substring(GIFT_PACKAGE_SOURCE_PREFIX.length()) : "";
     }
 
     private void grantSingle(Long userId, String type, double value, int expireDays, String bizType, String bizId, String description) {
@@ -292,9 +225,9 @@ public class GiftPackageService {
             int amount = (int) value;
             userService.addAiQuota(userId, amount);
             aiQuotaLogService.logChange(userId, "GIFT", amount,
-                    StringUtils.hasText(bizType) ? bizType : "GIFT_PACKAGE",
+                    StringUtils.hasText(bizType) ? bizType : GIFT_PACKAGE_CODE,
                     StringUtils.hasText(bizId) ? bizId : "",
-                    StringUtils.hasText(description) ? description : "兑换礼品包获得AI次数");
+                    StringUtils.hasText(description) ? description : "Redeem gift package for AI quota");
             return;
         }
         if ("VIP_DAYS".equals(type)) {
@@ -304,20 +237,32 @@ public class GiftPackageService {
 
         GiftTypeConfig typeConfig = giftTypeConfigMapper.findByCode(type);
         if (typeConfig == null) {
-            throw new IllegalArgumentException("不支持的礼品类型: " + type);
+            throw new IllegalArgumentException("Unsupported gift type: " + type);
         }
 
-        UserGift gift = new UserGift();
-        gift.setUserId(userId);
-        gift.setGiftItemId(null);
-        gift.setGiftCode(typeConfig.getCode());
-        gift.setGiftName(typeConfig.getName());
-        gift.setGiftCategory(typeConfig.getGiftCategory());
-        gift.setValue((int) Math.round(value * 10));
-        gift.setSource("GIFT_PACKAGE");
-        gift.setExpireAt(LocalDateTime.now().plusDays("VIP_TRIAL_CARD".equals(type) ? (int) value : expireDays));
-        gift.setStatus(0);
-        userGiftMapper.insert(gift);
+        int giftValue = (int) Math.round(value * 10);
+        LocalDateTime expires = LocalDateTime.now().plusDays("VIP_TRIAL_CARD".equals(type) ? (int) value : expireDays);
+        BpUserGift gift = BpUserGift.builder()
+                .userId(userId)
+                .giftId(null)
+                .giftType(typeConfig.getCode())
+                .giftName(typeConfig.getName())
+                .giftValue(giftValue)
+                .source(StringUtils.hasText(bizType) ? bizType : GIFT_PACKAGE_CODE)
+                .sourceId(parseLongOrNull(bizId))
+                .status("UNUSED")
+                .expireAt(expires)
+                .build();
+        bpUserGiftMapper.insert(gift);
+    }
+
+    private Long parseLongOrNull(String value) {
+        if (!StringUtils.hasText(value)) return null;
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private String readText(JsonNode node, String field, String defaultValue) {

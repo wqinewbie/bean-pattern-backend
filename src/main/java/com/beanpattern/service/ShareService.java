@@ -3,7 +3,7 @@ package com.beanpattern.service;
 import com.beanpattern.entity.ShareRecord;
 import com.beanpattern.entity.ShareVisitor;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.mapper.ShareRecordMapper;
 import com.beanpattern.mapper.ShareVisitorMapper;
 import com.beanpattern.mapper.TaskConfigMapper;
@@ -74,7 +74,7 @@ public class ShareService {
     }
 
     @Transactional
-    public UserGift claimShareReward(Long userId, Long shareRecordId) {
+    public BpUserGift claimShareReward(Long userId, Long shareRecordId) {
         ShareRecord record = shareRecordMapper.findById(shareRecordId);
         if (record == null) {
             throw new IllegalArgumentException("分享记录不存在");
@@ -87,7 +87,7 @@ public class ShareService {
         }
 
         TaskConfig config = resolveShareRewardTask(record);
-        UserGift gift = taskRewardService.grantTaskPackage(userId, config, "SHARE");
+        BpUserGift gift = taskRewardService.grantTaskPackage(userId, config, "SHARE");
         shareRecordMapper.updateRewardStatus(shareRecordId, 2);
         return gift;
     }

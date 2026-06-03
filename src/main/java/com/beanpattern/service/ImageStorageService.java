@@ -114,6 +114,13 @@ public class ImageStorageService {
 
     public StoredImage readPublicUrl(String publicUrl) {
         String key = resolveKeyFromPublicUrl(publicUrl);
+        return readKey(key);
+    }
+
+    public StoredImage readKey(String key) {
+        if (!StringUtils.hasText(key) || key.contains("..")) {
+            throw new IllegalArgumentException("invalid image key");
+        }
         ResponseBytes<GetObjectResponse> object = s3Client().getObjectAsBytes(GetObjectRequest.builder()
                 .bucket(appProperties.getS3().getBucket())
                 .key(key)

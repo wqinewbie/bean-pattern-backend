@@ -57,10 +57,29 @@ public class WatermarkConfigController {
     @PostMapping("/user-config")
     public ApiResponse<String> saveUserConfig(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long userId = sessionHelper.requireUser(request).getId();
-        Integer enabled = params.get("enabled") != null ? (Integer) params.get("enabled") : null;
-        String customText = (String) params.get("customText");
+        Integer enabled = parseEnabled(params != null ? params.get("enabled") : null);
+        String customText = params != null && params.get("customText") != null
+                ? String.valueOf(params.get("customText"))
+                : null;
         
         service.saveUserConfig(userId, enabled, customText);
         return ApiResponse.ok("保存成功");
+    }
+
+    private Integer parseEnabled(Object value) {
+        if (value == null) return null;
+        if (value instanceof Boolean bool) return bool ? 1 : 0;
+        if (value instanceof Number number) return number.intValue() == 0 ? 0 : 1;
+
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) return null;
+        if ("true".equalsIgnoreCase(text)) return 1;
+        if ("false".equalsIgnoreCase(text)) return 0;
+
+        try {
+            return Integer.parseInt(text) == 0 ? 0 : 1;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("enabled参数无效");
+        }
     }
 }

@@ -107,7 +107,9 @@ public class AiTaskController {
         String taskId = (String) body.get("taskId");
         String status = (String) body.get("status");
         String aiImageUrl = (String) body.get("aiImageUrl");
+        String aiImageKey = (String) body.get("aiImageKey");
         String rawAiImageUrl = (String) body.get("rawAiImageUrl");
+        String rawAiImageKey = (String) body.get("rawAiImageKey");
         String errorMessage = (String) body.get("errorMessage");
         Integer gridMin = toInteger(body.get("gridMin"));
         Integer gridMax = toInteger(body.get("gridMax"));
@@ -122,7 +124,9 @@ public class AiTaskController {
                 taskId,
                 status,
                 aiImageUrl,
+                aiImageKey,
                 rawAiImageUrl,
+                rawAiImageKey,
                 errorMessage,
                 gridMin,
                 gridMax,

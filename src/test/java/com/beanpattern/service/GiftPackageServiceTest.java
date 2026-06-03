@@ -5,8 +5,6 @@ import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.GiftPackageMapper;
 import com.beanpattern.mapper.GiftTypeConfigMapper;
-import com.beanpattern.mapper.UserGiftMapper;
-import com.beanpattern.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,11 +27,9 @@ class GiftPackageServiceTest {
     @Mock
     private GiftTypeConfigMapper giftTypeConfigMapper;
     @Mock
-    private UserGiftMapper userGiftMapper;
-    @Mock
     private BpUserGiftMapper bpUserGiftMapper;
     @Mock
-    private UserMapper userMapper;
+    private UserService userService;
     @Mock
     private AiQuotaLogService aiQuotaLogService;
 
@@ -73,13 +69,13 @@ class GiftPackageServiceTest {
         verify(giftPackageMapper, never()).findByCode(any());
         verify(giftPackageMapper).findById(giftPackageId);
         verify(bpUserGiftMapper).use(userGiftId, null);
-        verify(userMapper).addAiQuota(userId, 3);
+        verify(userService).addAiQuota(userId, 3);
         verify(aiQuotaLogService).logChange(
                 eq(userId),
                 eq("GIFT"),
                 eq(3),
                 eq("GIFT_PACKAGE"),
                 eq(String.valueOf(userGiftId)),
-                eq("兑换礼品包：Daily checkin"));
+                eq("Redeem gift package: Daily checkin"));
     }
 }

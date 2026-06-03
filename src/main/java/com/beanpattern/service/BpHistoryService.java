@@ -66,6 +66,10 @@ public class BpHistoryService {
         return bpHistoryMapper.linkBoxId(historyId, boxId);
     }
 
+    public int clearBoxId(Long boxId) {
+        return bpHistoryMapper.clearBoxId(boxId);
+    }
+
     public List<BpHistory> listExpired() {
         return bpHistoryMapper.listExpired();
     }

@@ -4,7 +4,6 @@ import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
 import com.beanpattern.mapper.OrderMapper;
-import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.service.GiftPackageService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,14 +24,12 @@ public class FirstRechargeTaskHandler implements TaskHandler {
     private static final String CLAIM_SOURCE_PREFIX = "FIRST_RECHARGE_GIFT:";
 
     private final OrderMapper orderMapper;
-    private final UserGiftMapper userGiftMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
     private final GiftPackageService giftPackageService;
     private final ObjectMapper objectMapper;
 
-    public FirstRechargeTaskHandler(OrderMapper orderMapper, UserGiftMapper userGiftMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
+    public FirstRechargeTaskHandler(OrderMapper orderMapper, BpUserGiftMapper bpUserGiftMapper, GiftPackageService giftPackageService) {
         this.orderMapper = orderMapper;
-        this.userGiftMapper = userGiftMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.giftPackageService = giftPackageService;
         this.objectMapper = new ObjectMapper();

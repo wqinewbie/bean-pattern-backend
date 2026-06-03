@@ -13,12 +13,16 @@ public interface BannerMapper {
             "b.link_type AS linkType, b.link_value AS linkValue, b.action_type AS actionType, " +
             "b.action_config AS actionConfig, b.tag_text AS tagText, " +
             "b.sort_order AS sortOrder, b.status, b.created_at AS createdAt " +
-            "FROM bp_banner b LEFT JOIN bp_activity_config a ON a.banner_id = b.id " +
+            "FROM bp_banner b " +
             "WHERE b.status = 1 " +
             "AND (b.start_at IS NULL OR b.start_at <= NOW()) " +
             "AND (b.end_at IS NULL OR b.end_at >= NOW()) " +
-            "AND (a.id IS NULL OR (a.status = 1 AND a.start_at <= NOW() AND a.end_at >= NOW())) " +
-            "ORDER BY b.sort_order ASC LIMIT 10")
+            "AND (COALESCE(b.action_type, '') <> 'ACTIVITY' OR EXISTS ( " +
+            "  SELECT 1 FROM bp_activity_config a " +
+            "  WHERE (a.activity_code = b.link_value OR a.banner_id = b.id) " +
+            "  AND a.status = 1 AND a.start_at <= NOW() AND a.end_at >= NOW() " +
+            ")) " +
+            "ORDER BY b.sort_order ASC")
     List<BannerEntity> listActive();
 
     @Select("SELECT id, title, sub_title AS subTitle, image_url AS imageUrl, " +

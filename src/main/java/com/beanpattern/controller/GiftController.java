@@ -90,7 +90,7 @@ public class GiftController {
     public ApiResponse<List<GiftVO>> getAvailableCoupons(@PathVariable String productType,
                                                           HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
-        List<GiftVO> coupons = giftService.getAvailableCoupons(user.getId(), productType).stream().map(GiftVO::from).collect(java.util.stream.Collectors.toList());
+        List<GiftVO> coupons = giftService.getAvailableCoupons(user.getId(), productType);
         return ApiResponse.ok(coupons);
     }
 

@@ -1,7 +1,7 @@
 package com.beanpattern.service;
 
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ public class TaskRewardService {
     }
 
     @Transactional
-    public UserGift grantTaskPackage(Long userId, TaskConfig config, String sourcePrefix) {
+    public BpUserGift grantTaskPackage(Long userId, TaskConfig config, String sourcePrefix) {
         String packageCode = resolveGiftPackageCode(config);
         if (!StringUtils.hasText(packageCode)) {
             throw new IllegalStateException("任务未配置奖励礼品包");

@@ -27,7 +27,9 @@ public class AiGenerateTask {
 
     // 结果数据
     private String aiImageUrl;
+    private String aiImageKey;
     private String rawAiImageUrl;
+    private String rawAiImageKey;
     private Integer detectedGridWidth;
     private Integer detectedGridHeight;
     private Integer finalGridWidth;
@@ -156,12 +158,28 @@ public class AiGenerateTask {
         this.aiImageUrl = aiImageUrl;
     }
 
+    public String getAiImageKey() {
+        return aiImageKey;
+    }
+
+    public void setAiImageKey(String aiImageKey) {
+        this.aiImageKey = aiImageKey;
+    }
+
     public String getRawAiImageUrl() {
         return rawAiImageUrl;
     }
 
     public void setRawAiImageUrl(String rawAiImageUrl) {
         this.rawAiImageUrl = rawAiImageUrl;
+    }
+
+    public String getRawAiImageKey() {
+        return rawAiImageKey;
+    }
+
+    public void setRawAiImageKey(String rawAiImageKey) {
+        this.rawAiImageKey = rawAiImageKey;
     }
 
     public Integer getDetectedGridWidth() {

@@ -46,6 +46,9 @@ public interface BpHistoryMapper {
     @Update("UPDATE bp_history SET box_id=#{boxId} WHERE id=#{id}")
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
+    @Update("UPDATE bp_history SET box_id=NULL WHERE box_id=#{boxId}")
+    int clearBoxId(@Param("boxId") Long boxId);
+
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE expires_at IS NOT NULL AND expires_at < NOW()")

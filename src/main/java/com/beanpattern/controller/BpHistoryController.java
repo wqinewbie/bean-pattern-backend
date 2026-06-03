@@ -1,13 +1,16 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
+import com.beanpattern.entity.AiGenerateTask;
 import com.beanpattern.entity.BpBox;
 import com.beanpattern.entity.BpHistory;
+import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpHistoryService;
 import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -24,15 +27,18 @@ public class BpHistoryController {
 
     private final BpHistoryService bpHistoryService;
     private final BpBoxService bpBoxService;
+    private final AiGenerateTaskMapper aiGenerateTaskMapper;
     private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
     public BpHistoryController(BpHistoryService bpHistoryService,
                                 BpBoxService bpBoxService,
+                                AiGenerateTaskMapper aiGenerateTaskMapper,
                                 PrivilegeService privilegeService,
                                 SessionHelper sessionHelper) {
         this.bpHistoryService = bpHistoryService;
         this.bpBoxService = bpBoxService;
+        this.aiGenerateTaskMapper = aiGenerateTaskMapper;
         this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
@@ -73,6 +79,10 @@ public class BpHistoryController {
 
         int offset = (page - 1) * pageSize;
         List<BpHistory> list = bpHistoryService.listByUserIdWithPage(user.getId(), pageSize, offset);
+        list.forEach(history -> {
+            clearStaleBoxLink(history, user.getId());
+            enrichAiStyle(history);
+        });
         int total = bpHistoryService.countByUserId(user.getId());
         boolean hasMore = offset + list.size() < total;
 
@@ -111,6 +121,7 @@ public class BpHistoryController {
             return ApiResponse.fail("无权访问");
         }
 
+        enrichAiStyle(history);
         return ApiResponse.ok(history);
     }
 
@@ -136,6 +147,7 @@ public class BpHistoryController {
      * 时光机保存到图纸箱
      */
     @PostMapping("/to-box")
+    @Transactional
     public ApiResponse<Map<String, Object>> toBox(@RequestBody Map<String, Long> body,
                                                     HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
@@ -150,11 +162,16 @@ public class BpHistoryController {
 
         // 复制到图纸箱
         if (history.getBoxId() != null) {
-            return ApiResponse.ok(Map.of(
-                    "boxId", history.getBoxId(),
-                    "message", "已保存到图纸箱",
-                    "alreadySaved", true
-            ));
+            BpBox existingBox = bpBoxService.getById(history.getBoxId());
+            if (isActiveUserBox(existingBox, user.getId())) {
+                return ApiResponse.ok(Map.of(
+                        "boxId", history.getBoxId(),
+                        "message", "已保存到图纸箱",
+                        "alreadySaved", true
+                ));
+            }
+            bpHistoryService.linkBoxId(historyId, null);
+            history.setBoxId(null);
         }
         PrivilegeService.LimitStatus status = privilegeService.getPatternBoxLimitStatus(user.getId());
         if (!status.canAdd()) {
@@ -189,7 +206,31 @@ public class BpHistoryController {
                 "capacityFull", !afterStatus.canAdd(),
                 "capacityCurrent", afterStatus.current(),
                 "capacityLimit", afterStatus.limit(),
-                "capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）"
+                "capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "），请删除图纸或升级会员"
         ));
+    }
+
+    private void clearStaleBoxLink(BpHistory history, Long userId) {
+        if (history == null || history.getBoxId() == null) return;
+        BpBox box = bpBoxService.getById(history.getBoxId());
+        if (isActiveUserBox(box, userId)) return;
+        history.setBoxId(null);
+    }
+
+    private boolean isActiveUserBox(BpBox box, Long userId) {
+        return box != null
+                && box.getUserId() != null
+                && box.getUserId().equals(userId)
+                && (box.getStatus() == null || box.getStatus() != BpBox.STATUS_DELETED);
+    }
+
+    private void enrichAiStyle(BpHistory history) {
+        if (history == null || history.getTaskId() == null || history.getTaskId().isBlank()) return;
+        String sourceType = history.getSourceType() == null ? "" : history.getSourceType().toUpperCase();
+        if (!sourceType.contains("AI")) return;
+        AiGenerateTask task = aiGenerateTaskMapper.findByTaskId(history.getTaskId());
+        if (task != null && task.getStyle() != null && !task.getStyle().isBlank()) {
+            history.setAiStyle(task.getStyle());
+        }
     }
 }

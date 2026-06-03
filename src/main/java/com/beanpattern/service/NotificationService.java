@@ -260,6 +260,11 @@ public class NotificationService {
         String actionValue = template.getActionValue() != null ?
                 notificationTemplateService.renderTemplate(template.getActionValue(), variables) : null;
 
+        String actionType = template.getActionType();
+        if (actionType == null || actionType.isBlank()) {
+            actionType = "NONE";
+        }
+
         UserNotification notification = UserNotification.builder()
                 .userId(userId)
                 .type(template.getType())
@@ -267,7 +272,7 @@ public class NotificationService {
                 .title(title)
                 .content(content)
                 .icon(template.getIcon())
-                .actionType(template.getActionType())
+                .actionType(actionType)
                 .actionValue(actionValue)
                 .actionText(template.getActionText())
                 .relatedType(relatedType)

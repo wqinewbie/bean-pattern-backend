@@ -32,7 +32,6 @@ public class UserDataService {
     private final ShareTrackMapper shareTrackMapper;
     private final UserNotificationMapper userNotificationMapper;
     private final UserWatermarkConfigMapper userWatermarkConfigMapper;
-    private final UserGiftMapper userGiftMapper;
 
     public UserDataService(UserMapper userMapper, BpBoxMapper bpBoxMapper, BpDraftMapper bpDraftMapper,
                            BpHistoryMapper bpHistoryMapper, OrderMapper orderMapper,
@@ -49,8 +48,7 @@ public class UserDataService {
                            ShareRecordMapper shareRecordMapper, ShareVisitorMapper shareVisitorMapper,
                            ShareTrackMapper shareTrackMapper,
                            UserNotificationMapper userNotificationMapper,
-                           UserWatermarkConfigMapper userWatermarkConfigMapper,
-                           UserGiftMapper userGiftMapper) {
+                           UserWatermarkConfigMapper userWatermarkConfigMapper) {
         this.userMapper = userMapper;
         this.bpBoxMapper = bpBoxMapper;
         this.bpDraftMapper = bpDraftMapper;
@@ -73,7 +71,6 @@ public class UserDataService {
         this.shareTrackMapper = shareTrackMapper;
         this.userNotificationMapper = userNotificationMapper;
         this.userWatermarkConfigMapper = userWatermarkConfigMapper;
-        this.userGiftMapper = userGiftMapper;
     }
 
     @Transactional
@@ -86,7 +83,6 @@ public class UserDataService {
         userActivityLogMapper.deleteByUserId(userId);
         userTaskProgressMapper.deleteByUserId(userId);
         bpUserGiftMapper.deleteByUserId(userId);
-        userGiftMapper.deleteByUserId(userId);
         aiGenerateTaskMapper.deleteByUserId(userId);
         aiQuotaLogMapper.deleteByUserId(userId);
         orderMapper.deleteByUserId(userId);

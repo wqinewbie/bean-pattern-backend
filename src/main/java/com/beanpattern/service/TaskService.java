@@ -2,11 +2,10 @@ package com.beanpattern.service;
 
 import com.beanpattern.entity.TaskCenterItem;
 import com.beanpattern.entity.TaskConfig;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.entity.UserTaskProgress;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.TaskConfigMapper;
-import com.beanpattern.mapper.UserGiftMapper;
 import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.mapper.UserTaskProgressMapper;
@@ -36,7 +35,6 @@ public class TaskService {
 
     private final TaskConfigMapper taskConfigMapper;
     private final UserTaskProgressMapper userTaskProgressMapper;
-    private final UserGiftMapper userGiftMapper;
     private final BpUserGiftMapper bpUserGiftMapper;
     private final UserMapper userMapper;
     private final OrderMapper orderMapper;
@@ -48,7 +46,6 @@ public class TaskService {
 
     public TaskService(TaskConfigMapper taskConfigMapper,
                        UserTaskProgressMapper userTaskProgressMapper,
-                       UserGiftMapper userGiftMapper,
                        BpUserGiftMapper bpUserGiftMapper,
                        UserMapper userMapper,
                        OrderMapper orderMapper,
@@ -58,7 +55,6 @@ public class TaskService {
                        List<TaskHandler> taskHandlers) {
         this.taskConfigMapper = taskConfigMapper;
         this.userTaskProgressMapper = userTaskProgressMapper;
-        this.userGiftMapper = userGiftMapper;
         this.bpUserGiftMapper = bpUserGiftMapper;
         this.userMapper = userMapper;
         this.orderMapper = orderMapper;
@@ -169,7 +165,7 @@ public class TaskService {
      * 鐩墠浠嶅吋瀹归€氱敤杩涘害鍨嬩换鍔＄殑棰嗗彇閫昏緫銆?
      */
     @Transactional
-    public UserGift claimTaskReward(Long userId, Long progressId) {
+    public BpUserGift claimTaskReward(Long userId, Long progressId) {
         UserTaskProgress progress = userTaskProgressMapper.findById(progressId);
         if (progress == null) {
             throw new IllegalArgumentException("Task progress not found");
@@ -197,7 +193,7 @@ public class TaskService {
      * 棰嗗彇璧勬牸鍨嬬ぜ鍖呫€?
      */
     @Transactional
-    public UserGift claimBenefitGift(Long userId, String taskCode) {
+    public BpUserGift claimBenefitGift(Long userId, String taskCode) {
         TaskConfig config = taskConfigMapper.findByCode(taskCode);
         if (config == null) {
             throw new IllegalArgumentException("Task config not found");
@@ -225,7 +221,7 @@ public class TaskService {
         throw new IllegalArgumentException("Task benefit is not claimable");
     }
 
-    private UserGift claimFirstRechargeGift(Long userId, TaskConfig config) {
+    private BpUserGift claimFirstRechargeGift(Long userId, TaskConfig config) {
         boolean hasPaidOrder = orderMapper.listByUserId(userId).stream()
                 .anyMatch(order -> "PAID".equalsIgnoreCase(order.getStatus()));
         if (!hasPaidOrder) {
@@ -234,14 +230,14 @@ public class TaskService {
         return claimPackageGift(userId, config, "FIRST_RECHARGE_GIFT", "First recharge gift already claimed");
     }
 
-    private UserGift claimRegisterGift(Long userId, TaskConfig config) {
+    private BpUserGift claimRegisterGift(Long userId, TaskConfig config) {
         if (userMapper.findById(userId) == null) {
             throw new IllegalStateException("Register before claiming");
         }
         return claimPackageGift(userId, config, "REGISTER_GIFT", "Register gift already claimed");
     }
 
-    private UserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
+    private BpUserGift claimInviteRegisterGift(Long userId, TaskConfig config) {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = countInviteRegister(userId);
         int availableRounds = currentCount / targetCount;
@@ -252,7 +248,7 @@ public class TaskService {
         return claimPackageGift(userId, config, "INVITE_REGISTER_GIFT", null);
     }
 
-    private UserGift claimInviteRechargeGift(Long userId, TaskConfig config) {
+    private BpUserGift claimInviteRechargeGift(Long userId, TaskConfig config) {
         int targetCount = readExtraInt(config, "targetCount", 1);
         int currentCount = countInviteRecharge(userId);
         int availableRounds = currentCount / targetCount;
@@ -263,7 +259,7 @@ public class TaskService {
         return claimPackageGift(userId, config, "INVITE_RECHARGE_GIFT", null);
     }
 
-    private UserGift claimPackageGift(Long userId, TaskConfig config, String sourcePrefix, String duplicateMessage) {
+    private BpUserGift claimPackageGift(Long userId, TaskConfig config, String sourcePrefix, String duplicateMessage) {
         String packageCode = readExtraText(config, "giftPackageCode", "");
         if (!StringUtils.hasText(packageCode)) {
             throw new IllegalArgumentException("未配置礼包 giftPackageCode");

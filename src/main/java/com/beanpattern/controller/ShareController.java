@@ -3,7 +3,7 @@ package com.beanpattern.controller;
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.ShareRecord;
 import com.beanpattern.entity.ShareVisitor;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.ShareService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -107,7 +107,7 @@ public class ShareController {
      * 领取分享奖励
      */
     @PostMapping("/claim")
-    public ApiResponse<UserGift> claimReward(@RequestBody Map<String, Long> body,
+    public ApiResponse<BpUserGift> claimReward(@RequestBody Map<String, Long> body,
                                              HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
         Long recordId = body.get("recordId");
@@ -115,7 +115,7 @@ public class ShareController {
             return ApiResponse.fail("记录ID不能为空");
         }
 
-        UserGift gift = shareService.claimShareReward(user.getId(), recordId);
+        BpUserGift gift = shareService.claimShareReward(user.getId(), recordId);
         return ApiResponse.ok(gift);
     }
 }

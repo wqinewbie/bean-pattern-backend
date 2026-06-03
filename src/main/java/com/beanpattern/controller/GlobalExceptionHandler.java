@@ -7,6 +7,7 @@ import com.beanpattern.model.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -24,6 +25,13 @@ public class GlobalExceptionHandler {
                 ? ex.getBindingResult().getFieldError().getDefaultMessage()
                 : "请求参数有误";
         return ApiResponse.fail(message);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleUnreadableMessage(HttpMessageNotReadableException ex) {
+        log.warn("Unreadable request body: {}", ex.getMessage());
+        return ApiResponse.fail("请求参数格式有误");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

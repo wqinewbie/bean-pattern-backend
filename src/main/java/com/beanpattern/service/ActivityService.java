@@ -4,7 +4,7 @@ import com.beanpattern.entity.ActivityConfig;
 import com.beanpattern.entity.GiftPackage;
 import com.beanpattern.entity.RewardItem;
 import com.beanpattern.entity.UserActivityLog;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.mapper.ActivityConfigMapper;
 import com.beanpattern.mapper.UserActivityLogMapper;
 import com.beanpattern.service.task.GiftPackageRewardHelper;
@@ -42,10 +42,10 @@ public class ActivityService {
         if (!Boolean.TRUE.equals(activity.getStatus())) {
             throw new IllegalStateException("活动已下架");
         }
-        if (now.isBefore(activity.getStartAt())) {
+        if (activity.getStartAt() != null && now.isBefore(activity.getStartAt())) {
             throw new IllegalStateException("活动未开始");
         }
-        if (now.isAfter(activity.getEndAt())) {
+        if (activity.getEndAt() != null && now.isAfter(activity.getEndAt())) {
             throw new IllegalStateException("活动已过期");
         }
 
@@ -87,10 +87,10 @@ public class ActivityService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(activity.getStartAt())) {
+        if (activity.getStartAt() != null && now.isBefore(activity.getStartAt())) {
             throw new IllegalStateException("活动未开始");
         }
-        if (now.isAfter(activity.getEndAt())) {
+        if (activity.getEndAt() != null && now.isAfter(activity.getEndAt())) {
             throw new IllegalStateException("活动已结束");
         }
         if (!Boolean.TRUE.equals(activity.getStatus())) {
@@ -107,7 +107,7 @@ public class ActivityService {
         }
 
         try {
-            UserGift packageGift = giftPackageService.grantPackageToUser(
+            BpUserGift packageGift = giftPackageService.grantPackageToUser(
                     userId,
                     activity.getGiftPackageCode(),
                     "ACTIVITY:" + activity.getActivityCode()

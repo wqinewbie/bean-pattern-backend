@@ -61,6 +61,9 @@ public interface BpDraftMapper {
     @Update("UPDATE bp_draft SET box_id=#{boxId}, updated_at=CURRENT_TIMESTAMP WHERE id=#{id}")
     int linkBoxId(@Param("id") Long id, @Param("boxId") Long boxId);
 
+    @Update("UPDATE bp_draft SET box_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE box_id=#{boxId}")
+    int clearBoxId(@Param("boxId") Long boxId);
+
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "box_id AS boxId, mapped_pixel_data AS mappedPixelData, "
           + "created_at AS createdAt, updated_at AS updatedAt, expires_at AS expiresAt FROM bp_draft WHERE expires_at IS NOT NULL AND expires_at < NOW()")

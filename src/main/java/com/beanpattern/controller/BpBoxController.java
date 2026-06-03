@@ -5,10 +5,12 @@ import com.beanpattern.entity.BpBox;
 import com.beanpattern.entity.BpHistory;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
+import com.beanpattern.service.BpDraftService;
 import com.beanpattern.service.BpHistoryService;
 import com.beanpattern.service.PrivilegeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,15 +25,18 @@ public class BpBoxController {
 
     private final BpBoxService bpBoxService;
     private final BpHistoryService bpHistoryService;
+    private final BpDraftService bpDraftService;
     private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
     public BpBoxController(BpBoxService bpBoxService,
                            BpHistoryService bpHistoryService,
+                           BpDraftService bpDraftService,
                            PrivilegeService privilegeService,
                            SessionHelper sessionHelper) {
         this.bpBoxService = bpBoxService;
         this.bpHistoryService = bpHistoryService;
+        this.bpDraftService = bpDraftService;
         this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
@@ -76,11 +81,11 @@ public class BpBoxController {
         PrivilegeService.LimitStatus afterStatus = privilegeService.getPatternBoxLimitStatus(user.getId());
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         result.put("id", box.getId());
-        result.put("box", box);
+        result.put("boxId", box.getId());
         result.put("capacityFull", !afterStatus.canAdd());
         result.put("capacityCurrent", afterStatus.current());
         result.put("capacityLimit", afterStatus.limit());
-        result.put("capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "）");
+        result.put("capacityMessage", "图纸箱容量已满（" + afterStatus.current() + "/" + afterStatus.limit() + "），请删除图纸或升级会员");
         return ApiResponse.ok(result);
     }
 
@@ -151,6 +156,7 @@ public class BpBoxController {
      * 删除图纸
      */
     @DeleteMapping("/delete/{id}")
+    @Transactional
     public ApiResponse<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
@@ -160,6 +166,8 @@ public class BpBoxController {
         if (box.getUserId() == null || !box.getUserId().equals(user.getId())) return ApiResponse.fail("无权删除");
 
         bpBoxService.delete(id);
+        bpHistoryService.clearBoxId(id);
+        bpDraftService.clearBoxId(id);
         return ApiResponse.ok(null);
     }
 
@@ -186,20 +194,31 @@ public class BpBoxController {
     @PutMapping("/rename")
     public ApiResponse<Void> rename(@RequestBody java.util.Map<String, Object> body, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
-        if (user == null) return ApiResponse.fail("璇峰厛鐧诲綍");
+        if (user == null) return ApiResponse.fail("请先登录");
 
-        Long id = body.get("id") != null ? ((Number) body.get("id")).longValue() : null;
+        Long id = parseLong(body.get("id"));
         String name = body.get("name") != null ? String.valueOf(body.get("name")) : null;
 
-        if (id == null) return ApiResponse.fail("id 涓嶈兘涓虹┖");
-        if (name == null || name.trim().isEmpty()) return ApiResponse.fail("name 涓嶈兘涓虹┖");
+        if (id == null) return ApiResponse.fail("id 不能为空");
+        if (name == null || name.trim().isEmpty()) return ApiResponse.fail("name 不能为空");
 
         BpBox existing = bpBoxService.getById(id);
-        if (existing == null) return ApiResponse.fail("鍥剧焊涓嶅瓨鍦?");
-        if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("鏃犳潈淇敼");
+        if (existing == null) return ApiResponse.fail("图纸不存在");
+        if (existing.getUserId() == null || !existing.getUserId().equals(user.getId())) return ApiResponse.fail("无权修改");
 
         bpBoxService.updateName(id, name.trim());
         return ApiResponse.ok(null);
+    }
+
+    private Long parseLong(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.longValue();
+        try {
+            String text = String.valueOf(value).trim();
+            return text.isEmpty() ? null : Long.parseLong(text);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**

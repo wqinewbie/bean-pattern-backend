@@ -111,16 +111,21 @@ public class WatermarkConfigService {
             throw new IllegalArgumentException("仅VIP用户可以自定义水印");
         }
         
+        String normalizedText = customText == null ? null : customText.trim();
+        if (normalizedText != null && normalizedText.length() > 128) {
+            throw new IllegalArgumentException("水印文字不能超过128个字符");
+        }
+
         UserWatermarkConfig config = userMapper.getByUserId(userId);
         if (config == null) {
             config = new UserWatermarkConfig();
             config.setUserId(userId);
             config.setEnabled(enabled != null ? enabled : 1);
-            config.setCustomText(customText);
+            config.setCustomText(normalizedText);
             userMapper.insert(config);
         } else {
             config.setEnabled(enabled != null ? enabled : config.getEnabled());
-            config.setCustomText(customText);
+            config.setCustomText(normalizedText);
             userMapper.updateByUserId(config);
         }
     }

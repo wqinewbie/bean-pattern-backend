@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.beanpattern.util.FlexibleLocalDateTimeDeserializer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,8 +33,10 @@ public class CardPackage {
     private Boolean isActive;          // 是否启用
     private Integer purchaseLimit;     // 购买次数限制（每个用户，NULL=不限制）
     @JsonFormat(pattern = DATE_TIME_PATTERN)
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime shelfStartTime;  // 上架时间（NULL=立即上架）
     @JsonFormat(pattern = DATE_TIME_PATTERN)
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime shelfEndTime;    // 下架时间（NULL=不下架）
     private Boolean vipOnly;           // 是否仅会员可购买
     private Integer remainingPurchaseCount; // 当前用户剩余可购次数（NULL=不限购）

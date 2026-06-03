@@ -3,7 +3,7 @@ package com.beanpattern.service;
 import com.beanpattern.entity.*;
 import com.beanpattern.mapper.OrderMapper;
 import com.beanpattern.mapper.UserMapper;
-import com.beanpattern.mapper.UserGiftMapper;
+import com.beanpattern.mapper.BpUserGiftMapper;
 import com.beanpattern.mapper.UserVipRecordMapper;
 import com.beanpattern.model.PageResult;
 import com.beanpattern.model.vo.OrderVO;
@@ -33,7 +33,7 @@ public class OrderService {
 
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
-    private final UserGiftMapper userGiftMapper;
+    private final BpUserGiftMapper bpUserGiftMapper;
     private final UserVipRecordMapper userVipRecordMapper;
     private final VipPackageService vipPackageService;
     private final CardPackageService cardPackageService;
@@ -46,7 +46,7 @@ public class OrderService {
 
     public OrderService(OrderMapper orderMapper,
                        UserMapper userMapper,
-                       UserGiftMapper userGiftMapper,
+                       BpUserGiftMapper bpUserGiftMapper,
                        UserVipRecordMapper userVipRecordMapper,
                        VipPackageService vipPackageService,
                        CardPackageService cardPackageService,
@@ -58,7 +58,7 @@ public class OrderService {
                        GiftPackageService giftPackageService) {
         this.orderMapper = orderMapper;
         this.userMapper = userMapper;
-        this.userGiftMapper = userGiftMapper;
+        this.bpUserGiftMapper = bpUserGiftMapper;
         this.userVipRecordMapper = userVipRecordMapper;
         this.vipPackageService = vipPackageService;
         this.cardPackageService = cardPackageService;
@@ -165,8 +165,8 @@ public class OrderService {
 
         // 如果使用优惠券，验证并计算折扣
         if (couponId != null) {
-            UserGift coupon = validateAndGetCoupon(userId, couponId, "VIP_COUPON");
-            finalPrice = applyDiscount(finalPrice, coupon.getValue());
+            BpUserGift coupon = validateAndGetCoupon(userId, couponId, "VIP_COUPON");
+            finalPrice = applyDiscount(finalPrice, coupon.getGiftValue());
         }
         finalPrice = requirePayableAmount(finalPrice);
 
@@ -246,8 +246,8 @@ public class OrderService {
 
         // 如果使用优惠券，验证并计算折扣
         if (couponId != null) {
-            UserGift coupon = validateAndGetCoupon(userId, couponId, "CARD_COUPON", "VIP_CARD_COUPON");
-            finalPrice = applyDiscount(finalPrice, coupon.getValue());
+            BpUserGift coupon = validateAndGetCoupon(userId, couponId, "CARD_COUPON", "VIP_CARD_COUPON");
+            finalPrice = applyDiscount(finalPrice, coupon.getGiftValue());
         }
         finalPrice = requirePayableAmount(finalPrice);
 
@@ -275,45 +275,41 @@ public class OrderService {
     /**
      * 验证并获取优惠券
      */
-    private UserGift validateAndGetCoupon(Long userId, Long couponId, String... allowedCouponCodes) {
-        UserGift coupon = userGiftMapper.findById(couponId);
+    private BpUserGift validateAndGetCoupon(Long userId, Long couponId, String... allowedCouponCodes) {
+        BpUserGift coupon = bpUserGiftMapper.findById(couponId);
         if (coupon == null) {
-            throw new IllegalArgumentException("优惠券不存在");
+            throw new IllegalArgumentException("Coupon does not exist");
         }
         if (!coupon.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("优惠券不属于当前用户");
+            throw new IllegalArgumentException("Coupon does not belong to current user");
         }
-        if (coupon.getStatus() != 0) {
-            throw new IllegalArgumentException("优惠券已使用或不可用");
+        if (!"UNUSED".equals(coupon.getStatus())) {
+            throw new IllegalArgumentException("Coupon is already used or unavailable");
         }
         if (coupon.getExpireAt() != null && coupon.getExpireAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("优惠券已过期");
+            throw new IllegalArgumentException("Coupon has expired");
         }
-        if (!"COUPON".equals(coupon.getGiftCategory())) {
-            throw new IllegalArgumentException("该礼品不是优惠券");
+        if (!isCouponGift(coupon.getGiftType())) {
+            throw new IllegalArgumentException("Gift is not a coupon");
         }
 
-        // 检查优惠券类型是否匹配
         boolean typeMatched = false;
         for (String allowedCode : allowedCouponCodes) {
-            if (allowedCode.equals(coupon.getGiftCode())) {
+            if (allowedCode.equals(coupon.getGiftType())) {
                 typeMatched = true;
                 break;
             }
         }
         if (!typeMatched) {
-            throw new IllegalArgumentException("优惠券类型不适用于该商品");
+            throw new IllegalArgumentException("Coupon type is not applicable to this product");
         }
 
         return coupon;
     }
 
-    /**
-     * 应用折扣
-     * @param originalPrice 原价
-     * @param discountValue 折扣值（例如：80 表示8折）
-     * @return 折扣后价格
-     */
+    private boolean isCouponGift(String giftType) {
+        return giftType != null && ("COUPON".equals(giftType) || giftType.endsWith("_COUPON"));
+    }
     private BigDecimal applyDiscount(BigDecimal originalPrice, Integer discountValue) {
         if (discountValue == null || discountValue <= 0 || discountValue >= 100) {
             return originalPrice;
@@ -488,7 +484,7 @@ public class OrderService {
                 inviteCodeService.markInviteeFirstPaid(order.getUserId());
 
                 if (order.getCouponId() != null) {
-                    userGiftMapper.use(order.getCouponId());
+                    bpUserGiftMapper.use(order.getCouponId(), order.getOrderNo());
                 }
 
                 orderMapper.updateDeliverStatus(order.getId(), "SUCCESS", null);

@@ -75,6 +75,9 @@ public class AiTaskService {
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", task.getTaskId());
         data.put("status", task.getStatus());
+        data.put("imageUrl", task.getImageUrl());
+        data.put("originalImageUrl", task.getImageUrl());
+        data.put("sourceUrl", task.getImageUrl());
 
         // 返回后期处理参数，前端可直接用
         data.put("sizeMode", task.getSizeMode());
@@ -84,6 +87,8 @@ public class AiTaskService {
         data.put("colorCount", task.getColorCount());
         data.put("mirror", task.getMirror());
         data.put("rawAiImageUrl", task.getRawAiImageUrl());
+        data.put("aiImageKey", task.getAiImageKey());
+        data.put("rawAiImageKey", task.getRawAiImageKey());
         data.put("detectedGridWidth", task.getDetectedGridWidth());
         data.put("detectedGridHeight", task.getDetectedGridHeight());
         data.put("finalGridWidth", task.getFinalGridWidth());
@@ -119,7 +124,9 @@ public class AiTaskService {
     public void updateTaskStatus(String taskId,
                                  String status,
                                  String aiImageUrl,
+                                 String aiImageKey,
                                  String rawAiImageUrl,
+                                 String rawAiImageKey,
                                  String errorMessage,
                                  Integer gridMin,
                                  Integer gridMax,
@@ -142,6 +149,12 @@ public class AiTaskService {
 
         if (StringUtils.hasText(rawAiImageUrl)) {
             task.setRawAiImageUrl(rawAiImageUrl);
+        }
+        if (StringUtils.hasText(aiImageKey)) {
+            task.setAiImageKey(aiImageKey);
+        }
+        if (StringUtils.hasText(rawAiImageKey)) {
+            task.setRawAiImageKey(rawAiImageKey);
         }
         if (gridMin != null) {
             task.setGridMin(gridMin);

@@ -33,6 +33,9 @@ public class AiHistoryAutoSaveService {
     @Autowired
     private AiGenerateTaskMapper taskMapper;
 
+    @Autowired
+    private ImageStorageService imageStorageService;
+
     @Async("taskExecutor")
     public void processAndSaveHistory(AiGenerateTask task) {
         try {
@@ -46,8 +49,14 @@ public class AiHistoryAutoSaveService {
                     : ("small".equals(task.getSizeMode()) ? 32 : 48));
             int threshold = 30;
 
-            AiImageProcessor.ProcessedResult result = aiImageProcessor.process(
-                    task.getAiImageUrl(), brand, colorCount, mirror, gridSize, threshold);
+            AiImageProcessor.ProcessedResult result;
+            if (StringUtils.hasText(task.getAiImageKey())) {
+                ImageStorageService.StoredImage image = imageStorageService.readKey(task.getAiImageKey());
+                result = aiImageProcessor.process(image.bytes(), brand, colorCount, mirror, gridSize, threshold);
+            } else {
+                ImageStorageService.StoredImage image = imageStorageService.readPublicUrl(task.getAiImageUrl());
+                result = aiImageProcessor.process(image.bytes(), brand, colorCount, mirror, gridSize, threshold);
+            }
 
             String mappedPixelDataJson = objectMapper.writeValueAsString(result.mappedPixelData());
 

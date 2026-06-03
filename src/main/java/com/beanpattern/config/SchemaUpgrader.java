@@ -60,6 +60,8 @@ public class SchemaUpgrader implements ApplicationRunner {
 
         // bp_ai_generate_task
         addColumn(db, "bp_ai_generate_task", "raw_ai_image_url", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `raw_ai_image_url` VARCHAR(1024) NULL COMMENT 'AI raw generated image URL' AFTER `ai_image_url`");
+        addColumn(db, "bp_ai_generate_task", "ai_image_key", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `ai_image_key` VARCHAR(1024) NULL COMMENT 'AI generated image object key' AFTER `ai_image_url`");
+        addColumn(db, "bp_ai_generate_task", "raw_ai_image_key", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `raw_ai_image_key` VARCHAR(1024) NULL COMMENT 'AI raw generated image object key' AFTER `raw_ai_image_url`");
         addColumn(db, "bp_ai_generate_task", "grid_min", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_min` INT NULL COMMENT 'requested min grid size' AFTER `size_mode`");
         addColumn(db, "bp_ai_generate_task", "grid_max", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_max` INT NULL COMMENT 'requested max grid size' AFTER `grid_min`");
         addColumn(db, "bp_ai_generate_task", "detected_grid_width", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `detected_grid_width` INT NULL COMMENT 'Perfect Pixel detected grid width' AFTER `raw_ai_image_url`");
@@ -78,6 +80,9 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "action_type", "ALTER TABLE `bp_banner` ADD COLUMN `action_type` VARCHAR(32) NULL DEFAULT 'NONE' AFTER `link_value`");
         addColumn(db, "bp_banner", "action_config", "ALTER TABLE `bp_banner` ADD COLUMN `action_config` TEXT NULL AFTER `action_type`");
         addColumn(db, "bp_box", "cover_url", "ALTER TABLE `bp_box` ADD COLUMN `cover_url` VARCHAR(1024) NULL COMMENT '封面图URL' AFTER `source_url`");
+        addColumn(db, "bp_box", "focus_progress", "ALTER TABLE `bp_box` ADD COLUMN `focus_progress` TEXT NULL COMMENT '沉浸模式进度JSON' AFTER `mapped_pixel_data`");
+        addColumn(db, "bp_box", "focus_completed_cells", "ALTER TABLE `bp_box` ADD COLUMN `focus_completed_cells` INT NOT NULL DEFAULT 0 COMMENT '沉浸模式已完成格子数' AFTER `focus_progress`");
+        addColumn(db, "bp_box", "focus_total_cells", "ALTER TABLE `bp_box` ADD COLUMN `focus_total_cells` INT NOT NULL DEFAULT 0 COMMENT '沉浸模式总格子数' AFTER `focus_completed_cells`");
         addColumn(db, "bp_banner", "start_at",   "ALTER TABLE `bp_banner` ADD COLUMN `start_at` DATETIME NULL AFTER `status`");
         addColumn(db, "bp_banner", "end_at",     "ALTER TABLE `bp_banner` ADD COLUMN `end_at` DATETIME NULL AFTER `start_at`");
         addColumn(db, "bp_banner", "updated_at", "ALTER TABLE `bp_banner` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
@@ -89,8 +94,10 @@ public class SchemaUpgrader implements ApplicationRunner {
         createAiMagicStyleTable(db);
         ensureCommercePackageTables(db);
         ensurePopupConfigTable(db);
+        ensureNotificationTables(db);
         createSysDictTable(db);
         seedSysDictItems();
+        seedReviewTaskNotificationDefaults();
         enforceBannerUtf8mb4();
 
         // bp_recharge_plan
@@ -110,9 +117,6 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_order", "deliver_error", "ALTER TABLE `bp_order` ADD COLUMN `deliver_error` VARCHAR(512) NULL COMMENT '发货错误信息' AFTER `deliver_status`");
         addColumn(db, "bp_order", "transaction_id", "ALTER TABLE `bp_order` ADD COLUMN `transaction_id` VARCHAR(64) NULL COMMENT '微信交易单号' AFTER `deliver_error`");
         addColumn(db, "bp_order", "coupon_id", "ALTER TABLE `bp_order` ADD COLUMN `coupon_id` BIGINT NULL COMMENT '使用的优惠券ID' AFTER `transaction_id`");
-
-        // user_gift - 修改 gift_item_id 为可空，支持礼品包动态生成的礼品
-        relaxUserGiftItemIdConstraint(db);
 
         // bp_feedback
         addColumn(db, "bp_feedback", "updated_at", "ALTER TABLE `bp_feedback` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
@@ -149,26 +153,6 @@ public class SchemaUpgrader implements ApplicationRunner {
         } catch (Exception ignored) {
         }
     }
-
-    private void relaxUserGiftItemIdConstraint(String db) {
-        try {
-            // 检查表是否存在
-            Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'user_gift'",
-                Integer.class, db);
-            if (count == null || count == 0) {
-                log.info("[SchemaUpgrader] user_gift 表不存在，跳过字段修改");
-                return;
-            }
-
-            // 修改 gift_item_id 为可空
-            jdbc.execute("ALTER TABLE user_gift MODIFY COLUMN gift_item_id BIGINT NULL COMMENT '礼品项ID（礼品包动态生成的礼品可为空）'");
-            log.info("[SchemaUpgrader] 已将 user_gift.gift_item_id 修改为可空");
-        } catch (Exception e) {
-            log.warn("[SchemaUpgrader] 修改 user_gift.gift_item_id 约束失败: {}", e.getMessage());
-        }
-    }
-
     private void createBannerClaimLogTable(String db) {
         createTableIfNotExists(db, "bp_banner_claim_log",
                 "CREATE TABLE bp_banner_claim_log (" +
@@ -283,8 +267,8 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "UNIQUE KEY uk_user_id(user_id)" +
                         ") DEFAULT CHARSET=utf8mb4 COMMENT='用户水印配置表（VIP功能）'");
 
-        addColumn(db, "bp_watermark_config", "app_name", "ALTER TABLE `bp_watermark_config` ADD COLUMN `app_name` VARCHAR(128) NOT NULL DEFAULT 'PinBean' AFTER `id`");
-        addColumn(db, "bp_watermark_config", "default_text", "ALTER TABLE `bp_watermark_config` ADD COLUMN `default_text` VARCHAR(128) NOT NULL DEFAULT 'PinBean' AFTER `app_name`");
+        addColumn(db, "bp_watermark_config", "app_name", "ALTER TABLE `bp_watermark_config` ADD COLUMN `app_name` VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋' AFTER `id`");
+        addColumn(db, "bp_watermark_config", "default_text", "ALTER TABLE `bp_watermark_config` ADD COLUMN `default_text` VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋出品' AFTER `app_name`");
         addColumn(db, "bp_watermark_config", "font_size", "ALTER TABLE `bp_watermark_config` ADD COLUMN `font_size` INT NOT NULL DEFAULT 24 AFTER `default_text`");
         addColumn(db, "bp_watermark_config", "color", "ALTER TABLE `bp_watermark_config` ADD COLUMN `color` VARCHAR(64) NOT NULL DEFAULT 'rgba(100,100,100,0.25)' AFTER `font_size`");
         addColumn(db, "bp_watermark_config", "angle", "ALTER TABLE `bp_watermark_config` ADD COLUMN `angle` INT NOT NULL DEFAULT -30 AFTER `color`");
@@ -431,6 +415,67 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_popup_config", "updated_at", "ALTER TABLE `bp_popup_config` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
     }
 
+    private void ensureNotificationTables(String db) {
+        createTableIfNotExists(db, "bp_notification_template",
+                "CREATE TABLE bp_notification_template (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "code VARCHAR(64) NOT NULL COMMENT 'template code'," +
+                        "name VARCHAR(128) NOT NULL COMMENT 'template name'," +
+                        "type VARCHAR(32) NOT NULL COMMENT 'notification type'," +
+                        "title VARCHAR(128) NOT NULL COMMENT 'title template'," +
+                        "content VARCHAR(1024) NOT NULL COMMENT 'content template'," +
+                        "icon VARCHAR(32) NULL," +
+                        "action_type VARCHAR(32) NOT NULL DEFAULT 'NONE'," +
+                        "action_value VARCHAR(512) NULL," +
+                        "action_text VARCHAR(64) NULL," +
+                        "variables VARCHAR(1024) NULL," +
+                        "is_active TINYINT(1) NOT NULL DEFAULT 1," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "UNIQUE KEY uk_notification_template_code(code)," +
+                        "KEY idx_notification_template_active(is_active, type)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='Notification template'");
+        addColumn(db, "bp_notification_template", "action_value", "ALTER TABLE `bp_notification_template` ADD COLUMN `action_value` VARCHAR(512) NULL AFTER `action_type`");
+        addColumn(db, "bp_notification_template", "action_text", "ALTER TABLE `bp_notification_template` ADD COLUMN `action_text` VARCHAR(64) NULL AFTER `action_value`");
+        addColumn(db, "bp_notification_template", "variables", "ALTER TABLE `bp_notification_template` ADD COLUMN `variables` VARCHAR(1024) NULL AFTER `action_text`");
+        addColumn(db, "bp_notification_template", "is_active", "ALTER TABLE `bp_notification_template` ADD COLUMN `is_active` TINYINT(1) NOT NULL DEFAULT 1 AFTER `variables`");
+        addColumn(db, "bp_notification_template", "created_at", "ALTER TABLE `bp_notification_template` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `is_active`");
+        addColumn(db, "bp_notification_template", "updated_at", "ALTER TABLE `bp_notification_template` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+
+        createTableIfNotExists(db, "bp_user_notification",
+                "CREATE TABLE bp_user_notification (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "user_id BIGINT NOT NULL COMMENT 'user id'," +
+                        "type VARCHAR(32) NOT NULL COMMENT 'notification type'," +
+                        "template_code VARCHAR(64) NULL," +
+                        "title VARCHAR(128) NOT NULL," +
+                        "content VARCHAR(1024) NOT NULL," +
+                        "icon VARCHAR(32) NULL," +
+                        "action_type VARCHAR(32) NOT NULL DEFAULT 'NONE'," +
+                        "action_value VARCHAR(512) NULL," +
+                        "action_text VARCHAR(64) NULL," +
+                        "is_read TINYINT(1) NOT NULL DEFAULT 0," +
+                        "related_type VARCHAR(32) NULL," +
+                        "related_id BIGINT NULL," +
+                        "extra_data TEXT NULL," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "KEY idx_user_notification_user_time(user_id, created_at)," +
+                        "KEY idx_user_notification_unread(user_id, is_read)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='User notification'");
+        addColumn(db, "bp_user_notification", "template_code", "ALTER TABLE `bp_user_notification` ADD COLUMN `template_code` VARCHAR(64) NULL AFTER `type`");
+        addColumn(db, "bp_user_notification", "icon", "ALTER TABLE `bp_user_notification` ADD COLUMN `icon` VARCHAR(32) NULL AFTER `content`");
+        addColumn(db, "bp_user_notification", "action_type", "ALTER TABLE `bp_user_notification` ADD COLUMN `action_type` VARCHAR(32) NOT NULL DEFAULT 'NONE' AFTER `icon`");
+        addColumn(db, "bp_user_notification", "action_value", "ALTER TABLE `bp_user_notification` ADD COLUMN `action_value` VARCHAR(512) NULL AFTER `action_type`");
+        addColumn(db, "bp_user_notification", "action_text", "ALTER TABLE `bp_user_notification` ADD COLUMN `action_text` VARCHAR(64) NULL AFTER `action_value`");
+        addColumn(db, "bp_user_notification", "is_read", "ALTER TABLE `bp_user_notification` ADD COLUMN `is_read` TINYINT(1) NOT NULL DEFAULT 0 AFTER `action_text`");
+        addColumn(db, "bp_user_notification", "related_type", "ALTER TABLE `bp_user_notification` ADD COLUMN `related_type` VARCHAR(32) NULL AFTER `is_read`");
+        addColumn(db, "bp_user_notification", "related_id", "ALTER TABLE `bp_user_notification` ADD COLUMN `related_id` BIGINT NULL AFTER `related_type`");
+        addColumn(db, "bp_user_notification", "extra_data", "ALTER TABLE `bp_user_notification` ADD COLUMN `extra_data` TEXT NULL AFTER `related_id`");
+        addColumn(db, "bp_user_notification", "created_at", "ALTER TABLE `bp_user_notification` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `extra_data`");
+        addColumn(db, "bp_user_notification", "updated_at", "ALTER TABLE `bp_user_notification` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+    }
+
     private void seedWatermarkConfig() {
         try {
             Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bp_watermark_config", Integer.class);
@@ -501,6 +546,21 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.info("[SchemaUpgrader] 系统字典默认项已执行，语句数: {}", executed);
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 初始化系统字典失败: {}", e.getMessage());
+        }
+    }
+
+    private void seedReviewTaskNotificationDefaults() {
+        try {
+            jdbc.execute("INSERT IGNORE INTO bp_notification_template " +
+                    "(code, name, type, title, content, icon, action_type, action_value, action_text, variables, is_active) VALUES " +
+                    "('review_task_result', '审核任务结果通知', 'review_task', '任务审核结果通知', " +
+                    "'您的任务 {taskCode} 审核结果：{result}。{remark}', '📣', 'NONE', '', '', " +
+                    "'[{\"key\":\"taskCode\",\"desc\":\"任务编码\"},{\"key\":\"result\",\"desc\":\"审核结果\"},{\"key\":\"remark\",\"desc\":\"审核备注\"}]', 1)");
+            jdbc.execute("INSERT IGNORE INTO bp_sys_dict_item " +
+                    "(dict_type, dict_value, dict_label, tag_type, sort_order, status, disabled, remark) VALUES " +
+                    "('notification_type', 'review_task', '审核任务通知', 'warning', 7, 1, 0, '')");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 初始化审核任务通知模板失败: {}", e.getMessage());
         }
     }
 

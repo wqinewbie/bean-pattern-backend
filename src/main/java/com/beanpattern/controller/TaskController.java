@@ -2,7 +2,7 @@ package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
 import com.beanpattern.entity.TaskCenterItem;
-import com.beanpattern.entity.UserGift;
+import com.beanpattern.entity.BpUserGift;
 import com.beanpattern.entity.UserTaskProgress;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.TaskService;
@@ -72,7 +72,7 @@ public class TaskController {
      * 领取任务奖励。
      */
     @PostMapping("/claim")
-    public ApiResponse<UserGift> claimReward(@RequestBody Map<String, Long> body,
+    public ApiResponse<BpUserGift> claimReward(@RequestBody Map<String, Long> body,
                                              HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
         Long progressId = body.get("progressId");
@@ -86,7 +86,7 @@ public class TaskController {
      * 领取资格型福利任务，当前支持首冲礼包。
      */
     @PostMapping("/claim-benefit")
-    public ApiResponse<UserGift> claimBenefit(@RequestBody Map<String, String> body,
+    public ApiResponse<BpUserGift> claimBenefit(@RequestBody Map<String, String> body,
                                               HttpServletRequest request) {
         com.beanpattern.entity.UserEntity user = sessionHelper.requireUser(request);
         String taskCode = body.get("taskCode");
@@ -95,7 +95,7 @@ public class TaskController {
         }
 
         try {
-            UserGift gift = taskService.claimBenefitGift(user.getId(), taskCode);
+            BpUserGift gift = taskService.claimBenefitGift(user.getId(), taskCode);
             return ApiResponse.ok(gift);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ApiResponse.fail(e.getMessage());

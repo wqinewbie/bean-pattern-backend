@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS bp_watermark_config (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  app_name VARCHAR(128) NOT NULL DEFAULT 'PinBean',
-  default_text VARCHAR(128) NOT NULL DEFAULT 'PinBean',
+  app_name VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋',
+  default_text VARCHAR(128) NOT NULL DEFAULT '拼豆魔法屋出品',
   font_size INT NOT NULL DEFAULT 24,
   color VARCHAR(64) NOT NULL DEFAULT 'rgba(100,100,100,0.25)',
   angle INT NOT NULL DEFAULT -30,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS bp_watermark_config (
 );
 
 INSERT INTO bp_watermark_config(app_name, default_text, font_size, color, angle, spacing_x_ratio, spacing_y_ratio, opacity)
-SELECT 'PinBean', 'PinBean', 24, 'rgba(100,100,100,0.25)', -30, 0.22, 0.18, 0.25
+SELECT '拼豆魔法屋', '拼豆魔法屋出品', 24, 'rgba(100,100,100,0.25)', -30, 0.22, 0.18, 0.25
 WHERE NOT EXISTS (SELECT 1 FROM bp_watermark_config);
 
 CREATE TABLE IF NOT EXISTS bp_user_watermark_config (
