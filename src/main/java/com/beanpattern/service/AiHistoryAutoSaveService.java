@@ -68,7 +68,11 @@ public class AiHistoryAutoSaveService {
             history.setColorCount(result.colorCount());
             history.setName("AI记录#" + task.getTaskId());
             history.setGridSize(gridSize);
-            history.setSourceUrl(task.getAiImageUrl());
+            String sourceUrl = task.getAiImageUrl();
+            if (mirror && sourceUrl != null && sourceUrl.startsWith("http")) {
+                sourceUrl = sourceUrl + (sourceUrl.contains("?") ? "&" : "?") + "imageMogr2/flip/horizontal";
+            }
+            history.setSourceUrl(sourceUrl);
             history.setMappedPixelData(mappedPixelDataJson);
             history.setExpiresAt(LocalDateTime.now().plusDays(30));
             bpHistoryService.save(history);

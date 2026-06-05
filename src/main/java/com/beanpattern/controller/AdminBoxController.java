@@ -3,6 +3,7 @@ package com.beanpattern.controller;
 import com.beanpattern.mapper.BpBoxMapper;
 import com.beanpattern.mapper.BpDraftMapper;
 import com.beanpattern.mapper.BpHistoryMapper;
+import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.model.ApiResponse;
 import org.springframework.util.StringUtils;
@@ -20,13 +21,16 @@ public class AdminBoxController {
     private final BpBoxMapper bpBoxMapper;
     private final BpDraftMapper bpDraftMapper;
     private final BpHistoryMapper bpHistoryMapper;
+    private final AiGenerateTaskMapper aiGenerateTaskMapper;
     private final UserMapper userMapper;
 
     public AdminBoxController(BpBoxMapper bpBoxMapper, BpDraftMapper bpDraftMapper,
-                              BpHistoryMapper bpHistoryMapper, UserMapper userMapper) {
+                              BpHistoryMapper bpHistoryMapper, AiGenerateTaskMapper aiGenerateTaskMapper,
+                              UserMapper userMapper) {
         this.bpBoxMapper = bpBoxMapper;
         this.bpDraftMapper = bpDraftMapper;
         this.bpHistoryMapper = bpHistoryMapper;
+        this.aiGenerateTaskMapper = aiGenerateTaskMapper;
         this.userMapper = userMapper;
     }
 
@@ -88,6 +92,7 @@ public class AdminBoxController {
         m.put("sourceUrl", box.getSourceUrl() != null ? box.getSourceUrl() : "");
         m.put("mappedPixelData", box.getMappedPixelData() != null ? box.getMappedPixelData() : "");
         m.put("createdAt", box.getCreatedAt() != null ? box.getCreatedAt().toString() : "");
+        enrichAiImages(m, box.getHistoryId(), null);
         return ApiResponse.ok(m);
     }
 
@@ -226,6 +231,7 @@ public class AdminBoxController {
         m.put("mappedPixelData", h.getMappedPixelData() != null ? h.getMappedPixelData() : "");
         m.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : "");
         m.put("expiresAt", h.getExpiresAt() != null ? h.getExpiresAt().toString() : "");
+        enrichAiImages(m, null, h.getTaskId());
         return ApiResponse.ok(m);
     }
 
@@ -235,5 +241,30 @@ public class AdminBoxController {
         if (h == null) return ApiResponse.fail("记录不存在");
         bpHistoryMapper.deleteById(id);
         return ApiResponse.ok(null);
+    }
+
+    private void enrichAiImages(Map<String, Object> m, Long historyId, String taskId) {
+        String resolvedTaskId = taskId;
+        if (!StringUtils.hasText(resolvedTaskId) && historyId != null) {
+            var history = bpHistoryMapper.findById(historyId);
+            resolvedTaskId = history != null ? history.getTaskId() : null;
+        }
+        if (!StringUtils.hasText(resolvedTaskId)) {
+            return;
+        }
+
+        var task = aiGenerateTaskMapper.findByTaskId(resolvedTaskId);
+        if (task == null) {
+            return;
+        }
+
+        m.put("taskId", task.getTaskId());
+        m.put("aiInputImageUrl", task.getImageUrl() != null ? task.getImageUrl() : "");
+        m.put("aiGeneratedImageUrl", task.getRawAiImageUrl() != null && !task.getRawAiImageUrl().isBlank()
+                ? task.getRawAiImageUrl()
+                : (task.getAiImageUrl() != null ? task.getAiImageUrl() : ""));
+        m.put("aiRefinedImageUrl", task.getAiImageUrl() != null ? task.getAiImageUrl() : "");
+        m.put("mirror", task.getMirror() != null ? task.getMirror() : false);
+        m.put("aiStyle", task.getStyle() != null ? task.getStyle() : "");
     }
 }
