@@ -33,6 +33,17 @@ public interface AiGenerateTaskMapper {
             "FROM bp_ai_generate_task WHERE task_id = #{taskId}")
     AiGenerateTask findByTaskId(String taskId);
 
+    @Select("SELECT id, task_id AS taskId, user_id AS userId, image_url AS imageUrl, prompt, style, " +
+            "size_mode AS sizeMode, grid_min AS gridMin, grid_max AS gridMax, brand, color_count AS colorCount, mirror, " +
+            "status, ai_image_url AS aiImageUrl, ai_image_key AS aiImageKey, raw_ai_image_url AS rawAiImageUrl, raw_ai_image_key AS rawAiImageKey, " +
+            "detected_grid_width AS detectedGridWidth, detected_grid_height AS detectedGridHeight, " +
+            "final_grid_width AS finalGridWidth, final_grid_height AS finalGridHeight, " +
+            "perfect_pixel_status AS perfectPixelStatus, perfect_pixel_error AS perfectPixelError, error_message AS errorMessage, " +
+            "mapped_pixel_data AS mappedPixelData, history_id AS historyId, " +
+            "completed_at AS completedAt, created_at AS createdAt, updated_at AS updatedAt " +
+            "FROM bp_ai_generate_task WHERE history_id = #{historyId} ORDER BY updated_at DESC LIMIT 1")
+    AiGenerateTask findByHistoryId(@Param("historyId") Long historyId);
+
     /**
      * 更新任务
      */

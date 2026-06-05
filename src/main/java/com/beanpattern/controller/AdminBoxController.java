@@ -1,9 +1,10 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.entity.AiGenerateTask;
+import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.BpBoxMapper;
 import com.beanpattern.mapper.BpDraftMapper;
 import com.beanpattern.mapper.BpHistoryMapper;
-import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.UserMapper;
 import com.beanpattern.model.ApiResponse;
 import org.springframework.util.StringUtils;
@@ -231,7 +232,7 @@ public class AdminBoxController {
         m.put("mappedPixelData", h.getMappedPixelData() != null ? h.getMappedPixelData() : "");
         m.put("createdAt", h.getCreatedAt() != null ? h.getCreatedAt().toString() : "");
         m.put("expiresAt", h.getExpiresAt() != null ? h.getExpiresAt().toString() : "");
-        enrichAiImages(m, null, h.getTaskId());
+        enrichAiImages(m, h.getId(), h.getTaskId());
         return ApiResponse.ok(m);
     }
 
@@ -249,11 +250,8 @@ public class AdminBoxController {
             var history = bpHistoryMapper.findById(historyId);
             resolvedTaskId = history != null ? history.getTaskId() : null;
         }
-        if (!StringUtils.hasText(resolvedTaskId)) {
-            return;
-        }
 
-        var task = aiGenerateTaskMapper.findByTaskId(resolvedTaskId);
+        var task = findAiTaskForPreview(historyId, resolvedTaskId);
         if (task == null) {
             return;
         }
@@ -266,5 +264,15 @@ public class AdminBoxController {
         m.put("aiRefinedImageUrl", task.getAiImageUrl() != null ? task.getAiImageUrl() : "");
         m.put("mirror", task.getMirror() != null ? task.getMirror() : false);
         m.put("aiStyle", task.getStyle() != null ? task.getStyle() : "");
+    }
+
+    private AiGenerateTask findAiTaskForPreview(Long historyId, String taskId) {
+        AiGenerateTask task = StringUtils.hasText(taskId)
+                ? aiGenerateTaskMapper.findByTaskId(taskId)
+                : null;
+        if (task == null && historyId != null) {
+            task = aiGenerateTaskMapper.findByHistoryId(historyId);
+        }
+        return task;
     }
 }

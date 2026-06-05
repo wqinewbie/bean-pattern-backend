@@ -778,6 +778,15 @@ public class SchemaUpgrader implements ApplicationRunner {
 
     private void addColumn(String db, String table, String column, String alterSql) {
         try {
+            Integer tableCount = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?",
+                    Integer.class, db, table
+            );
+            if (tableCount == null || tableCount == 0) {
+                log.info("[SchemaUpgrader] table {} not found, skip column {} check", table, column);
+                return;
+            }
+
             Integer count = jdbc.queryForObject(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND COLUMN_NAME=?",
                     Integer.class, db, table, column
