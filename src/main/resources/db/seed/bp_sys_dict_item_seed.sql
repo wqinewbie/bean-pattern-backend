@@ -92,4 +92,6 @@ INSERT IGNORE INTO bp_sys_dict_item (dict_type, dict_label, dict_value, tag_type
 ('status_enable', '启用', '1', 'success', 1, 1, 0, ''),
 ('status_enable', '停用', '0', 'info', 2, 1, 0, ''),
 ('status_online', '上线', '1', 'success', 1, 1, 0, ''),
-('status_online', '下线', '0', 'info', 2, 1, 0, '');
+('status_online', '下线', '0', 'info', 2, 1, 0, ''),
+('ai_model_key', 'Seedream 5 Lite（默认）', 'seedream-5-lite', 'success', 1, 1, 0, '火山方舟 Doubao-Seedream-5.0-lite'),
+('ai_model_key', '即梦 4.0', 'jimeng-t2i-v40', 'primary', 2, 1, 0, '火山引擎即梦图生图模型');
