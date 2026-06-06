@@ -62,7 +62,7 @@ app:
     api-key: ${AI_API_KEY:}
   ai-service:
     enabled: ${AI_SERVICE_ENABLED:false}
-    default-model-key: ${AI_DEFAULT_MODEL_KEY:seadance-2.0}
+    default-model-key: ${AI_DEFAULT_MODEL_KEY:seedream-5-lite}
     callback-token: ${AI_CALLBACK_TOKEN:dev-ai-callback-token}
     queue-name: ${AI_QUEUE_NAME:ai.generate.request}
     exchange-name: ${AI_EXCHANGE_NAME:ai.generate.exchange}

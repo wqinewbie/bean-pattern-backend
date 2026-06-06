@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class AiServiceProperties {
 
     private boolean enabled = false;
-    private String defaultModelKey = "seadance-2.0";
+    private String defaultModelKey = "seedream-5-lite";
     private String callbackToken = "dev-ai-callback-token";
     private String queueName = "ai.generate.request";
     private String exchangeName = "ai.generate.exchange";

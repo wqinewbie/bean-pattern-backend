@@ -45,7 +45,7 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_SERVICE_ENABLED: ${AI_SERVICE_ENABLED:-true}
       AI_MOCK_ENABLED: ${AI_MOCK_ENABLED:-false}
-      AI_DEFAULT_MODEL_KEY: ${AI_DEFAULT_MODEL_KEY:-seadance-2.0}
+      AI_DEFAULT_MODEL_KEY: ${AI_DEFAULT_MODEL_KEY:-seedream-5-lite}
       AI_CALLBACK_TOKEN: ${AI_CALLBACK_TOKEN:-}
       AI_QUEUE_NAME: ${AI_QUEUE_NAME:-ai.generate.request}
       AI_EXCHANGE_NAME: ${AI_EXCHANGE_NAME:-ai.generate.exchange}
