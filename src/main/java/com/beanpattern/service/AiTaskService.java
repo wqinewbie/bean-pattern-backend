@@ -43,6 +43,12 @@ public class AiTaskService {
     @Autowired
     private AiHistoryAutoSaveService aiHistoryAutoSaveService;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AiQuotaLogService aiQuotaLogService;
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public String createTask(AiGenerateRequest request, Long userId) {
@@ -221,7 +227,41 @@ public class AiTaskService {
         task.setUpdatedAt(new Date());
         taskMapper.updateById(task);
 
+        if ("FAILED".equals(status)) {
+            refundQuotaOnFailure(task, errorMessage);
+        }
+
         System.out.println("[Callback] 任务状态更新: " + taskId + ", 状态: " + status);
+    }
+
+    private void refundQuotaOnFailure(AiGenerateTask task, String reason) {
+        if (task.getUserId() == null || !StringUtils.hasText(task.getTaskId())) {
+            return;
+        }
+        if (aiQuotaLogService.hasLoggedBiz(task.getUserId(), "REFUND", "AI_GENERATE_FAILED", task.getTaskId())) {
+            return;
+        }
+
+        userService.addAiQuota(task.getUserId(), 1);
+        boolean logged = aiQuotaLogService.tryLogChange(
+                task.getUserId(),
+                "REFUND",
+                1,
+                "AI_GENERATE_FAILED",
+                task.getTaskId(),
+                summarizeFailureReason(reason) + "，返还次数"
+        );
+        if (!logged) {
+            userService.addAiQuota(task.getUserId(), -1);
+        }
+    }
+
+    private String summarizeFailureReason(String reason) {
+        if (!StringUtils.hasText(reason)) {
+            return "AI生成失败";
+        }
+        String trimmed = reason.trim();
+        return trimmed.length() > 120 ? trimmed.substring(0, 120) : trimmed;
     }
 
     private AiGenerateMessage buildGenerateMessage(AiGenerateTask task, AiGenerateRequest request) {
