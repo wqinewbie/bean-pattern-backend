@@ -70,6 +70,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_ai_generate_task", "final_grid_height", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `final_grid_height` INT NULL COMMENT 'final sampling grid height' AFTER `final_grid_width`");
         addColumn(db, "bp_ai_generate_task", "perfect_pixel_status", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `perfect_pixel_status` VARCHAR(32) NULL COMMENT 'SUCCESS/FAILED/SKIPPED' AFTER `final_grid_height`");
         addColumn(db, "bp_ai_generate_task", "perfect_pixel_error", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `perfect_pixel_error` VARCHAR(1024) NULL COMMENT 'Perfect Pixel error message' AFTER `perfect_pixel_status`");
+        ensureAiQuotaRefundKey(db);
 
         // bp_banner
         addColumn(db, "bp_checkin_config", "gift_package_code", "ALTER TABLE `bp_checkin_config` ADD COLUMN `gift_package_code` VARCHAR(64) NULL COMMENT '签到奖励礼品包编码' AFTER `continuous_days_required`");
@@ -153,6 +154,23 @@ public class SchemaUpgrader implements ApplicationRunner {
         } catch (Exception ignored) {
         }
     }
+
+    private void ensureAiQuotaRefundKey(String db) {
+        addColumn(db, "bp_ai_quota_log", "ai_generate_refund_key",
+                "ALTER TABLE `bp_ai_quota_log` " +
+                        "ADD COLUMN `ai_generate_refund_key` VARCHAR(255) " +
+                        "GENERATED ALWAYS AS (" +
+                        "CASE " +
+                        "WHEN `change_type` = 'REFUND' " +
+                        "AND `biz_type` IN ('AI_GENERATE_FAILED', 'AI_GENERATE_TIMEOUT') " +
+                        "AND `biz_id` IS NOT NULL AND `biz_id` <> '' " +
+                        "THEN CONCAT(`user_id`, ':', `biz_type`, ':', `biz_id`) " +
+                        "ELSE NULL END" +
+                        ") STORED");
+        addIndexIfMissing(db, "bp_ai_quota_log", "uk_ai_generate_refund_key",
+                "ALTER TABLE `bp_ai_quota_log` ADD UNIQUE KEY `uk_ai_generate_refund_key` (`ai_generate_refund_key`)");
+    }
+
     private void createBannerClaimLogTable(String db) {
         createTableIfNotExists(db, "bp_banner_claim_log",
                 "CREATE TABLE bp_banner_claim_log (" +
@@ -799,6 +817,30 @@ public class SchemaUpgrader implements ApplicationRunner {
             }
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 添加字段 {}.{} 失败: {}", table, column, e.getMessage());
+        }
+    }
+
+    private void addIndexIfMissing(String db, String table, String indexName, String alterSql) {
+        try {
+            Integer tableCount = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?",
+                    Integer.class, db, table
+            );
+            if (tableCount == null || tableCount == 0) {
+                log.info("[SchemaUpgrader] table {} not found, skip index {} check", table, indexName);
+                return;
+            }
+
+            Integer count = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND INDEX_NAME=?",
+                    Integer.class, db, table, indexName
+            );
+            if (count == null || count == 0) {
+                jdbc.execute(alterSql);
+                log.info("[SchemaUpgrader] added index: {}.{}", table, indexName);
+            }
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] index check failed {}.{}: {}", table, indexName, e.getMessage());
         }
     }
 
