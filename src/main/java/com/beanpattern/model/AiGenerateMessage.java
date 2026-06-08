@@ -9,6 +9,7 @@ public class AiGenerateMessage {
     private String userPrompt;
     private String style;
     private String promptTemplate;
+    private String negativePromptTemplate;
     private String modelKey;
     private String sizeMode;
     private Integer gridMin;
@@ -57,6 +58,14 @@ public class AiGenerateMessage {
 
     public void setPromptTemplate(String promptTemplate) {
         this.promptTemplate = promptTemplate;
+    }
+
+    public String getNegativePromptTemplate() {
+        return negativePromptTemplate;
+    }
+
+    public void setNegativePromptTemplate(String negativePromptTemplate) {
+        this.negativePromptTemplate = negativePromptTemplate;
     }
 
     public String getModelKey() {

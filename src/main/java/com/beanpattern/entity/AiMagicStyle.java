@@ -14,6 +14,7 @@ public class AiMagicStyle {
     private String tag;
     private String description;
     private String promptTemplate;
+    private String negativePromptTemplate;
     private String modelKey;
     private Integer sortOrder;
     private Integer enabled;

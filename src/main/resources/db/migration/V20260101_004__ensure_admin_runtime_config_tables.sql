@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS bp_ai_magic_style (
   tag VARCHAR(64) NULL,
   description VARCHAR(256) NULL,
   prompt_template VARCHAR(512) NULL,
+  negative_prompt_template VARCHAR(1024) NULL,
   sort_order INT NOT NULL DEFAULT 0,
   enabled TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

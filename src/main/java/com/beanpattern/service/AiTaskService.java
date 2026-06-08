@@ -230,6 +230,7 @@ public class AiTaskService {
                 : null;
 
         String promptTemplate = magicStyle != null ? magicStyle.getPromptTemplate() : "";
+        String negativePromptTemplate = magicStyle != null ? magicStyle.getNegativePromptTemplate() : "";
         String modelKey = magicStyle != null && StringUtils.hasText(magicStyle.getModelKey())
                 ? magicStyle.getModelKey()
                 : aiServiceProperties.getDefaultModelKey();
@@ -240,6 +241,7 @@ public class AiTaskService {
         message.setUserPrompt(task.getPrompt());
         message.setStyle(task.getStyle());
         message.setPromptTemplate(promptTemplate);
+        message.setNegativePromptTemplate(negativePromptTemplate);
         message.setModelKey(modelKey);
         message.setSizeMode(task.getSizeMode());
         message.setGridMin(task.getGridMin());
