@@ -36,6 +36,7 @@ public class BpBox {
     private Integer status;     // 0=处理中 1=已完成 2=已失效 3=已删除
 
     private String mappedPixelData; // 主图案JSON(二维像素对象)
+    private String aiStyle;
     private String focusProgress;   // 沉浸模式进度JSON
     private Integer focusCompletedCells; // 沉浸模式已完成格子数
     private Integer focusTotalCells;     // 沉浸模式总格子数

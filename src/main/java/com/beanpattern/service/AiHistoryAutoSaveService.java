@@ -47,7 +47,7 @@ public class AiHistoryAutoSaveService {
             int gridSize = task.getFinalGridWidth() != null ? task.getFinalGridWidth()
                     : (task.getFinalGridHeight() != null ? task.getFinalGridHeight()
                     : ("small".equals(task.getSizeMode()) ? 32 : 48));
-            int threshold = 30;
+            int threshold = 0;
 
             AiImageProcessor.ProcessedResult result;
             if (StringUtils.hasText(task.getAiImageKey())) {
@@ -68,6 +68,7 @@ public class AiHistoryAutoSaveService {
             history.setColorCount(result.colorCount());
             history.setName("AI记录#" + task.getTaskId());
             history.setGridSize(gridSize);
+            history.setAiStyle(task.getStyle());
             String sourceUrl = task.getAiImageUrl();
             if (mirror && sourceUrl != null && sourceUrl.startsWith("http")) {
                 sourceUrl = sourceUrl + (sourceUrl.contains("?") ? "&" : "?") + "imageMogr2/flip/horizontal";

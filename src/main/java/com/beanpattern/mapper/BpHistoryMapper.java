@@ -10,9 +10,9 @@ public interface BpHistoryMapper {
 
     @Insert("""
             INSERT INTO bp_history (user_id, task_id, source_type, brand, color_count, name, grid_size,
-                                   box_id, source_url, expires_at, mapped_pixel_data)
+                                   box_id, source_url, expires_at, mapped_pixel_data, ai_style)
             VALUES (#{userId}, #{taskId}, #{sourceType}, #{brand}, #{colorCount}, #{name}, #{gridSize},
-                    #{boxId}, #{sourceUrl}, #{expiresAt}, #{mappedPixelData})
+                    #{boxId}, #{sourceUrl}, #{expiresAt}, #{mappedPixelData}, #{aiStyle})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BpHistory history);
@@ -21,22 +21,22 @@ public interface BpHistoryMapper {
     int deleteById(@Param("id") Long id);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE id=#{id}")
     BpHistory findById(@Param("id") Long id);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC")
     List<BpHistory> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT #{limit}")
     List<BpHistory> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE user_id=#{userId} AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<BpHistory> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
 
@@ -50,7 +50,7 @@ public interface BpHistoryMapper {
     int clearBoxId(@Param("boxId") Long boxId);
 
     @Select("SELECT id, user_id AS userId, task_id AS taskId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
-          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, "
+          + "box_id AS boxId, source_url AS sourceUrl, mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, expires_at AS expiresAt FROM bp_history WHERE expires_at IS NOT NULL AND expires_at < NOW()")
     List<BpHistory> listExpired();
 
@@ -68,6 +68,7 @@ public interface BpHistoryMapper {
         @Result(property = "boxId", column = "box_id"),
         @Result(property = "sourceUrl", column = "source_url"),
         @Result(property = "mappedPixelData", column = "mapped_pixel_data"),
+        @Result(property = "aiStyle", column = "ai_style"),
         @Result(property = "createdAt", column = "created_at"),
         @Result(property = "expiresAt", column = "expires_at")
     })

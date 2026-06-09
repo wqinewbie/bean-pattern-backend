@@ -81,6 +81,8 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_banner", "action_type", "ALTER TABLE `bp_banner` ADD COLUMN `action_type` VARCHAR(32) NULL DEFAULT 'NONE' AFTER `link_value`");
         addColumn(db, "bp_banner", "action_config", "ALTER TABLE `bp_banner` ADD COLUMN `action_config` TEXT NULL AFTER `action_type`");
         addColumn(db, "bp_box", "cover_url", "ALTER TABLE `bp_box` ADD COLUMN `cover_url` VARCHAR(1024) NULL COMMENT '封面图URL' AFTER `source_url`");
+        addColumn(db, "bp_history", "ai_style", "ALTER TABLE `bp_history` ADD COLUMN `ai_style` VARCHAR(64) NULL COMMENT 'AI生成风格' AFTER `mapped_pixel_data`");
+        addColumn(db, "bp_box", "ai_style", "ALTER TABLE `bp_box` ADD COLUMN `ai_style` VARCHAR(64) NULL COMMENT 'AI生成风格' AFTER `mapped_pixel_data`");
         addColumn(db, "bp_box", "focus_progress", "ALTER TABLE `bp_box` ADD COLUMN `focus_progress` TEXT NULL COMMENT '沉浸模式进度JSON' AFTER `mapped_pixel_data`");
         addColumn(db, "bp_box", "focus_completed_cells", "ALTER TABLE `bp_box` ADD COLUMN `focus_completed_cells` INT NOT NULL DEFAULT 0 COMMENT '沉浸模式已完成格子数' AFTER `focus_progress`");
         addColumn(db, "bp_box", "focus_total_cells", "ALTER TABLE `bp_box` ADD COLUMN `focus_total_cells` INT NOT NULL DEFAULT 0 COMMENT '沉浸模式总格子数' AFTER `focus_completed_cells`");

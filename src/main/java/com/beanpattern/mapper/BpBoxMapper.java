@@ -12,11 +12,11 @@ public interface BpBoxMapper {
             INSERT INTO bp_box (user_id, source_type, brand, color_count, name, grid_size,
                               draft_id, history_id, source_url, cover_url, status,
                               focus_progress, focus_completed_cells, focus_total_cells,
-                              mapped_pixel_data)
+                              mapped_pixel_data, ai_style)
             VALUES (#{userId}, #{sourceType}, #{brand}, #{colorCount}, #{name}, #{gridSize},
                    #{draftId}, #{historyId}, #{sourceUrl}, #{coverUrl}, #{status},
                    #{focusProgress}, #{focusCompletedCells}, #{focusTotalCells},
-                   #{mappedPixelData})
+                   #{mappedPixelData}, #{aiStyle})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(BpBox box);
@@ -24,7 +24,7 @@ public interface BpBoxMapper {
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
-          + "mapped_pixel_data AS mappedPixelData, "
+          + "mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE id=#{id}")
     BpBox findById(@Param("id") Long id);
 
@@ -43,6 +43,7 @@ public interface BpBoxMapper {
                 focus_completed_cells=#{focusCompletedCells},
                 focus_total_cells=#{focusTotalCells},
                 mapped_pixel_data=#{mappedPixelData},
+                ai_style=#{aiStyle},
                 updated_at=CURRENT_TIMESTAMP
             WHERE id=#{id}
             """)
@@ -57,21 +58,21 @@ public interface BpBoxMapper {
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
-          + "mapped_pixel_data AS mappedPixelData, "
+          + "mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE user_id=#{userId} AND status!=3 ORDER BY created_at DESC")
     List<BpBox> listByUserId(@Param("userId") Long userId);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
-          + "mapped_pixel_data AS mappedPixelData, "
+          + "mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE user_id=#{userId} AND status!=3 ORDER BY created_at DESC LIMIT #{limit}")
     List<BpBox> listByUserIdWithLimit(@Param("userId") Long userId, @Param("limit") int limit);
 
     @Select("SELECT id, user_id AS userId, source_type AS sourceType, brand, color_count AS colorCount, name, grid_size AS gridSize, "
           + "draft_id AS draftId, history_id AS historyId, source_url AS sourceUrl, cover_url AS coverUrl, status, "
           + "focus_progress AS focusProgress, focus_completed_cells AS focusCompletedCells, focus_total_cells AS focusTotalCells, "
-          + "mapped_pixel_data AS mappedPixelData, "
+          + "mapped_pixel_data AS mappedPixelData, ai_style AS aiStyle, "
           + "created_at AS createdAt, updated_at AS updatedAt FROM bp_box WHERE user_id=#{userId} AND status!=3 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<BpBox> listByUserIdWithPage(@Param("userId") Long userId, @Param("limit") int limit, @Param("offset") int offset);
 
@@ -93,6 +94,7 @@ public interface BpBoxMapper {
         @Result(property = "focusCompletedCells", column = "focus_completed_cells"),
         @Result(property = "focusTotalCells", column = "focus_total_cells"),
         @Result(property = "mappedPixelData", column = "mapped_pixel_data"),
+        @Result(property = "aiStyle", column = "ai_style"),
         @Result(property = "createdAt", column = "created_at"),
         @Result(property = "updatedAt", column = "updated_at")
     })

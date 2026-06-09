@@ -89,6 +89,8 @@ public class AiTaskService {
         data.put("sizeMode", task.getSizeMode());
         data.put("gridMin", task.getGridMin());
         data.put("gridMax", task.getGridMax());
+        data.put("style", task.getStyle());
+        data.put("aiStyle", task.getStyle());
         data.put("brand", task.getBrand());
         data.put("colorCount", task.getColorCount());
         data.put("mirror", task.getMirror());

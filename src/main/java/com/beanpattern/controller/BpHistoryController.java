@@ -187,6 +187,7 @@ public class BpHistoryController {
         box.setGridSize(history.getGridSize());
         box.setMappedPixelData(history.getMappedPixelData());
         box.setSourceUrl(history.getSourceUrl());
+        box.setAiStyle(resolveAiStyle(history));
         box.setHistoryId(historyId);
         box.setStatus(1); // 已完成
         box.setFocusCompletedCells(0);
@@ -226,11 +227,17 @@ public class BpHistoryController {
 
     private void enrichAiStyle(BpHistory history) {
         if (history == null || history.getTaskId() == null || history.getTaskId().isBlank()) return;
+        if (history.getAiStyle() != null && !history.getAiStyle().isBlank()) return;
         String sourceType = history.getSourceType() == null ? "" : history.getSourceType().toUpperCase();
         if (!sourceType.contains("AI")) return;
         AiGenerateTask task = aiGenerateTaskMapper.findByTaskId(history.getTaskId());
         if (task != null && task.getStyle() != null && !task.getStyle().isBlank()) {
             history.setAiStyle(task.getStyle());
         }
+    }
+
+    private String resolveAiStyle(BpHistory history) {
+        enrichAiStyle(history);
+        return history == null ? null : history.getAiStyle();
     }
 }

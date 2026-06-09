@@ -1,8 +1,10 @@
 package com.beanpattern.controller;
 
 import com.beanpattern.config.SessionHelper;
+import com.beanpattern.entity.AiGenerateTask;
 import com.beanpattern.entity.BpBox;
 import com.beanpattern.entity.BpHistory;
+import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpDraftService;
@@ -26,17 +28,20 @@ public class BpBoxController {
     private final BpBoxService bpBoxService;
     private final BpHistoryService bpHistoryService;
     private final BpDraftService bpDraftService;
+    private final AiGenerateTaskMapper aiGenerateTaskMapper;
     private final PrivilegeService privilegeService;
     private final SessionHelper sessionHelper;
 
     public BpBoxController(BpBoxService bpBoxService,
                            BpHistoryService bpHistoryService,
                            BpDraftService bpDraftService,
+                           AiGenerateTaskMapper aiGenerateTaskMapper,
                            PrivilegeService privilegeService,
                            SessionHelper sessionHelper) {
         this.bpBoxService = bpBoxService;
         this.bpHistoryService = bpHistoryService;
         this.bpDraftService = bpDraftService;
+        this.aiGenerateTaskMapper = aiGenerateTaskMapper;
         this.privilegeService = privilegeService;
         this.sessionHelper = sessionHelper;
     }
@@ -67,6 +72,7 @@ public class BpBoxController {
         }
 
         box.setUserId(user.getId());
+        box.setAiStyle(resolveAiStyle(box));
         System.out.println("设置的 userId: " + box.getUserId());
         
         bpBoxService.save(box);
@@ -148,6 +154,7 @@ public class BpBoxController {
             return ApiResponse.fail("无权访问");
         }
 
+        enrichAiStyle(box);
         return ApiResponse.ok(box);
     }
 
@@ -219,6 +226,30 @@ public class BpBoxController {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private void enrichAiStyle(BpBox box) {
+        if (box == null || (box.getAiStyle() != null && !box.getAiStyle().isBlank())) return;
+        box.setAiStyle(resolveAiStyle(box));
+    }
+
+    private String resolveAiStyle(BpBox box) {
+        if (box != null && box.getAiStyle() != null && !box.getAiStyle().isBlank()) {
+            return box.getAiStyle();
+        }
+        if (box == null || box.getHistoryId() == null) return null;
+        String sourceType = box.getSourceType() == null ? "" : box.getSourceType().toUpperCase();
+        if (!sourceType.contains("AI")) return null;
+        BpHistory history = bpHistoryService.getById(box.getHistoryId());
+        if (history == null || history.getTaskId() == null || history.getTaskId().isBlank()) return null;
+        if (history.getAiStyle() != null && !history.getAiStyle().isBlank()) {
+            return history.getAiStyle();
+        }
+        AiGenerateTask task = aiGenerateTaskMapper.findByTaskId(history.getTaskId());
+        if (task != null && task.getStyle() != null && !task.getStyle().isBlank()) {
+            return task.getStyle();
+        }
+        return null;
     }
 
     /**

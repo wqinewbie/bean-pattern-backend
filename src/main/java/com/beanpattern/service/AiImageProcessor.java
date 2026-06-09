@@ -46,7 +46,7 @@ public class AiImageProcessor {
 
     private ProcessedResult processGrid(int[][][] rgbGrid, String brand, int colorCount,
                                         boolean mirror, int similarityThreshold) {
-        BeadColor[][] matchedGrid = beadColorService.matchGrid(rgbGrid, brand, colorCount, "standard");
+        BeadColor[][] matchedGrid = beadColorService.matchGrid(rgbGrid, brand, colorCount, "pixel");
         MappedResult mapped = convertToMappedPixelData(matchedGrid);
 
         if (similarityThreshold > 0) {
@@ -81,63 +81,7 @@ public class AiImageProcessor {
             if (image == null) {
                 throw new RuntimeException("无法读取图片: " + imageUrl);
             }
-
-            int w = image.getWidth();
-            int h = image.getHeight();
-
-            // 按宽高比计算网格行列数（与前端 sampleGrid 一致）
-            double aspect = (double) w / h;
-            int gw, gh;
-            if (aspect >= 1) {
-                gw = gridSize;
-                gh = Math.max(1, (int) Math.round(gridSize / aspect));
-            } else {
-                gh = gridSize;
-                gw = Math.max(1, (int) Math.round(gridSize * aspect));
-            }
-
-            double cellW = (double) w / gw;
-            double cellH = (double) h / gh;
-
-            int[][][] rgbGrid = new int[gh][gw][3];
-
-            for (int gy = 0; gy < gh; gy++) {
-                int y0 = (int) Math.floor(gy * cellH);
-                int y1 = (int) Math.floor((gy + 1) * cellH);
-
-                for (int gx = 0; gx < gw; gx++) {
-                    int x0 = (int) Math.floor(gx * cellW);
-                    int x1 = (int) Math.floor((gx + 1) * cellW);
-
-                    long sumR = 0, sumG = 0, sumB = 0;
-                    int count = 0;
-
-                    for (int y = y0; y < y1; y++) {
-                        for (int x = x0; x < x1; x++) {
-                            int px = Math.min(x, w - 1);
-                            int py = Math.min(y, h - 1);
-                            int rgb = image.getRGB(px, py);
-                            if (((rgb >> 24) & 0xff) < 128) continue; // alpha
-                            sumR += (rgb >> 16) & 0xff;
-                            sumG += (rgb >> 8) & 0xff;
-                            sumB += rgb & 0xff;
-                            count++;
-                        }
-                    }
-
-                    if (count > 0) {
-                        rgbGrid[gy][gx] = new int[]{
-                                (int) (sumR / count),
-                                (int) (sumG / count),
-                                (int) (sumB / count)
-                        };
-                    } else {
-                        rgbGrid[gy][gx] = new int[]{255, 255, 255};
-                    }
-                }
-            }
-
-            return rgbGrid;
+            return sampleBufferedImage(image, gridSize);
         } catch (Exception e) {
             log.error("采样图片失败: {}", imageUrl, e);
             throw new RuntimeException("采样图片失败: " + e.getMessage(), e);
@@ -153,64 +97,97 @@ public class AiImageProcessor {
             if (image == null) {
                 throw new RuntimeException("unable to read image bytes");
             }
-
-            int w = image.getWidth();
-            int h = image.getHeight();
-            double aspect = (double) w / h;
-            int gw, gh;
-            if (aspect >= 1) {
-                gw = gridSize;
-                gh = Math.max(1, (int) Math.round(gridSize / aspect));
-            } else {
-                gh = gridSize;
-                gw = Math.max(1, (int) Math.round(gridSize * aspect));
-            }
-
-            double cellW = (double) w / gw;
-            double cellH = (double) h / gh;
-            int[][][] rgbGrid = new int[gh][gw][3];
-
-            for (int gy = 0; gy < gh; gy++) {
-                int y0 = (int) Math.floor(gy * cellH);
-                int y1 = (int) Math.floor((gy + 1) * cellH);
-
-                for (int gx = 0; gx < gw; gx++) {
-                    int x0 = (int) Math.floor(gx * cellW);
-                    int x1 = (int) Math.floor((gx + 1) * cellW);
-
-                    long sumR = 0, sumG = 0, sumB = 0;
-                    int count = 0;
-
-                    for (int y = y0; y < y1; y++) {
-                        for (int x = x0; x < x1; x++) {
-                            int px = Math.min(x, w - 1);
-                            int py = Math.min(y, h - 1);
-                            int rgb = image.getRGB(px, py);
-                            if (((rgb >> 24) & 0xff) < 128) continue;
-                            sumR += (rgb >> 16) & 0xff;
-                            sumG += (rgb >> 8) & 0xff;
-                            sumB += rgb & 0xff;
-                            count++;
-                        }
-                    }
-
-                    if (count > 0) {
-                        rgbGrid[gy][gx] = new int[]{
-                                (int) (sumR / count),
-                                (int) (sumG / count),
-                                (int) (sumB / count)
-                        };
-                    } else {
-                        rgbGrid[gy][gx] = new int[]{255, 255, 255};
-                    }
-                }
-            }
-
-            return rgbGrid;
+            return sampleBufferedImage(image, gridSize);
         } catch (Exception e) {
             log.error("sample image bytes failed", e);
             throw new RuntimeException("sample image failed: " + e.getMessage(), e);
         }
+    }
+
+    private int[][][] sampleBufferedImage(BufferedImage image, int gridSize) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+
+        if (isAlreadyPixelGrid(w, h, gridSize)) {
+            return readExactPixelGrid(image);
+        }
+
+        double aspect = (double) w / h;
+        int gw, gh;
+        if (aspect >= 1) {
+            gw = gridSize;
+            gh = Math.max(1, (int) Math.round(gridSize / aspect));
+        } else {
+            gh = gridSize;
+            gw = Math.max(1, (int) Math.round(gridSize * aspect));
+        }
+
+        double cellW = (double) w / gw;
+        double cellH = (double) h / gh;
+        int[][][] rgbGrid = new int[gh][gw][3];
+
+        for (int gy = 0; gy < gh; gy++) {
+            int y0 = (int) Math.floor(gy * cellH);
+            int y1 = Math.min((int) Math.ceil((gy + 1) * cellH), h);
+
+            for (int gx = 0; gx < gw; gx++) {
+                int x0 = (int) Math.floor(gx * cellW);
+                int x1 = Math.min((int) Math.ceil((gx + 1) * cellW), w);
+                rgbGrid[gy][gx] = sampleCellMedian(image, x0, y0, x1, y1);
+            }
+        }
+
+        return rgbGrid;
+    }
+
+    private boolean isAlreadyPixelGrid(int width, int height, int gridSize) {
+        int maxDim = Math.max(width, height);
+        int minDim = Math.min(width, height);
+        return minDim >= 8 && maxDim <= 128 && Math.abs(maxDim - gridSize) <= 16;
+    }
+
+    private int[][][] readExactPixelGrid(BufferedImage image) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int[][][] rgbGrid = new int[h][w][3];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int rgb = image.getRGB(x, y);
+                rgbGrid[y][x] = ((rgb >> 24) & 0xff) < 128
+                        ? new int[]{255, 255, 255}
+                        : new int[]{(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff};
+            }
+        }
+        return rgbGrid;
+    }
+
+    private int[] sampleCellMedian(BufferedImage image, int x0, int y0, int x1, int y1) {
+        int capacity = Math.max(1, (x1 - x0) * (y1 - y0));
+        int[] rs = new int[capacity];
+        int[] gs = new int[capacity];
+        int[] bs = new int[capacity];
+        int count = 0;
+
+        for (int y = y0; y < y1; y++) {
+            for (int x = x0; x < x1; x++) {
+                int rgb = image.getRGB(x, y);
+                if (((rgb >> 24) & 0xff) < 128) continue;
+                rs[count] = (rgb >> 16) & 0xff;
+                gs[count] = (rgb >> 8) & 0xff;
+                bs[count] = rgb & 0xff;
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            return new int[]{255, 255, 255};
+        }
+
+        Arrays.sort(rs, 0, count);
+        Arrays.sort(gs, 0, count);
+        Arrays.sort(bs, 0, count);
+        int mid = count / 2;
+        return new int[]{rs[mid], gs[mid], bs[mid]};
     }
 
     private MappedResult convertToMappedPixelData(BeadColor[][] matchedGrid) {
