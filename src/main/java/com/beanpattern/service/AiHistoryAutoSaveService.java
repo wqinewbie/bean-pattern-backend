@@ -25,16 +25,13 @@ public class AiHistoryAutoSaveService {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
-    private AiImageProcessor aiImageProcessor;
+    private AiPatternPipelineService aiPatternPipelineService;
 
     @Autowired
     private BpHistoryService bpHistoryService;
 
     @Autowired
     private AiGenerateTaskMapper taskMapper;
-
-    @Autowired
-    private ImageStorageService imageStorageService;
 
     @Async("taskExecutor")
     public void processAndSaveHistory(AiGenerateTask task) {
@@ -46,21 +43,8 @@ public class AiHistoryAutoSaveService {
             System.out.println("[AiHistoryAutoSave] 开始异步处理: " + task.getTaskId());
 
             String brand = StringUtils.hasText(task.getBrand()) ? task.getBrand() : "MARD";
-            int colorCount = task.getColorCount() != null ? task.getColorCount() : 0;
             boolean mirror = Boolean.TRUE.equals(task.getMirror());
-            int gridSize = task.getFinalGridWidth() != null ? task.getFinalGridWidth()
-                    : (task.getFinalGridHeight() != null ? task.getFinalGridHeight()
-                    : ("small".equals(task.getSizeMode()) ? 32 : 48));
-            int threshold = 0;
-
-            AiImageProcessor.ProcessedResult result;
-            if (StringUtils.hasText(task.getAiImageKey())) {
-                ImageStorageService.StoredImage image = imageStorageService.readKey(task.getAiImageKey());
-                result = aiImageProcessor.process(image.bytes(), brand, colorCount, mirror, gridSize, threshold);
-            } else {
-                ImageStorageService.StoredImage image = imageStorageService.readPublicUrl(task.getAiImageUrl());
-                result = aiImageProcessor.process(image.bytes(), brand, colorCount, mirror, gridSize, threshold);
-            }
+            AiPatternPipelineResult result = aiPatternPipelineService.process(task);
 
             String mappedPixelDataJson = objectMapper.writeValueAsString(result.mappedPixelData());
 
@@ -71,9 +55,9 @@ public class AiHistoryAutoSaveService {
             history.setBrand(brand);
             history.setColorCount(result.colorCount());
             history.setName("AI记录#" + task.getTaskId());
-            history.setGridSize(gridSize);
+            history.setGridSize(result.selectedCandidate().gridSize());
             history.setAiStyle(task.getStyle());
-            String sourceUrl = task.getAiImageUrl();
+            String sourceUrl = result.selectedImageUrl();
             if (mirror && sourceUrl != null && sourceUrl.startsWith("http")) {
                 sourceUrl = sourceUrl + (sourceUrl.contains("?") ? "&" : "?") + "imageMogr2/flip/horizontal";
             }
@@ -86,12 +70,15 @@ public class AiHistoryAutoSaveService {
             if (latest != null) {
                 latest.setMappedPixelData(mappedPixelDataJson);
                 latest.setHistoryId(history.getId());
+                latest.setSelectedImageVariant(result.selectedImageVariant());
+                latest.setProcessMeta(result.processMetaJson());
                 latest.setUpdatedAt(new Date());
                 taskMapper.updateById(latest);
             }
 
             System.out.println("[AiHistoryAutoSave] 异步处理完成: " + task.getTaskId()
                     + ", historyId=" + history.getId()
+                    + ", selected=" + result.selectedImageVariant()
                     + ", colors=" + result.colorCount());
         } catch (Exception e) {
             log.error("[AiHistoryAutoSave] 异步处理失败: {}", task.getTaskId(), e);
