@@ -39,6 +39,10 @@ public class AiHistoryAutoSaveService {
     @Async("taskExecutor")
     public void processAndSaveHistory(AiGenerateTask task) {
         try {
+            if (task.getUserId() == null || task.getUserId() <= 0) {
+                log.info("[AiHistoryAutoSave] skip system/admin test task: {}", task.getTaskId());
+                return;
+            }
             System.out.println("[AiHistoryAutoSave] 开始异步处理: " + task.getTaskId());
 
             String brand = StringUtils.hasText(task.getBrand()) ? task.getBrand() : "MARD";
