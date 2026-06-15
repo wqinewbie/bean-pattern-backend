@@ -62,8 +62,12 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_ai_generate_task", "raw_ai_image_url", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `raw_ai_image_url` VARCHAR(1024) NULL COMMENT 'AI raw generated image URL' AFTER `ai_image_url`");
         addColumn(db, "bp_ai_generate_task", "ai_image_key", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `ai_image_key` VARCHAR(1024) NULL COMMENT 'AI generated image object key' AFTER `ai_image_url`");
         addColumn(db, "bp_ai_generate_task", "raw_ai_image_key", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `raw_ai_image_key` VARCHAR(1024) NULL COMMENT 'AI raw generated image object key' AFTER `raw_ai_image_url`");
+        addColumn(db, "bp_ai_generate_task", "size_preset", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `size_preset` VARCHAR(32) NULL COMMENT 'AI size preset key snapshot' AFTER `size_mode`");
+        addColumn(db, "bp_ai_generate_task", "size_preset_name", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `size_preset_name` VARCHAR(64) NULL COMMENT 'AI size preset name snapshot' AFTER `size_preset`");
         addColumn(db, "bp_ai_generate_task", "grid_min", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_min` INT NULL COMMENT 'requested min grid size' AFTER `size_mode`");
         addColumn(db, "bp_ai_generate_task", "grid_max", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `grid_max` INT NULL COMMENT 'requested max grid size' AFTER `grid_min`");
+        addColumn(db, "bp_ai_generate_task", "candidate_grids", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `candidate_grids` VARCHAR(512) NULL COMMENT 'AI size candidate grids snapshot' AFTER `grid_max`");
+        addColumn(db, "bp_ai_generate_task", "default_grid", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `default_grid` INT NULL COMMENT 'AI size default grid snapshot' AFTER `candidate_grids`");
         addColumn(db, "bp_ai_generate_task", "detected_grid_width", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `detected_grid_width` INT NULL COMMENT 'Perfect Pixel detected grid width' AFTER `raw_ai_image_url`");
         addColumn(db, "bp_ai_generate_task", "detected_grid_height", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `detected_grid_height` INT NULL COMMENT 'Perfect Pixel detected grid height' AFTER `detected_grid_width`");
         addColumn(db, "bp_ai_generate_task", "final_grid_width", "ALTER TABLE `bp_ai_generate_task` ADD COLUMN `final_grid_width` INT NULL COMMENT 'final sampling grid width' AFTER `detected_grid_height`");
@@ -95,6 +99,7 @@ public class SchemaUpgrader implements ApplicationRunner {
         createUserInviteRelationTable(db);
         createWatermarkTables(db);
         createAiMagicStyleTable(db);
+        createAiSizePresetTable(db);
         ensureCommercePackageTables(db);
         ensurePopupConfigTable(db);
         ensureNotificationTables(db);
@@ -349,6 +354,49 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.info("[SchemaUpgrader] legacy ai_magic_style copied to bp_ai_magic_style");
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] copy legacy ai_magic_style failed: {}", e.getMessage());
+        }
+    }
+
+    private void createAiSizePresetTable(String db) {
+        createTableIfNotExists(db, "bp_ai_size_preset",
+                "CREATE TABLE bp_ai_size_preset (" +
+                        "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                        "preset_key VARCHAR(32) NOT NULL," +
+                        "name VARCHAR(64) NOT NULL," +
+                        "description VARCHAR(128) NULL," +
+                        "grid_min INT NOT NULL," +
+                        "grid_max INT NOT NULL," +
+                        "candidate_grids VARCHAR(512) NOT NULL," +
+                        "default_grid INT NOT NULL," +
+                        "sort_order INT NOT NULL DEFAULT 0," +
+                        "recommended TINYINT(1) NOT NULL DEFAULT 0," +
+                        "enabled TINYINT(1) NOT NULL DEFAULT 1," +
+                        "remark VARCHAR(256) NULL," +
+                        "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                        "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP," +
+                        "UNIQUE KEY uk_ai_size_preset_key(preset_key)," +
+                        "KEY idx_ai_size_preset_enabled_sort(enabled, sort_order)" +
+                        ") DEFAULT CHARSET=utf8mb4 COMMENT='AI size preset config'");
+        addColumn(db, "bp_ai_size_preset", "description", "ALTER TABLE `bp_ai_size_preset` ADD COLUMN `description` VARCHAR(128) NULL AFTER `name`");
+        addColumn(db, "bp_ai_size_preset", "recommended", "ALTER TABLE `bp_ai_size_preset` ADD COLUMN `recommended` TINYINT(1) NOT NULL DEFAULT 0 AFTER `sort_order`");
+        addColumn(db, "bp_ai_size_preset", "enabled", "ALTER TABLE `bp_ai_size_preset` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `recommended`");
+        addColumn(db, "bp_ai_size_preset", "remark", "ALTER TABLE `bp_ai_size_preset` ADD COLUMN `remark` VARCHAR(256) NULL AFTER `enabled`");
+        seedAiSizePresets();
+    }
+
+    private void seedAiSizePresets() {
+        try {
+            jdbc.execute("INSERT INTO bp_ai_size_preset " +
+                    "(preset_key, name, description, grid_min, grid_max, candidate_grids, default_grid, sort_order, recommended, enabled, remark) VALUES " +
+                    "('small', '小图', '40格以内', 24, 40, '[24,28,32,36,40]', 32, 10, 0, 1, '适合头像、小物件和快速生成')," +
+                    "('standard', '标准', '80格以内', 32, 80, '[32,36,40,44,48,56,64,72,80]', 64, 20, 1, 1, '默认档位，兼顾细节和制作成本')," +
+                    "('detailed', '精细', '104格以内', 48, 104, '[48,56,64,72,80,88,96,104]', 96, 30, 0, 1, '适合更复杂主体和精细图纸') " +
+                    "ON DUPLICATE KEY UPDATE " +
+                    "name=VALUES(name), description=VALUES(description), grid_min=VALUES(grid_min), grid_max=VALUES(grid_max), " +
+                    "candidate_grids=VALUES(candidate_grids), default_grid=VALUES(default_grid), sort_order=VALUES(sort_order), " +
+                    "recommended=VALUES(recommended), enabled=VALUES(enabled), remark=VALUES(remark)");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] init ai size presets failed: {}", e.getMessage());
         }
     }
 

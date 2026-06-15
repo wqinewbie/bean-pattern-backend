@@ -12,9 +12,12 @@ public class AiGenerateMessage {
     private String negativePromptTemplate;
     private String modelKey;
     private String sizeMode;
+    private String sizePreset;
+    private String sizePresetName;
     private Integer gridMin;
     private Integer gridMax;
     private List<Integer> candidateGrids;
+    private Integer defaultGrid;
     private String brand;
     private Integer colorCount;
     private Boolean mirror;
@@ -84,6 +87,22 @@ public class AiGenerateMessage {
         this.sizeMode = sizeMode;
     }
 
+    public String getSizePreset() {
+        return sizePreset;
+    }
+
+    public void setSizePreset(String sizePreset) {
+        this.sizePreset = sizePreset;
+    }
+
+    public String getSizePresetName() {
+        return sizePresetName;
+    }
+
+    public void setSizePresetName(String sizePresetName) {
+        this.sizePresetName = sizePresetName;
+    }
+
     public Integer getGridMin() {
         return gridMin;
     }
@@ -106,6 +125,14 @@ public class AiGenerateMessage {
 
     public void setCandidateGrids(List<Integer> candidateGrids) {
         this.candidateGrids = candidateGrids;
+    }
+
+    public Integer getDefaultGrid() {
+        return defaultGrid;
+    }
+
+    public void setDefaultGrid(Integer defaultGrid) {
+        this.defaultGrid = defaultGrid;
     }
 
     public String getBrand() {

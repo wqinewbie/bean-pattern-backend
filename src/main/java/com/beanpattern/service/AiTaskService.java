@@ -4,6 +4,7 @@ import com.beanpattern.controller.AiTaskController.AiGenerateRequest;
 import com.beanpattern.config.AiServiceProperties;
 import com.beanpattern.entity.AiGenerateTask;
 import com.beanpattern.entity.AiMagicStyle;
+import com.beanpattern.entity.AiSizePreset;
 import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.AiMagicStyleMapper;
 import com.beanpattern.model.ApiResponse;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +33,9 @@ public class AiTaskService {
 
     @Autowired
     private AiMagicStyleMapper aiMagicStyleMapper;
+
+    @Autowired
+    private AiSizePresetService aiSizePresetService;
 
     @Autowired
     private AiTaskPublisher aiTaskPublisher;
@@ -71,6 +74,20 @@ public class AiTaskService {
         return taskId;
     }
 
+    public String createAdminPromptTestTask(AiGenerateRequest request) {
+        if (!StringUtils.hasText(request.getImageUrl())) {
+            throw new IllegalArgumentException("测试底图 URL 不能为空");
+        }
+        if (!StringUtils.hasText(request.getPromptTemplate()) && !StringUtils.hasText(request.getStyle())) {
+            throw new IllegalArgumentException("请填写正向提示词或选择已有风格");
+        }
+        if (!StringUtils.hasText(request.getStyle())) {
+            request.setStyle("ADMIN_PROMPT_TEST");
+        }
+
+        return createTask(request, 0L);
+    }
+
     public ApiResponse<Map<String, Object>> getTaskStatus(String taskId) {
         AiGenerateTask task = taskMapper.findByTaskId(taskId);
 
@@ -84,6 +101,11 @@ public class AiTaskService {
         data.put("imageUrl", task.getImageUrl());
         data.put("originalImageUrl", task.getImageUrl());
         data.put("sourceUrl", task.getImageUrl());
+        data.put("sizeMode", task.getSizeMode());
+        data.put("sizePreset", task.getSizePreset());
+        data.put("sizePresetName", task.getSizePresetName());
+        data.put("candidateGrids", AiSizePresetService.parseCandidateGrids(task.getCandidateGrids()));
+        data.put("defaultGrid", task.getDefaultGrid());
 
         // 返回后期处理参数，前端可直接用
         data.put("sizeMode", task.getSizeMode());
@@ -103,6 +125,14 @@ public class AiTaskService {
         data.put("finalGridHeight", task.getFinalGridHeight());
         data.put("perfectPixelStatus", task.getPerfectPixelStatus());
         data.put("perfectPixelError", task.getPerfectPixelError());
+        data.put("selectedImageVariant", task.getSelectedImageVariant());
+        if (StringUtils.hasText(task.getProcessMeta())) {
+            try {
+                data.put("processMeta", objectMapper.readValue(task.getProcessMeta(), Map.class));
+            } catch (Exception e) {
+                data.put("processMeta", task.getProcessMeta());
+            }
+        }
 
         if ("SUCCESS".equals(task.getStatus())) {
             data.put("aiImageUrl", task.getAiImageUrl());
@@ -267,15 +297,21 @@ public class AiTaskService {
     }
 
     private AiGenerateMessage buildGenerateMessage(AiGenerateTask task, AiGenerateRequest request) {
-        AiMagicStyle magicStyle = StringUtils.hasText(request.getStyle())
+        AiMagicStyle magicStyle = StringUtils.hasText(request.getStyle()) && !StringUtils.hasText(request.getPromptTemplate())
                 ? aiMagicStyleMapper.findByName(request.getStyle())
                 : null;
 
-        String promptTemplate = magicStyle != null ? magicStyle.getPromptTemplate() : "";
-        String negativePromptTemplate = magicStyle != null ? magicStyle.getNegativePromptTemplate() : "";
-        String modelKey = magicStyle != null && StringUtils.hasText(magicStyle.getModelKey())
+        String promptTemplate = StringUtils.hasText(request.getPromptTemplate())
+                ? request.getPromptTemplate()
+                : (magicStyle != null ? magicStyle.getPromptTemplate() : "");
+        String negativePromptTemplate = StringUtils.hasText(request.getNegativePromptTemplate())
+                ? request.getNegativePromptTemplate()
+                : (magicStyle != null ? magicStyle.getNegativePromptTemplate() : "");
+        String modelKey = StringUtils.hasText(request.getModelKey())
+                ? request.getModelKey()
+                : (magicStyle != null && StringUtils.hasText(magicStyle.getModelKey())
                 ? magicStyle.getModelKey()
-                : aiServiceProperties.getDefaultModelKey();
+                : aiServiceProperties.getDefaultModelKey());
 
         AiGenerateMessage message = new AiGenerateMessage();
         message.setTaskId(task.getTaskId());
@@ -286,9 +322,12 @@ public class AiTaskService {
         message.setNegativePromptTemplate(negativePromptTemplate);
         message.setModelKey(modelKey);
         message.setSizeMode(task.getSizeMode());
+        message.setSizePreset(task.getSizePreset());
+        message.setSizePresetName(task.getSizePresetName());
         message.setGridMin(task.getGridMin());
         message.setGridMax(task.getGridMax());
-        message.setCandidateGrids(candidateGrids(task.getSizeMode(), task.getGridMin(), task.getGridMax()));
+        message.setCandidateGrids(AiSizePresetService.parseCandidateGrids(task.getCandidateGrids()));
+        message.setDefaultGrid(task.getDefaultGrid());
         message.setBrand(task.getBrand());
         message.setColorCount(task.getColorCount());
         message.setMirror(task.getMirror());
@@ -304,12 +343,16 @@ public class AiTaskService {
         task.setUserId(userId);
         task.setImageUrl(request.getImageUrl());
         task.setPrompt(request.getPrompt());
-        task.setStyle(request.getStyle());
-        String sizeMode = StringUtils.hasText(request.getSizeMode()) ? request.getSizeMode() : "default";
+        task.setStyle(StringUtils.hasText(request.getStyle()) ? request.getStyle() : "default");
+        AiSizePreset preset = aiSizePresetService.resolveForGenerate(request.getSizePreset(), request.getSizeMode());
+        String sizeMode = StringUtils.hasText(request.getSizeMode()) ? request.getSizeMode() : preset.getPresetKey();
         task.setSizeMode(sizeMode);
-        int[] gridRange = resolveGridRange(sizeMode, request.getGridMin(), request.getGridMax());
-        task.setGridMin(gridRange[0]);
-        task.setGridMax(gridRange[1]);
+        task.setSizePreset(preset.getPresetKey());
+        task.setSizePresetName(preset.getName());
+        task.setGridMin(preset.getGridMin());
+        task.setGridMax(preset.getGridMax());
+        task.setCandidateGrids(preset.getCandidateGrids());
+        task.setDefaultGrid(preset.getDefaultGrid());
         task.setBrand(request.getBrand());
         task.setColorCount(request.getColorCount());
         task.setMirror(request.getMirror() != null ? request.getMirror() : false);
@@ -319,26 +362,6 @@ public class AiTaskService {
 
         taskMapper.insert(task);
         return task;
-    }
-
-    private int[] resolveGridRange(String sizeMode, Integer requestMin, Integer requestMax) {
-        int min = requestMin != null ? requestMin : ("small".equalsIgnoreCase(sizeMode) ? 24 : 30);
-        int max = requestMax != null ? requestMax : ("small".equalsIgnoreCase(sizeMode) ? 40 : 80);
-        if (min > max) {
-            int tmp = min;
-            min = max;
-            max = tmp;
-        }
-        return new int[]{min, max};
-    }
-
-    private List<Integer> candidateGrids(String sizeMode, Integer gridMin, Integer gridMax) {
-        List<Integer> base = "small".equalsIgnoreCase(sizeMode)
-                ? Arrays.asList(24, 28, 32, 36, 40)
-                : Arrays.asList(32, 36, 40, 44, 48, 56, 64, 72, 80);
-        int min = gridMin != null ? gridMin : ("small".equalsIgnoreCase(sizeMode) ? 24 : 30);
-        int max = gridMax != null ? gridMax : ("small".equalsIgnoreCase(sizeMode) ? 40 : 80);
-        return base.stream().filter(value -> value >= min && value <= max).toList();
     }
 
     private void validateCallbackStatus(String status, String aiImageUrl, String errorMessage) {

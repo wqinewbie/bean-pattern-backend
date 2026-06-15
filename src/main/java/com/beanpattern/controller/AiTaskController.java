@@ -156,7 +156,11 @@ public class AiTaskController {
         private String imageUrl;
         private String prompt;
         private String style;
+        private String promptTemplate;
+        private String negativePromptTemplate;
+        private String modelKey;
         private String sizeMode;
+        private String sizePreset;
         private Integer gridMin;
         private Integer gridMax;
         private String brand;
@@ -187,12 +191,44 @@ public class AiTaskController {
             this.style = style;
         }
 
+        public String getPromptTemplate() {
+            return promptTemplate;
+        }
+
+        public void setPromptTemplate(String promptTemplate) {
+            this.promptTemplate = promptTemplate;
+        }
+
+        public String getNegativePromptTemplate() {
+            return negativePromptTemplate;
+        }
+
+        public void setNegativePromptTemplate(String negativePromptTemplate) {
+            this.negativePromptTemplate = negativePromptTemplate;
+        }
+
+        public String getModelKey() {
+            return modelKey;
+        }
+
+        public void setModelKey(String modelKey) {
+            this.modelKey = modelKey;
+        }
+
         public String getSizeMode() {
             return sizeMode;
         }
 
         public void setSizeMode(String sizeMode) {
             this.sizeMode = sizeMode;
+        }
+
+        public String getSizePreset() {
+            return sizePreset;
+        }
+
+        public void setSizePreset(String sizePreset) {
+            this.sizePreset = sizePreset;
         }
 
         public Integer getGridMin() {

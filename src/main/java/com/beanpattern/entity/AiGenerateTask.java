@@ -16,8 +16,12 @@ public class AiGenerateTask {
     private String prompt;
     private String style;
     private String sizeMode;
+    private String sizePreset;
+    private String sizePresetName;
     private Integer gridMin;
     private Integer gridMax;
+    private String candidateGrids;
+    private Integer defaultGrid;
     private String brand;
     private Integer colorCount;
     private Boolean mirror;
@@ -36,6 +40,8 @@ public class AiGenerateTask {
     private Integer finalGridHeight;
     private String perfectPixelStatus;
     private String perfectPixelError;
+    private String selectedImageVariant;
+    private String processMeta;
     private String mappedPixelData;
     private Long historyId;
     private String errorMessage;
@@ -102,6 +108,22 @@ public class AiGenerateTask {
         this.sizeMode = sizeMode;
     }
 
+    public String getSizePreset() {
+        return sizePreset;
+    }
+
+    public void setSizePreset(String sizePreset) {
+        this.sizePreset = sizePreset;
+    }
+
+    public String getSizePresetName() {
+        return sizePresetName;
+    }
+
+    public void setSizePresetName(String sizePresetName) {
+        this.sizePresetName = sizePresetName;
+    }
+
     public Integer getGridMin() {
         return gridMin;
     }
@@ -116,6 +138,22 @@ public class AiGenerateTask {
 
     public void setGridMax(Integer gridMax) {
         this.gridMax = gridMax;
+    }
+
+    public String getCandidateGrids() {
+        return candidateGrids;
+    }
+
+    public void setCandidateGrids(String candidateGrids) {
+        this.candidateGrids = candidateGrids;
+    }
+
+    public Integer getDefaultGrid() {
+        return defaultGrid;
+    }
+
+    public void setDefaultGrid(Integer defaultGrid) {
+        this.defaultGrid = defaultGrid;
     }
 
     public String getBrand() {
@@ -228,6 +266,22 @@ public class AiGenerateTask {
 
     public void setPerfectPixelError(String perfectPixelError) {
         this.perfectPixelError = perfectPixelError;
+    }
+
+    public String getSelectedImageVariant() {
+        return selectedImageVariant;
+    }
+
+    public void setSelectedImageVariant(String selectedImageVariant) {
+        this.selectedImageVariant = selectedImageVariant;
+    }
+
+    public String getProcessMeta() {
+        return processMeta;
+    }
+
+    public void setProcessMeta(String processMeta) {
+        this.processMeta = processMeta;
     }
 
     public String getMappedPixelData() {
