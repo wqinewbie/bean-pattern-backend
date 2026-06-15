@@ -75,15 +75,15 @@ public class AiTaskService {
     }
 
     public String createAdminPromptTestTask(AiGenerateRequest request) {
-        if (!StringUtils.hasText(request.getImageUrl())) {
-            throw new IllegalArgumentException("测试底图 URL 不能为空");
+        if (!StringUtils.hasText(request.getPromptTemplate())) {
+            throw new IllegalArgumentException("Prompt is required");
         }
-        if (!StringUtils.hasText(request.getPromptTemplate()) && !StringUtils.hasText(request.getStyle())) {
-            throw new IllegalArgumentException("请填写正向提示词或选择已有风格");
-        }
-        if (!StringUtils.hasText(request.getStyle())) {
-            request.setStyle("ADMIN_PROMPT_TEST");
-        }
+        request.setImageUrl("");
+        request.setPrompt("");
+        request.setStyle("ADMIN_PROMPT_TEST");
+        request.setBrand("MARD");
+        request.setColorCount(0);
+        request.setMirror(false);
 
         return createTask(request, 0L);
     }
@@ -267,7 +267,7 @@ public class AiTaskService {
     }
 
     private void refundQuotaOnFailure(AiGenerateTask task, String reason) {
-        if (task.getUserId() == null || !StringUtils.hasText(task.getTaskId())) {
+        if (task.getUserId() == null || task.getUserId() <= 0 || !StringUtils.hasText(task.getTaskId())) {
             return;
         }
         if (aiQuotaLogService.hasLoggedBiz(task.getUserId(), "REFUND", "AI_GENERATE_FAILED", task.getTaskId())) {
