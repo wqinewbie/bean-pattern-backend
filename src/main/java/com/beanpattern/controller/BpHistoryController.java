@@ -6,6 +6,7 @@ import com.beanpattern.entity.BpBox;
 import com.beanpattern.entity.BpHistory;
 import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.vo.BpHistoryDetailVO;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpHistoryService;
 import com.beanpattern.service.PrivilegeService;
@@ -100,7 +101,7 @@ public class BpHistoryController {
      * 获取时光机记录详情
      */
     @GetMapping("/detail/{id}")
-    public ApiResponse<BpHistory> detail(@PathVariable Long id, HttpServletRequest request) {
+    public ApiResponse<BpHistoryDetailVO> detail(@PathVariable Long id, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
@@ -122,7 +123,7 @@ public class BpHistoryController {
         }
 
         enrichAiStyle(history);
-        return ApiResponse.ok(history);
+        return ApiResponse.ok(toDetailVO(history));
     }
 
     /**
@@ -234,6 +235,17 @@ public class BpHistoryController {
         if (task != null && task.getStyle() != null && !task.getStyle().isBlank()) {
             history.setAiStyle(task.getStyle());
         }
+    }
+
+    private BpHistoryDetailVO toDetailVO(BpHistory history) {
+        BpHistoryDetailVO vo = BpHistoryDetailVO.from(history);
+        if (history == null || history.getTaskId() == null || history.getTaskId().isBlank()) return vo;
+        AiGenerateTask task = aiGenerateTaskMapper.findByTaskId(history.getTaskId());
+        if (task != null && task.getImageUrl() != null && !task.getImageUrl().isBlank()) {
+            vo.setOriginalImageUrl(task.getImageUrl());
+            vo.setInputImageUrl(task.getImageUrl());
+        }
+        return vo;
     }
 
     private String resolveAiStyle(BpHistory history) {

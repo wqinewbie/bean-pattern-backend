@@ -6,6 +6,7 @@ import com.beanpattern.entity.BpBox;
 import com.beanpattern.entity.BpHistory;
 import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.model.ApiResponse;
+import com.beanpattern.model.vo.BpBoxDetailVO;
 import com.beanpattern.service.BpBoxService;
 import com.beanpattern.service.BpDraftService;
 import com.beanpattern.service.BpHistoryService;
@@ -133,7 +134,7 @@ public class BpBoxController {
      * 获取图纸详情
      */
     @GetMapping("/detail/{id}")
-    public ApiResponse<BpBox> detail(@PathVariable Long id, HttpServletRequest request) {
+    public ApiResponse<BpBoxDetailVO> detail(@PathVariable Long id, HttpServletRequest request) {
         var user = sessionHelper.requireCompleteProfileUser(request);
         if (user == null) return ApiResponse.fail("请先登录");
 
@@ -155,7 +156,7 @@ public class BpBoxController {
         }
 
         enrichAiStyle(box);
-        return ApiResponse.ok(box);
+        return ApiResponse.ok(toDetailVO(box));
     }
 
     /**
@@ -231,6 +232,19 @@ public class BpBoxController {
     private void enrichAiStyle(BpBox box) {
         if (box == null || (box.getAiStyle() != null && !box.getAiStyle().isBlank())) return;
         box.setAiStyle(resolveAiStyle(box));
+    }
+
+    private BpBoxDetailVO toDetailVO(BpBox box) {
+        BpBoxDetailVO vo = BpBoxDetailVO.from(box);
+        if (box == null || box.getHistoryId() == null) return vo;
+        BpHistory history = bpHistoryService.getById(box.getHistoryId());
+        if (history == null || history.getTaskId() == null || history.getTaskId().isBlank()) return vo;
+        AiGenerateTask task = aiGenerateTaskMapper.findByTaskId(history.getTaskId());
+        if (task != null && task.getImageUrl() != null && !task.getImageUrl().isBlank()) {
+            vo.setOriginalImageUrl(task.getImageUrl());
+            vo.setInputImageUrl(task.getImageUrl());
+        }
+        return vo;
     }
 
     private String resolveAiStyle(BpBox box) {
