@@ -45,4 +45,10 @@ public interface BannerClaimLogMapper {
 
     @Delete("DELETE FROM bp_banner_claim_log WHERE user_id = #{userId}")
     int deleteByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT GET_LOCK(#{lockName}, #{timeoutSeconds})")
+    Integer acquireLock(@Param("lockName") String lockName, @Param("timeoutSeconds") int timeoutSeconds);
+
+    @Select("SELECT RELEASE_LOCK(#{lockName})")
+    Integer releaseLock(@Param("lockName") String lockName);
 }

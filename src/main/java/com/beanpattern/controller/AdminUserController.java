@@ -64,6 +64,7 @@ public class AdminUserController {
                     m.put("avatarUrl", u.getAvatarUrl() != null ? u.getAvatarUrl() : "");
                     m.put("phone", u.getPhone() != null ? u.getPhone() : "");
                     m.put("vipLevel", u.getVipLevel() != null ? u.getVipLevel() : 0);
+                    m.put("aiQuota", u.getAiQuota() != null ? u.getAiQuota() : 0);
                     m.put("status", u.getStatus() != null ? u.getStatus() : 1);
                     m.put("createdAt", u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
                     return m;
