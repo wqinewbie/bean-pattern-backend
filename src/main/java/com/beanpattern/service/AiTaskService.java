@@ -75,10 +75,12 @@ public class AiTaskService {
     }
 
     public String createAdminPromptTestTask(AiGenerateRequest request) {
+        if (!StringUtils.hasText(request.getImageUrl())) {
+            throw new IllegalArgumentException("Image is required");
+        }
         if (!StringUtils.hasText(request.getPromptTemplate())) {
             throw new IllegalArgumentException("Prompt is required");
         }
-        request.setImageUrl("");
         request.setPrompt("");
         request.setStyle("ADMIN_PROMPT_TEST");
         request.setBrand("MARD");
