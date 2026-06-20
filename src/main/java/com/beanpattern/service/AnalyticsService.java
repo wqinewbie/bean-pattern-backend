@@ -51,12 +51,11 @@ public class AnalyticsService {
 
     public AnalyticsService(SessionHelper sessionHelper,
                             AnalyticsEventWriter analyticsEventWriter,
-                            AnalyticsEventMapper analyticsEventMapper,
-                            ObjectMapper objectMapper) {
+                            AnalyticsEventMapper analyticsEventMapper) {
         this.sessionHelper = sessionHelper;
         this.analyticsEventWriter = analyticsEventWriter;
         this.analyticsEventMapper = analyticsEventMapper;
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
     }
 
     public int accept(AnalyticsBatchRequest body, HttpServletRequest request) {
