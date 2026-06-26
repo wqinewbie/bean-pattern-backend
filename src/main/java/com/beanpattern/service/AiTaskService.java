@@ -102,9 +102,14 @@ public class AiTaskService {
             return ApiResponse.fail("任务不存在");
         }
 
+        boolean patternReady = isPatternResultReady(task);
+        String visibleStatus = visibleTaskStatus(task, patternReady);
+
         Map<String, Object> data = new HashMap<>();
         data.put("taskId", task.getTaskId());
-        data.put("status", task.getStatus());
+        data.put("status", visibleStatus);
+        data.put("backendStatus", task.getStatus());
+        data.put("patternReady", patternReady);
         data.put("imageUrl", task.getImageUrl());
         data.put("originalImageUrl", task.getImageUrl());
         data.put("sourceUrl", task.getImageUrl());
@@ -141,7 +146,7 @@ public class AiTaskService {
             }
         }
 
-        if ("SUCCESS".equals(task.getStatus())) {
+        if ("SUCCESS".equals(visibleStatus)) {
             data.put("aiImageUrl", selectedAiImageUrl(task));
             data.put("completedAt", task.getCompletedAt());
             data.put("historyId", task.getHistoryId());
@@ -156,14 +161,31 @@ public class AiTaskService {
                     log.warn("解析 mappedPixelData 失败: {}", task.getTaskId(), e);
                 }
             }
-        } else if ("FAILED".equals(task.getStatus())) {
+        } else if ("FAILED".equals(visibleStatus)) {
             data.put("errorMessage", task.getErrorMessage());
             data.put("completedAt", task.getCompletedAt());
-        } else if ("PROCESSING".equals(task.getStatus())) {
-            data.put("message", "AI正在生成图片...");
+        } else if ("PROCESSING".equals(visibleStatus)) {
+            if ("SUCCESS".equals(task.getStatus()) && !patternReady) {
+                data.put("message", "AI image is ready, generating effect and color chart...");
+                data.put("aiImageUrl", selectedAiImageUrl(task));
+                data.put("completedAt", task.getCompletedAt());
+            } else {
+                data.put("message", "AI正在生成图片...");
+            }
         }
 
         return ApiResponse.ok(data);
+    }
+
+    private boolean isPatternResultReady(AiGenerateTask task) {
+        return task.getHistoryId() != null && StringUtils.hasText(task.getMappedPixelData());
+    }
+
+    private String visibleTaskStatus(AiGenerateTask task, boolean patternReady) {
+        if ("SUCCESS".equals(task.getStatus()) && !patternReady) {
+            return "PROCESSING";
+        }
+        return task.getStatus();
     }
 
     private String selectedAiImageUrl(AiGenerateTask task) {
