@@ -5,6 +5,7 @@ import com.beanpattern.config.AiServiceProperties;
 import com.beanpattern.entity.AiGenerateTask;
 import com.beanpattern.entity.AiMagicStyle;
 import com.beanpattern.entity.AiSizePreset;
+import com.beanpattern.entity.UserEntity;
 import com.beanpattern.mapper.AiGenerateTaskMapper;
 import com.beanpattern.mapper.AiMagicStyleMapper;
 import com.beanpattern.model.ApiResponse;
@@ -86,8 +87,12 @@ public class AiTaskService {
         request.setBrand("MARD");
         request.setColorCount(0);
         request.setMirror(false);
+        if (request.getSkipPerfectPixel() == null) {
+            request.setSkipPerfectPixel(true);
+        }
 
-        return createTask(request, 0L);
+        UserEntity testUser = userService.getOrCreateByOpenId("admin-prompt-test");
+        return createTask(request, testUser.getId());
     }
 
     public ApiResponse<Map<String, Object>> getTaskStatus(String taskId) {
@@ -137,7 +142,7 @@ public class AiTaskService {
         }
 
         if ("SUCCESS".equals(task.getStatus())) {
-            data.put("aiImageUrl", task.getAiImageUrl());
+            data.put("aiImageUrl", selectedAiImageUrl(task));
             data.put("completedAt", task.getCompletedAt());
             data.put("historyId", task.getHistoryId());
             if (StringUtils.hasText(task.getMappedPixelData())) {
@@ -159,6 +164,13 @@ public class AiTaskService {
         }
 
         return ApiResponse.ok(data);
+    }
+
+    private String selectedAiImageUrl(AiGenerateTask task) {
+        if ("RAW".equalsIgnoreCase(task.getSelectedImageVariant()) && StringUtils.hasText(task.getRawAiImageUrl())) {
+            return task.getRawAiImageUrl();
+        }
+        return task.getAiImageUrl();
     }
 
     public void updateTaskStatus(String taskId,
@@ -333,6 +345,7 @@ public class AiTaskService {
         message.setBrand(task.getBrand());
         message.setColorCount(task.getColorCount());
         message.setMirror(task.getMirror());
+        message.setSkipPerfectPixel(!Boolean.FALSE.equals(request.getSkipPerfectPixel()));
         message.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(task.getCreatedAt()));
         return message;
     }

@@ -72,6 +72,8 @@ public class AiHistoryAutoSaveService {
                 latest.setHistoryId(history.getId());
                 latest.setSelectedImageVariant(result.selectedImageVariant());
                 latest.setProcessMeta(result.processMetaJson());
+                latest.setFinalGridWidth(result.selectedCandidate().gridSize());
+                latest.setFinalGridHeight(result.selectedCandidate().gridSize());
                 latest.setUpdatedAt(new Date());
                 taskMapper.updateById(latest);
             }

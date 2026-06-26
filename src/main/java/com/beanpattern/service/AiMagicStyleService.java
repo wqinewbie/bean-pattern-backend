@@ -12,6 +12,8 @@ import java.util.List;
 @Service
 public class AiMagicStyleService {
 
+    private static final int MAX_PROMPT_LENGTH = 4000;
+
     @Autowired
     private AiMagicStyleMapper mapper;
 
@@ -33,6 +35,8 @@ public class AiMagicStyleService {
      * 保存风格
      */
     public void save(AiMagicStyle style) {
+        validatePromptLength(style.getPromptTemplate(), "正向提示词");
+        validatePromptLength(style.getNegativePromptTemplate(), "反向提示词");
         if (style.getId() == null) {
             // 新增
             if (style.getSortOrder() == null) {
@@ -45,6 +49,12 @@ public class AiMagicStyleService {
         } else {
             // 更新
             mapper.update(style);
+        }
+    }
+
+    private void validatePromptLength(String value, String fieldName) {
+        if (value != null && value.length() > MAX_PROMPT_LENGTH) {
+            throw new IllegalArgumentException(fieldName + "不能超过 " + MAX_PROMPT_LENGTH + " 个字符");
         }
     }
 

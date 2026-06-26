@@ -21,10 +21,44 @@ public class AiPatternQualityScorer {
         score -= 25.0 * metrics.noiseRatio();
         score -= 20.0 * metrics.edgeWhiteRatio();
         score -= 40.0 * metrics.centerSeamPenalty();
+        score -= sizePenalty(mappedPixelData);
+        score -= aspectPenalty(mappedPixelData);
         if (preferredRefined) {
             score += 3.0;
         }
         return new ScoredMetrics(round(score), metrics);
+    }
+
+    private double sizePenalty(List<List<Map<String, Object>>> data) {
+        int rows = data == null ? 0 : data.size();
+        int cols = rows == 0 || data.get(0) == null ? 0 : data.get(0).size();
+        int maxDim = Math.max(rows, cols);
+        if (maxDim > 0 && maxDim < 44) {
+            return Math.min(6.0, (44 - maxDim) * 0.8);
+        }
+        if (maxDim <= 56) {
+            return 0.0;
+        }
+        if (maxDim <= 64) {
+            return (maxDim - 56) * 0.5;
+        }
+        if (maxDim <= 72) {
+            return 4.0 + (maxDim - 64);
+        }
+        return Math.min(24.0, 12.0 + (maxDim - 72) * 1.5);
+    }
+
+    private double aspectPenalty(List<List<Map<String, Object>>> data) {
+        int rows = data == null ? 0 : data.size();
+        int cols = rows == 0 || data.get(0) == null ? 0 : data.get(0).size();
+        if (rows <= 0 || cols <= 0) {
+            return 0.0;
+        }
+        double ratio = (double) Math.max(rows, cols) / Math.max(1, Math.min(rows, cols));
+        if (ratio <= 1.25) {
+            return 0.0;
+        }
+        return Math.min(16.0, (ratio - 1.25) * 32.0);
     }
 
     private QualityMetrics calculateMetrics(List<List<Map<String, Object>>> data,

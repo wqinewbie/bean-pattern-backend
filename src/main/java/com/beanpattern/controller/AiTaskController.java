@@ -166,6 +166,7 @@ public class AiTaskController {
         private String brand;
         private Integer colorCount;
         private Boolean mirror;
+        private Boolean skipPerfectPixel;
 
         public String getImageUrl() {
             return imageUrl;
@@ -269,6 +270,14 @@ public class AiTaskController {
 
         public void setMirror(Boolean mirror) {
             this.mirror = mirror;
+        }
+
+        public Boolean getSkipPerfectPixel() {
+            return skipPerfectPixel;
+        }
+
+        public void setSkipPerfectPixel(Boolean skipPerfectPixel) {
+            this.skipPerfectPixel = skipPerfectPixel;
         }
     }
 }

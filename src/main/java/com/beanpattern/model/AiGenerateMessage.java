@@ -21,6 +21,7 @@ public class AiGenerateMessage {
     private String brand;
     private Integer colorCount;
     private Boolean mirror;
+    private Boolean skipPerfectPixel;
     private String createdAt;
 
     public String getTaskId() {
@@ -157,6 +158,14 @@ public class AiGenerateMessage {
 
     public void setMirror(Boolean mirror) {
         this.mirror = mirror;
+    }
+
+    public Boolean getSkipPerfectPixel() {
+        return skipPerfectPixel;
+    }
+
+    public void setSkipPerfectPixel(Boolean skipPerfectPixel) {
+        this.skipPerfectPixel = skipPerfectPixel;
     }
 
     public String getCreatedAt() {

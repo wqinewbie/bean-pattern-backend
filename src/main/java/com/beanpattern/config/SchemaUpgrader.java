@@ -320,8 +320,8 @@ public class SchemaUpgrader implements ApplicationRunner {
                         "icon VARCHAR(512) NULL," +
                         "tag VARCHAR(64) NULL," +
                         "description VARCHAR(256) NULL," +
-                        "prompt_template VARCHAR(512) NULL," +
-                        "negative_prompt_template VARCHAR(1024) NULL," +
+                        "prompt_template TEXT NULL," +
+                        "negative_prompt_template TEXT NULL," +
                         "model_key VARCHAR(64) NULL," +
                         "sort_order INT NOT NULL DEFAULT 0," +
                         "enabled TINYINT(1) NOT NULL DEFAULT 1," +
@@ -332,14 +332,41 @@ public class SchemaUpgrader implements ApplicationRunner {
         addColumn(db, "bp_ai_magic_style", "icon", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `icon` VARCHAR(512) NULL AFTER `name`");
         addColumn(db, "bp_ai_magic_style", "tag", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `tag` VARCHAR(64) NULL AFTER `icon`");
         addColumn(db, "bp_ai_magic_style", "description", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `description` VARCHAR(256) NULL AFTER `tag`");
-        addColumn(db, "bp_ai_magic_style", "prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `prompt_template` VARCHAR(512) NULL AFTER `description`");
-        addColumn(db, "bp_ai_magic_style", "negative_prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `negative_prompt_template` VARCHAR(1024) NULL AFTER `prompt_template`");
+        addColumn(db, "bp_ai_magic_style", "prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `prompt_template` TEXT NULL AFTER `description`");
+        addColumn(db, "bp_ai_magic_style", "negative_prompt_template", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `negative_prompt_template` TEXT NULL AFTER `prompt_template`");
         addColumn(db, "bp_ai_magic_style", "model_key", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `model_key` VARCHAR(64) NULL AFTER `negative_prompt_template`");
         addColumn(db, "bp_ai_magic_style", "sort_order", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `sort_order` INT NOT NULL DEFAULT 0 AFTER `model_key`");
         addColumn(db, "bp_ai_magic_style", "enabled", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `sort_order`");
         addColumn(db, "bp_ai_magic_style", "created_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `enabled`");
         addColumn(db, "bp_ai_magic_style", "updated_at", "ALTER TABLE `bp_ai_magic_style` ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`");
+        widenAiMagicStylePromptColumns(db);
         copyLegacyAiMagicStyles(db);
+    }
+
+    private void widenAiMagicStylePromptColumns(String db) {
+        try {
+            Integer tableCount = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME='bp_ai_magic_style'",
+                    Integer.class, db);
+            if (tableCount == null || tableCount == 0) {
+                return;
+            }
+            Integer narrowColumnCount = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                            + "WHERE TABLE_SCHEMA=? AND TABLE_NAME='bp_ai_magic_style' "
+                            + "AND COLUMN_NAME IN ('prompt_template','negative_prompt_template') "
+                            + "AND DATA_TYPE <> 'text'",
+                    Integer.class, db);
+            if (narrowColumnCount == null || narrowColumnCount == 0) {
+                return;
+            }
+            jdbc.execute("ALTER TABLE `bp_ai_magic_style` "
+                    + "MODIFY COLUMN `prompt_template` TEXT NULL COMMENT 'AI正向提示词模板', "
+                    + "MODIFY COLUMN `negative_prompt_template` TEXT NULL COMMENT 'AI反向提示词模板'");
+            log.info("[SchemaUpgrader] widened bp_ai_magic_style prompt columns");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] widen bp_ai_magic_style prompt columns failed: {}", e.getMessage());
+        }
     }
 
     private void copyLegacyAiMagicStyles(String db) {
