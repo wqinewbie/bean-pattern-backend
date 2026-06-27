@@ -14,7 +14,8 @@ GROUP BY b.name, k.id, k.color_count
 HAVING actual_color_count <> expected_color_count
 ORDER BY b.id, k.color_count;
 
--- 2. Placeholder or suspicious colors currently included in kits.
+-- 2. Virtual placeholder colors currently included in kits.
+-- H7 is a legitimate black color in the MARD reference data; VT* colors are placeholders.
 SELECT DISTINCT
   b.name AS brand_name,
   k.color_count,
@@ -27,7 +28,7 @@ FROM bead_brand_kit k
 JOIN bead_brand b ON b.id = k.brand_id
 JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
 JOIN bead_color c ON c.id = bkc.color_id
-WHERE c.code LIKE 'VT%' OR c.hex = '#000000'
+WHERE c.code LIKE 'VT%'
 ORDER BY b.id, k.color_count, c.code;
 
 -- 3. Legacy palette duplicates that were collapsed by bead_brand_kit_color.
