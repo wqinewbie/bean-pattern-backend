@@ -742,8 +742,21 @@ public class SchemaUpgrader implements ApplicationRunner {
                             "KEY idx_brand_rgb(brand_id, r, g, b)" +
                             ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌颜色覆盖表'");
 
+            createTableIfNotExists(db, "bead_brand_kit_color",
+                    "CREATE TABLE bead_brand_kit_color (" +
+                            "kit_id INT NOT NULL COMMENT '套装ID'," +
+                            "color_id INT NOT NULL COMMENT '色号ID'," +
+                            "sort_order INT NOT NULL DEFAULT 0 COMMENT '排序'," +
+                            "PRIMARY KEY(kit_id, color_id)," +
+                            "KEY idx_bkc_color_id(color_id)," +
+                            "KEY idx_bkc_kit_sort(kit_id, sort_order)" +
+                            ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌套装-色号直接关联表'");
+
+            addColumn(db, "bead_color", "display_name",
+                    "ALTER TABLE `bead_color` ADD COLUMN `display_name` VARCHAR(64) NULL AFTER `code`");
             seedBeadDataFromSqlFile();
             migrateBeadKitPalettes();
+            migrateBeadKitColors();
             migrateBrandColorOverrides(db);
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 创建bead表失败: {}", e.getMessage());
@@ -784,6 +797,27 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.info("[SchemaUpgrader] bead_brand_kit_palette 数据迁移完成");
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 迁移 bead_brand_kit_palette 失败: {}", e.getMessage());
+        }
+    }
+
+    private void migrateBeadKitColors() {
+        try {
+            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bead_brand_kit_color", Integer.class);
+            if (count != null && count > 0) return;
+
+            jdbc.execute("""
+                INSERT IGNORE INTO bead_brand_kit_color(kit_id, color_id, sort_order)
+                SELECT bkp.kit_id,
+                       pc.color_id,
+                       MIN(bkp.sort_order * 1000 + c.id) AS sort_order
+                FROM bead_brand_kit_palette bkp
+                JOIN bead_palette_color pc ON pc.palette_id = bkp.palette_id
+                JOIN bead_color c ON c.id = pc.color_id
+                GROUP BY bkp.kit_id, pc.color_id
+            """);
+            log.info("[SchemaUpgrader] bead_brand_kit_color 数据迁移完成");
+        } catch (Exception e) {
+            log.warn("[SchemaUpgrader] 迁移 bead_brand_kit_color 失败: {}", e.getMessage());
         }
     }
 

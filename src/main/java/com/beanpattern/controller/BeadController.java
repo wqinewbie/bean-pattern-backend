@@ -66,14 +66,21 @@ public class BeadController {
 
     @GetMapping("/brand-kits")
     public ApiResponse<List<Map<String, Object>>> brandKits(@RequestParam("brandId") Long brandId) {
-        var list = beadAdminMapper.listPalettesByBrandId(brandId);
+        var list = beadAdminMapper.listKitsByBrandId(brandId);
         List<Map<String, Object>> data = new ArrayList<>();
         for (var item : list) {
             Object id = item.get("id");
-            Object name = item.get("name");
+            Object colorCount = item.get("color_count");
+            if (colorCount == null) colorCount = item.get("colorCount");
+            int count = 0;
+            if (colorCount instanceof Number n) count = n.intValue();
+            else if (colorCount != null) {
+                try { count = Integer.parseInt(String.valueOf(colorCount)); } catch (Exception ignored) {}
+            }
             data.add(Map.of(
                     "id", id == null ? "" : String.valueOf(id),
-                    "name", name == null ? "" : String.valueOf(name)
+                    "colorCount", count,
+                    "name", count > 0 ? (count + "色") : "套装"
             ));
         }
         return ApiResponse.ok(data);
@@ -103,14 +110,15 @@ public class BeadController {
 
     @GetMapping("/kits/{kitId}/palettes")
     public ApiResponse<List<Map<String, Object>>> palettesByKit(@PathVariable Long kitId) {
-        var list = beadAdminMapper.listPalettesByKitId(kitId);
+        var list = beadAdminMapper.listColorsByKitId(kitId);
         List<Map<String, Object>> data = new ArrayList<>();
         for (var item : list) {
             Object id = item.get("id");
-            Object name = item.get("name");
+            Object code = item.get("code");
             data.add(Map.of(
                     "id", id == null ? "" : String.valueOf(id),
-                    "name", name == null ? "" : String.valueOf(name)
+                    "name", code == null ? "" : String.valueOf(code),
+                    "type", "color"
             ));
         }
         return ApiResponse.ok(data);

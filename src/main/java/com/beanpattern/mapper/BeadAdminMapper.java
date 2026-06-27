@@ -42,9 +42,18 @@ public interface BeadAdminMapper {
     int deletePalette(@Param("id") Long id);
 
     @Select("""
-        SELECT id, code, hex, r, g, b
+        SELECT id,
+               code,
+               display_name AS displayName,
+               hex,
+               r,
+               g,
+               b
         FROM bead_color
-        WHERE (#{q} IS NULL OR #{q} = '' OR code LIKE CONCAT('%', #{q}, '%'))
+        WHERE (#{q} IS NULL OR #{q} = ''
+            OR code LIKE CONCAT('%', #{q}, '%')
+            OR display_name LIKE CONCAT('%', #{q}, '%')
+            OR hex LIKE CONCAT('%', #{q}, '%'))
         ORDER BY code
         """)
     List<Map<String, Object>> listColors(@Param("q") String q);
@@ -52,16 +61,18 @@ public interface BeadAdminMapper {
     @Select("SELECT COUNT(*) FROM bead_color WHERE code = #{code}")
     int countColorByCode(@Param("code") String code);
 
-    @Insert("INSERT INTO bead_color(code, hex, r, g, b) VALUES(#{code}, #{hex}, #{r}, #{g}, #{b})")
+    @Insert("INSERT INTO bead_color(code, display_name, hex, r, g, b) VALUES(#{code}, #{displayName}, #{hex}, #{r}, #{g}, #{b})")
     int insertColor(@Param("code") String code,
+                    @Param("displayName") String displayName,
                     @Param("hex") String hex,
                     @Param("r") int r,
                     @Param("g") int g,
                     @Param("b") int b);
 
-    @Update("UPDATE bead_color SET code = #{code}, hex = #{hex}, r = #{r}, g = #{g}, b = #{b} WHERE id = #{id}")
+    @Update("UPDATE bead_color SET code = #{code}, display_name = #{displayName}, hex = #{hex}, r = #{r}, g = #{g}, b = #{b} WHERE id = #{id}")
     int updateColor(@Param("id") Long id,
                     @Param("code") String code,
+                    @Param("displayName") String displayName,
                     @Param("hex") String hex,
                     @Param("r") int r,
                     @Param("g") int g,
@@ -75,17 +86,25 @@ public interface BeadAdminMapper {
                k.brand_id AS brandId,
                b.name AS brandName,
                k.color_count AS colorCount,
-               GROUP_CONCAT(p.name ORDER BY bkp.sort_order SEPARATOR ',') AS paletteIds
+               COUNT(DISTINCT bkc.color_id) AS colorTotal
         FROM bead_brand_kit k
         LEFT JOIN bead_brand b ON b.id = k.brand_id
-        LEFT JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
-        LEFT JOIN bead_palette p ON p.id = bkp.palette_id
+        LEFT JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
         GROUP BY k.id, k.brand_id, b.name, k.color_count
         ORDER BY k.brand_id, k.color_count
         """)
     List<Map<String, Object>> listBrandKits();
 
-    @Select("SELECT id, color_count FROM bead_brand_kit WHERE brand_id = #{brandId} ORDER BY color_count, id")
+    @Select("""
+        SELECT k.id,
+               k.color_count AS colorCount,
+               COUNT(DISTINCT bkc.color_id) AS colorTotal
+        FROM bead_brand_kit k
+        LEFT JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
+        WHERE k.brand_id = #{brandId}
+        GROUP BY k.id, k.color_count
+        ORDER BY k.color_count, k.id
+        """)
     List<Map<String, Object>> listKitsByBrandId(@Param("brandId") Long brandId);
 
     @Select("""
@@ -98,14 +117,43 @@ public interface BeadAdminMapper {
     List<Map<String, Object>> listPalettesByKitId(@Param("kitId") Long kitId);
 
     @Select("""
-        SELECT DISTINCT c.id, c.code, c.hex, c.r, c.g, c.b
-        FROM bead_brand_kit_palette bkp
-        JOIN bead_palette_color pc ON pc.palette_id = bkp.palette_id
-        JOIN bead_color c ON c.id = pc.color_id
-        WHERE bkp.kit_id = #{kitId}
-        ORDER BY c.code
+        SELECT
+               c.id,
+               c.code,
+               COALESCE(NULLIF(bco.display_name, ''), c.display_name, c.code) AS displayName,
+               COALESCE(bco.hex, c.hex) AS hex,
+               COALESCE(bco.r, c.r) AS r,
+               COALESCE(bco.g, c.g) AS g,
+               COALESCE(bco.b, c.b) AS b
+        FROM bead_brand_kit k
+        JOIN bead_brand b ON b.id = k.brand_id
+        JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
+        JOIN bead_color c ON c.id = bkc.color_id
+        LEFT JOIN bead_brand_color_override bco ON bco.brand_id = b.id AND bco.color_id = c.id
+        WHERE k.id = #{kitId}
+        ORDER BY bkc.sort_order, c.code
         """)
     List<Map<String, Object>> listColorsByKitId(@Param("kitId") Long kitId);
+
+    @Select("""
+        SELECT
+               c.id,
+               c.code,
+               COALESCE(NULLIF(bco.display_name, ''), c.display_name, c.code) AS displayName,
+               COALESCE(bco.hex, c.hex) AS hex,
+               COALESCE(bco.r, c.r) AS r,
+               COALESCE(bco.g, c.g) AS g,
+               COALESCE(bco.b, c.b) AS b
+        FROM bead_brand_kit k
+        JOIN bead_brand b ON b.id = k.brand_id
+        JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
+        JOIN bead_color c ON c.id = bkc.color_id
+        LEFT JOIN bead_brand_color_override bco ON bco.brand_id = b.id AND bco.color_id = c.id
+        WHERE k.brand_id = #{brandId} AND k.color_count = #{colorCount}
+        ORDER BY bkc.sort_order, c.code
+        """)
+    List<Map<String, Object>> listColorsByBrandAndCount(@Param("brandId") Long brandId,
+                                                        @Param("colorCount") Integer colorCount);
 
     @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
     List<Map<String, Object>> listColorsByPaletteId(@Param("paletteId") Integer paletteId);
@@ -136,4 +184,19 @@ public interface BeadAdminMapper {
             "</script>"})
     int insertPaletteColorsBatch(@Param("paletteId") Long paletteId,
                                  @Param("colorIds") List<Long> colorIds);
+
+    @Select("SELECT COUNT(*) FROM bead_brand_kit WHERE id = #{id}")
+    int countKitById(@Param("id") Long id);
+
+    @Insert({"<script>",
+            "INSERT IGNORE INTO bead_brand_kit_color(kit_id, color_id, sort_order) VALUES",
+            "<foreach collection='colorIds' item='colorId' index='index' separator=','>",
+            "(#{kitId}, #{colorId}, #{index})",
+            "</foreach>",
+            "</script>"})
+    int insertKitColorsBatch(@Param("kitId") Long kitId,
+                             @Param("colorIds") List<Long> colorIds);
+
+    @Delete("DELETE FROM bead_brand_kit_color WHERE kit_id = #{kitId} AND color_id = #{colorId}")
+    int deleteKitColor(@Param("kitId") Long kitId, @Param("colorId") Long colorId);
 }

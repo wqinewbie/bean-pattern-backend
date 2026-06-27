@@ -92,6 +92,7 @@ public class AdminBeadController {
     @PostMapping("/colors")
     public ApiResponse<Void> createColor(@RequestBody Map<String, Object> body) {
         String code = ((String) body.getOrDefault("code", "")).trim();
+        String displayName = ((String) body.getOrDefault("displayName", "")).trim();
         String hex = ((String) body.getOrDefault("hex", "")).trim().toUpperCase();
         int r = body.get("r") instanceof Number n ? n.intValue() : 0;
         int g = body.get("g") instanceof Number n ? n.intValue() : 0;
@@ -99,26 +100,79 @@ public class AdminBeadController {
         if (!StringUtils.hasText(code)) return ApiResponse.fail("色号不能为空");
         if (!StringUtils.hasText(hex)) return ApiResponse.fail("HEX不能为空");
         if (beadAdminMapper.countColorByCode(code) > 0) return ApiResponse.fail("色号已存在");
-        beadAdminMapper.insertColor(code, hex, r, g, b);
+        beadAdminMapper.insertColor(code, displayName, hex, r, g, b);
         return ApiResponse.ok(null);
     }
 
     @PutMapping("/colors/{id}")
     public ApiResponse<Void> updateColor(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         String code = ((String) body.getOrDefault("code", "")).trim();
+        String displayName = ((String) body.getOrDefault("displayName", "")).trim();
         String hex = ((String) body.getOrDefault("hex", "")).trim().toUpperCase();
         int r = body.get("r") instanceof Number n ? n.intValue() : 0;
         int g = body.get("g") instanceof Number n ? n.intValue() : 0;
         int b = body.get("b") instanceof Number n ? n.intValue() : 0;
         if (!StringUtils.hasText(code)) return ApiResponse.fail("色号不能为空");
         if (!StringUtils.hasText(hex)) return ApiResponse.fail("HEX不能为空");
-        beadAdminMapper.updateColor(id, code, hex, r, g, b);
+        beadAdminMapper.updateColor(id, code, displayName, hex, r, g, b);
         return ApiResponse.ok(null);
     }
 
     @DeleteMapping("/colors/{id}")
     public ApiResponse<Void> deleteColor(@PathVariable Long id) {
         beadAdminMapper.deleteColor(id);
+        return ApiResponse.ok(null);
+    }
+
+    // ─── 套装色号 ───
+
+    @GetMapping("/brands/{brandId}/kits")
+    public ApiResponse<List<Map<String, Object>>> kitsByBrand(@PathVariable Long brandId) {
+        return ApiResponse.ok(beadAdminMapper.listKitsByBrandId(brandId));
+    }
+
+    @GetMapping("/kits/{kitId}/colors")
+    public ApiResponse<List<Map<String, Object>>> kitColors(@PathVariable Long kitId) {
+        return ApiResponse.ok(beadAdminMapper.listColorsByKitId(kitId));
+    }
+
+    @PostMapping("/kits/{kitId}/batch-add-colors")
+    public ApiResponse<Map<String, Object>> batchAddKitColors(@PathVariable Long kitId,
+                                                              @RequestBody Map<String, Object> body) {
+        if (beadAdminMapper.countKitById(kitId) <= 0) return ApiResponse.fail("套装不存在");
+
+        Object raw = body.get("codes");
+        if (!(raw instanceof List<?> rawList) || rawList.isEmpty()) return ApiResponse.fail("codes 不能为空");
+
+        List<String> codes = rawList.stream()
+                .map(v -> v == null ? "" : String.valueOf(v).trim())
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+        if (codes.isEmpty()) return ApiResponse.fail("codes 不能为空");
+
+        List<Long> colorIds = beadAdminMapper.listColorIdsByCodes(codes);
+        int added = 0;
+        if (!colorIds.isEmpty()) {
+            added = beadAdminMapper.insertKitColorsBatch(kitId, colorIds);
+        }
+
+        int found = colorIds.size();
+        int missing = Math.max(codes.size() - found, 0);
+        int ignored = Math.max(found - added, 0);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("inputCount", codes.size());
+        result.put("foundCount", found);
+        result.put("addedCount", added);
+        result.put("ignoredCount", ignored);
+        result.put("missingCount", missing);
+        return ApiResponse.ok(result);
+    }
+
+    @DeleteMapping("/kits/{kitId}/colors/{colorId}")
+    public ApiResponse<Void> removeKitColor(@PathVariable Long kitId, @PathVariable Long colorId) {
+        beadAdminMapper.deleteKitColor(kitId, colorId);
         return ApiResponse.ok(null);
     }
 
