@@ -1,8 +1,8 @@
 package com.beanpattern.controller;
 
+import com.beanpattern.mapper.BeadAdminMapper;
 import com.beanpattern.model.ApiResponse;
 import com.beanpattern.service.BeadColorService;
-import com.beanpattern.mapper.BeadAdminMapper;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -28,22 +28,19 @@ public class BeadController {
     public ApiResponse<Map<String, Object>> getBrands() {
         List<String> brands = beadColorService.getBrandNames();
         Map<String, Object> result = new LinkedHashMap<>();
-        for (String b : brands) {
-            result.put(b, beadColorService.getKits(b));
+        for (String brand : brands) {
+            result.put(brand, beadColorService.getKits(brand));
         }
         return ApiResponse.ok(result);
     }
 
     @GetMapping("/brand-list")
     public ApiResponse<List<Map<String, Object>>> brandList() {
-        var list = beadAdminMapper.listBrands();
         List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            Object id = item.get("id");
-            Object name = item.get("name");
+        for (var item : beadAdminMapper.listBrands()) {
             data.add(Map.of(
-                    "id", id == null ? "" : String.valueOf(id),
-                    "name", name == null ? "" : String.valueOf(name)
+                    "id", stringValue(item.get("id")),
+                    "name", stringValue(item.get("name"))
             ));
         }
         return ApiResponse.ok(data);
@@ -51,58 +48,44 @@ public class BeadController {
 
     @GetMapping("/palettes")
     public ApiResponse<List<Map<String, Object>>> palettesByBrand(@RequestParam("brandId") Long brandId) {
-        var list = beadAdminMapper.listPalettesByBrandId(brandId);
         List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            Object id = item.get("id");
-            Object name = item.get("name");
+        for (var item : beadAdminMapper.listPalettesByBrandId(brandId)) {
             data.add(Map.of(
-                    "id", id == null ? "" : String.valueOf(id),
-                    "name", name == null ? "" : String.valueOf(name)
+                    "id", stringValue(item.get("id")),
+                    "name", stringValue(item.get("name"))
             ));
         }
         return ApiResponse.ok(data);
     }
 
     @GetMapping("/brand-kits")
-    public ApiResponse<List<Map<String, Object>>> brandKits(@RequestParam("brandId") Long brandId) {
-        var list = beadAdminMapper.listKitsByBrandId(brandId);
+    public ApiResponse<List<Map<String, Object>>> brandKits(@RequestParam(value = "brandId", required = false) Long brandId) {
+        var list = brandId == null ? beadAdminMapper.listBrandKits() : beadAdminMapper.listKitsByBrandId(brandId);
         List<Map<String, Object>> data = new ArrayList<>();
         for (var item : list) {
-            Object id = item.get("id");
-            Object colorCount = item.get("color_count");
-            if (colorCount == null) colorCount = item.get("colorCount");
-            int count = 0;
-            if (colorCount instanceof Number n) count = n.intValue();
-            else if (colorCount != null) {
-                try { count = Integer.parseInt(String.valueOf(colorCount)); } catch (Exception ignored) {}
-            }
-            data.add(Map.of(
-                    "id", id == null ? "" : String.valueOf(id),
-                    "colorCount", count,
-                    "name", count > 0 ? (count + "色") : "套装"
-            ));
+            int count = intValue(firstNonNull(item.get("color_count"), item.get("colorCount")));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", stringValue(item.get("id")));
+            if (item.get("brandId") != null) row.put("brandId", stringValue(item.get("brandId")));
+            if (item.get("brandName") != null) row.put("brandName", stringValue(item.get("brandName")));
+            row.put("colorCount", count);
+            row.put("colorTotal", item.get("colorTotal"));
+            row.put("name", count > 0 ? count + "色" : "套装");
+            data.add(row);
         }
         return ApiResponse.ok(data);
     }
 
     @GetMapping("/brands/{brandId}/kits")
     public ApiResponse<List<Map<String, Object>>> kitsByBrand(@PathVariable Long brandId) {
-        var list = beadAdminMapper.listKitsByBrandId(brandId);
         List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            Object id = item.get("id");
-            Object colorCount = item.get("color_count");
-            if (colorCount == null) colorCount = item.get("colorCount");
-            int count = 0;
-            if (colorCount instanceof Number n) count = n.intValue();
-            else if (colorCount != null) {
-                try { count = Integer.parseInt(String.valueOf(colorCount)); } catch (Exception ignored) {}
-            }
+        for (var item : beadAdminMapper.listKitsByBrandId(brandId)) {
+            int count = intValue(firstNonNull(item.get("color_count"), item.get("colorCount")));
             data.add(Map.of(
-                    "id", id == null ? "" : String.valueOf(id),
+                    "id", stringValue(item.get("id")),
                     "colorCount", count,
-                    "name", count > 0 ? (count + "色") : "套餐"
+                    "colorTotal", firstNonNull(item.get("color_total"), item.get("colorTotal")),
+                    "name", count > 0 ? count + "色" : "套装"
             ));
         }
         return ApiResponse.ok(data);
@@ -110,14 +93,11 @@ public class BeadController {
 
     @GetMapping("/kits/{kitId}/palettes")
     public ApiResponse<List<Map<String, Object>>> palettesByKit(@PathVariable Long kitId) {
-        var list = beadAdminMapper.listColorsByKitId(kitId);
         List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            Object id = item.get("id");
-            Object code = item.get("code");
+        for (var item : beadAdminMapper.listColorsByKitId(kitId)) {
             data.add(Map.of(
-                    "id", id == null ? "" : String.valueOf(id),
-                    "name", code == null ? "" : String.valueOf(code),
+                    "id", stringValue(item.get("id")),
+                    "name", stringValue(firstNonNull(item.get("displayName"), item.get("code"))),
                     "type", "color"
             ));
         }
@@ -126,44 +106,12 @@ public class BeadController {
 
     @GetMapping("/kits/{kitId}/colors")
     public ApiResponse<List<Map<String, Object>>> colorsByKit(@PathVariable Long kitId) {
-        var list = beadAdminMapper.listColorsByKitId(kitId);
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            String code = item.get("code") == null ? "" : String.valueOf(item.get("code"));
-            String hex = item.get("hex") == null ? "" : String.valueOf(item.get("hex"));
-            data.add(Map.of(
-                    "id", item.get("id") == null ? "" : String.valueOf(item.get("id")),
-                    "code", code,
-                    "name", code,
-                    "hex", hex.startsWith("#") ? hex.toUpperCase() : ("#" + hex).toUpperCase(),
-                    "r", item.get("r"),
-                    "g", item.get("g"),
-                    "b", item.get("b")
-            ));
-        }
-        data.sort(Comparator.comparing(o -> String.valueOf(o.get("code"))));
-        return ApiResponse.ok(data);
+        return ApiResponse.ok(colorRows(beadAdminMapper.listColorsByKitId(kitId)));
     }
 
     @GetMapping("/palettes/{id}/colors")
     public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
-        var list = beadAdminMapper.listColorsByPaletteId(id);
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : list) {
-            String code = item.get("code") == null ? "" : String.valueOf(item.get("code"));
-            String hex = item.get("hex") == null ? "" : String.valueOf(item.get("hex"));
-            data.add(Map.of(
-                    "id", item.get("id") == null ? "" : String.valueOf(item.get("id")),
-                    "code", code,
-                    "name", code,
-                    "hex", hex.startsWith("#") ? hex.toUpperCase() : ("#" + hex).toUpperCase(),
-                    "r", item.get("r"),
-                    "g", item.get("g"),
-                    "b", item.get("b")
-            ));
-        }
-        data.sort(Comparator.comparing(o -> String.valueOf(o.get("code"))));
-        return ApiResponse.ok(data);
+        return ApiResponse.ok(colorRows(beadAdminMapper.listColorsByPaletteId(id)));
     }
 
     @PostMapping("/match-colors")
@@ -194,13 +142,13 @@ public class BeadController {
         List<List<Map<String, Object>>> result = new ArrayList<>();
         for (BeadColorService.BeadColor[] row : matched) {
             List<Map<String, Object>> rowList = new ArrayList<>();
-            for (BeadColorService.BeadColor c : row) {
+            for (BeadColorService.BeadColor color : row) {
                 rowList.add(Map.of(
-                        "id", c.id(),
-                        "name", c.name(),
-                        "r", c.r(),
-                        "g", c.g(),
-                        "b", c.b()
+                        "id", color.id(),
+                        "name", color.name(),
+                        "r", color.r(),
+                        "g", color.g(),
+                        "b", color.b()
                 ));
             }
             result.add(rowList);
@@ -208,4 +156,47 @@ public class BeadController {
         return ApiResponse.ok(result);
     }
 
+    private List<Map<String, Object>> colorRows(List<Map<String, Object>> list) {
+        List<Map<String, Object>> data = new ArrayList<>();
+        for (var item : list) {
+            String code = stringValue(item.get("code"));
+            String displayName = stringValue(firstNonNull(item.get("displayName"), code));
+            String hex = stringValue(item.get("hex"));
+            data.add(Map.of(
+                    "id", stringValue(item.get("id")),
+                    "code", code,
+                    "name", displayName,
+                    "displayName", displayName,
+                    "hex", normalizeHex(hex),
+                    "r", item.get("r"),
+                    "g", item.get("g"),
+                    "b", item.get("b")
+            ));
+        }
+        data.sort(Comparator.comparing(o -> String.valueOf(o.get("code"))));
+        return data;
+    }
+
+    private static Object firstNonNull(Object first, Object second) {
+        return first != null ? first : second;
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private static int intValue(Object value) {
+        if (value instanceof Number n) return n.intValue();
+        if (value == null) return 0;
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private static String normalizeHex(String hex) {
+        if (hex == null || hex.isBlank()) return "";
+        return hex.startsWith("#") ? hex.toUpperCase() : ("#" + hex).toUpperCase();
+    }
 }
