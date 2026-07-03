@@ -136,6 +136,35 @@ public class AdminBeadController {
         return ApiResponse.ok(beadAdminMapper.listColorsByKitId(kitId));
     }
 
+    @GetMapping("/audit")
+    public ApiResponse<Map<String, Object>> audit() {
+        List<Map<String, Object>> kitCountMismatches = beadAdminMapper.auditKitCountMismatches();
+        List<Map<String, Object>> virtualKitColors = beadAdminMapper.auditVirtualKitColors();
+        List<Map<String, Object>> badColorValues = beadAdminMapper.auditBadColorValues();
+        List<Map<String, Object>> legacyPaletteDuplicates = beadAdminMapper.auditLegacyPaletteDuplicates();
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("brands", beadAdminMapper.countBrands());
+        summary.put("kits", beadAdminMapper.countKits());
+        summary.put("colors", beadAdminMapper.countColors());
+        summary.put("kitColors", beadAdminMapper.countKitColors());
+        summary.put("kitCountMismatches", kitCountMismatches.size());
+        summary.put("virtualKitColors", virtualKitColors.size());
+        summary.put("badColorValues", badColorValues.size());
+        summary.put("legacyPaletteDuplicates", legacyPaletteDuplicates.size());
+        summary.put("healthy", kitCountMismatches.isEmpty()
+                && virtualKitColors.isEmpty()
+                && badColorValues.isEmpty());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("summary", summary);
+        result.put("kitCountMismatches", kitCountMismatches);
+        result.put("virtualKitColors", virtualKitColors);
+        result.put("badColorValues", badColorValues);
+        result.put("legacyPaletteDuplicates", legacyPaletteDuplicates);
+        return ApiResponse.ok(result);
+    }
+
     @PostMapping("/kits/{kitId}/batch-add-colors")
     public ApiResponse<Map<String, Object>> batchAddKitColors(@PathVariable Long kitId,
                                                               @RequestBody Map<String, Object> body) {

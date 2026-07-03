@@ -199,4 +199,92 @@ public interface BeadAdminMapper {
 
     @Delete("DELETE FROM bead_brand_kit_color WHERE kit_id = #{kitId} AND color_id = #{colorId}")
     int deleteKitColor(@Param("kitId") Long kitId, @Param("colorId") Long colorId);
+
+    @Select("""
+        SELECT COUNT(*) FROM bead_brand
+        """)
+    int countBrands();
+
+    @Select("""
+        SELECT COUNT(*) FROM bead_brand_kit
+        """)
+    int countKits();
+
+    @Select("""
+        SELECT COUNT(*) FROM bead_color
+        """)
+    int countColors();
+
+    @Select("""
+        SELECT COUNT(*) FROM bead_brand_kit_color
+        """)
+    int countKitColors();
+
+    @Select("""
+        SELECT b.name AS brandName,
+               k.id AS kitId,
+               k.color_count AS colorCount,
+               COUNT(DISTINCT bkc.color_id) AS colorTotal
+        FROM bead_brand_kit k
+        JOIN bead_brand b ON b.id = k.brand_id
+        LEFT JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
+        GROUP BY b.name, k.id, k.color_count
+        HAVING colorTotal <> colorCount
+        ORDER BY b.id, k.color_count
+        """)
+    List<Map<String, Object>> auditKitCountMismatches();
+
+    @Select("""
+        SELECT DISTINCT b.name AS brandName,
+               k.id AS kitId,
+               k.color_count AS colorCount,
+               c.code,
+               c.hex,
+               c.r,
+               c.g,
+               c.b
+        FROM bead_brand_kit k
+        JOIN bead_brand b ON b.id = k.brand_id
+        JOIN bead_brand_kit_color bkc ON bkc.kit_id = k.id
+        JOIN bead_color c ON c.id = bkc.color_id
+        WHERE c.code LIKE 'VT%'
+        ORDER BY b.id, k.color_count, c.code
+        """)
+    List<Map<String, Object>> auditVirtualKitColors();
+
+    @Select("""
+        SELECT id,
+               code,
+               display_name AS displayName,
+               hex,
+               r,
+               g,
+               b
+        FROM bead_color
+        WHERE hex NOT REGEXP '^#[0-9A-Fa-f]{6}$'
+           OR r < 0 OR r > 255
+           OR g < 0 OR g > 255
+           OR b < 0 OR b > 255
+        ORDER BY code
+        """)
+    List<Map<String, Object>> auditBadColorValues();
+
+    @Select("""
+        SELECT b.name AS brandName,
+               k.id AS kitId,
+               k.color_count AS colorCount,
+               c.code,
+               COUNT(*) AS legacyHits,
+               GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ',') AS legacyPalettes
+        FROM bead_brand_kit k
+        JOIN bead_brand b ON b.id = k.brand_id
+        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
+        JOIN bead_palette p ON p.id = bkp.palette_id
+        JOIN bead_palette_color pc ON pc.palette_id = p.id
+        JOIN bead_color c ON c.id = pc.color_id
+        GROUP BY b.name, k.id, k.color_count, c.code
+        HAVING legacyHits > 1
+        ORDER BY b.id, k.color_count, c.code
+        """)
+    List<Map<String, Object>> auditLegacyPaletteDuplicates();
 }
