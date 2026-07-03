@@ -46,18 +46,6 @@ public class BeadController {
         return ApiResponse.ok(data);
     }
 
-    @GetMapping("/palettes")
-    public ApiResponse<List<Map<String, Object>>> palettesByBrand(@RequestParam("brandId") Long brandId) {
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : beadAdminMapper.listPalettesByBrandId(brandId)) {
-            data.add(Map.of(
-                    "id", stringValue(item.get("id")),
-                    "name", stringValue(item.get("name"))
-            ));
-        }
-        return ApiResponse.ok(data);
-    }
-
     @GetMapping("/brand-kits")
     public ApiResponse<List<Map<String, Object>>> brandKits(@RequestParam(value = "brandId", required = false) Long brandId) {
         var list = brandId == null ? beadAdminMapper.listBrandKits() : beadAdminMapper.listKitsByBrandId(brandId);
@@ -91,27 +79,9 @@ public class BeadController {
         return ApiResponse.ok(data);
     }
 
-    @GetMapping("/kits/{kitId}/palettes")
-    public ApiResponse<List<Map<String, Object>>> palettesByKit(@PathVariable Long kitId) {
-        List<Map<String, Object>> data = new ArrayList<>();
-        for (var item : beadAdminMapper.listColorsByKitId(kitId)) {
-            data.add(Map.of(
-                    "id", stringValue(item.get("id")),
-                    "name", stringValue(firstNonNull(item.get("displayName"), item.get("code"))),
-                    "type", "color"
-            ));
-        }
-        return ApiResponse.ok(data);
-    }
-
     @GetMapping("/kits/{kitId}/colors")
     public ApiResponse<List<Map<String, Object>>> colorsByKit(@PathVariable Long kitId) {
         return ApiResponse.ok(colorRows(beadAdminMapper.listColorsByKitId(kitId)));
-    }
-
-    @GetMapping("/palettes/{id}/colors")
-    public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
-        return ApiResponse.ok(colorRows(beadAdminMapper.listColorsByPaletteId(id)));
     }
 
     @PostMapping("/match-colors")

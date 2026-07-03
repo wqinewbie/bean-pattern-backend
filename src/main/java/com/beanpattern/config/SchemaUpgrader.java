@@ -690,20 +690,6 @@ public class SchemaUpgrader implements ApplicationRunner {
                             "INDEX idx_code(code)" +
                             ") DEFAULT CHARSET=utf8mb4 COMMENT='拼豆色码表'");
 
-            createTableIfNotExists(db, "bead_palette",
-                    "CREATE TABLE bead_palette (" +
-                            "id INT PRIMARY KEY AUTO_INCREMENT," +
-                            "name VARCHAR(10) NOT NULL UNIQUE COMMENT '色盘编号'," +
-                            "remark VARCHAR(50) DEFAULT ''" +
-                            ") DEFAULT CHARSET=utf8mb4 COMMENT='色盘表'");
-
-            createTableIfNotExists(db, "bead_palette_color",
-                    "CREATE TABLE bead_palette_color (" +
-                            "palette_id INT NOT NULL," +
-                            "color_id INT NOT NULL," +
-                            "PRIMARY KEY(palette_id, color_id)" +
-                            ") DEFAULT CHARSET=utf8mb4 COMMENT='色盘色码关联表'");
-
             createTableIfNotExists(db, "bead_brand",
                     "CREATE TABLE bead_brand (" +
                             "id INT PRIMARY KEY AUTO_INCREMENT," +
@@ -715,18 +701,8 @@ public class SchemaUpgrader implements ApplicationRunner {
                             "id INT PRIMARY KEY AUTO_INCREMENT," +
                             "brand_id INT NOT NULL," +
                             "color_count INT NOT NULL COMMENT '套装色数'," +
-                            "palette_ids VARCHAR(200) NOT NULL COMMENT '色盘name逗号分隔'," +
                             "UNIQUE KEY uk_brand_count(brand_id, color_count)" +
                             ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌套装表'");
-
-            createTableIfNotExists(db, "bead_brand_kit_palette",
-                    "CREATE TABLE bead_brand_kit_palette (" +
-                            "kit_id INT NOT NULL COMMENT '套餐ID'," +
-                            "palette_id INT NOT NULL COMMENT '色盘ID'," +
-                            "sort_order INT NOT NULL DEFAULT 0 COMMENT '排序'," +
-                            "PRIMARY KEY(kit_id, palette_id)," +
-                            "KEY idx_palette_id(palette_id)" +
-                            ") DEFAULT CHARSET=utf8mb4 COMMENT='品牌套餐色盘关联表'");
 
             createTableIfNotExists(db, "bead_brand_color_override",
                     "CREATE TABLE bead_brand_color_override (" +
@@ -754,9 +730,6 @@ public class SchemaUpgrader implements ApplicationRunner {
 
             addColumn(db, "bead_color", "display_name",
                     "ALTER TABLE `bead_color` ADD COLUMN `display_name` VARCHAR(64) NULL AFTER `code`");
-            seedBeadDataFromSqlFile();
-            migrateBeadKitPalettes();
-            migrateBeadKitColors();
             migrateBrandColorOverrides(db);
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 创建bead表失败: {}", e.getMessage());
@@ -770,54 +743,6 @@ public class SchemaUpgrader implements ApplicationRunner {
         if (count == null || count == 0) {
             jdbc.execute(createSql);
             log.info("[SchemaUpgrader] 创建表: {}", table);
-        }
-    }
-
-    private void migrateBeadKitPalettes() {
-        try {
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bead_brand_kit_palette", Integer.class);
-            if (count != null && count > 0) return;
-
-            List<Map<String, Object>> kits = jdbc.queryForList("SELECT id, palette_ids FROM bead_brand_kit");
-            for (Map<String, Object> kit : kits) {
-                Number kitIdNum = (Number) kit.get("id");
-                if (kitIdNum == null) continue;
-                int kitId = kitIdNum.intValue();
-                String paletteIds = String.valueOf(kit.get("palette_ids") == null ? "" : kit.get("palette_ids")).trim();
-                if (paletteIds.isEmpty()) continue;
-                String[] names = paletteIds.split(",");
-                for (int i = 0; i < names.length; i++) {
-                    String name = names[i] == null ? "" : names[i].trim();
-                    if (name.isEmpty()) continue;
-                    List<Integer> paletteIdList = jdbc.query("SELECT id FROM bead_palette WHERE name = ?", (rs, rowNum) -> rs.getInt(1), name);
-                    if (paletteIdList.isEmpty()) continue;
-                    jdbc.update("INSERT IGNORE INTO bead_brand_kit_palette(kit_id, palette_id, sort_order) VALUES(?, ?, ?)", kitId, paletteIdList.get(0), i);
-                }
-            }
-            log.info("[SchemaUpgrader] bead_brand_kit_palette 数据迁移完成");
-        } catch (Exception e) {
-            log.warn("[SchemaUpgrader] 迁移 bead_brand_kit_palette 失败: {}", e.getMessage());
-        }
-    }
-
-    private void migrateBeadKitColors() {
-        try {
-            Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM bead_brand_kit_color", Integer.class);
-            if (count != null && count > 0) return;
-
-            jdbc.execute("""
-                INSERT IGNORE INTO bead_brand_kit_color(kit_id, color_id, sort_order)
-                SELECT bkp.kit_id,
-                       pc.color_id,
-                       MIN(bkp.sort_order * 1000 + c.id) AS sort_order
-                FROM bead_brand_kit_palette bkp
-                JOIN bead_palette_color pc ON pc.palette_id = bkp.palette_id
-                JOIN bead_color c ON c.id = pc.color_id
-                GROUP BY bkp.kit_id, pc.color_id
-            """);
-            log.info("[SchemaUpgrader] bead_brand_kit_color 数据迁移完成");
-        } catch (Exception e) {
-            log.warn("[SchemaUpgrader] 迁移 bead_brand_kit_color 失败: {}", e.getMessage());
         }
     }
 
@@ -842,48 +767,6 @@ public class SchemaUpgrader implements ApplicationRunner {
             log.info("[SchemaUpgrader] bead_brand_color_override 数据迁移完成");
         } catch (Exception e) {
             log.warn("[SchemaUpgrader] 迁移 bead_brand_color_override 失败: {}", e.getMessage());
-        }
-    }
-
-    private void seedBeadDataFromSqlFile() {
-        if (!seedEnabled) {
-            log.info("[SchemaUpgrader] seed is disabled, skip bead_color_init");
-            return;
-        }
-
-        Integer colorCount = jdbc.queryForObject("SELECT COUNT(*) FROM bead_color", Integer.class);
-        if (colorCount != null && colorCount > 0) return;
-
-        try {
-            var resource = new ClassPathResource("bead_color_init.sql");
-            try (var reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                StringBuilder sql = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String trimmed = line.trim();
-                    if (trimmed.isEmpty() || trimmed.startsWith("--")) continue;
-                    sql.append(line).append('\n');
-                }
-                String[] statements = sql.toString().split(";\\s*");
-                int executed = 0;
-                for (String stmt : statements) {
-                    String s = stmt.trim();
-                    if (s.isEmpty()) continue;
-                    try {
-                        jdbc.execute(s);
-                        executed++;
-                    } catch (Exception ex) {
-                        String msg = ex.getMessage();
-                        if (msg != null && msg.contains("Duplicate entry")) {
-                            continue;
-                        }
-                        throw ex;
-                    }
-                }
-                log.info("[SchemaUpgrader] bead色卡SQL执行完成，语句数: {}", executed);
-            }
-        } catch (Exception e) {
-            log.warn("[SchemaUpgrader] 导入bead色卡数据失败: {}", e.getMessage());
         }
     }
 

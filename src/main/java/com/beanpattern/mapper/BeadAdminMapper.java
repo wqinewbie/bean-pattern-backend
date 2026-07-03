@@ -23,24 +23,6 @@ public interface BeadAdminMapper {
     @Delete("DELETE FROM bead_brand WHERE id = #{id}")
     int deleteBrand(@Param("id") Long id);
 
-    @Select("SELECT id, name, remark FROM bead_palette ORDER BY id")
-    List<Map<String, Object>> listPalettes();
-
-    @Select("SELECT COUNT(*) FROM bead_palette WHERE name = #{name}")
-    int countPaletteByName(@Param("name") String name);
-
-    @Select("SELECT COUNT(*) FROM bead_palette WHERE id = #{id}")
-    int countPaletteById(@Param("id") Long id);
-
-    @Insert("INSERT INTO bead_palette(name, remark) VALUES(#{name}, #{remark})")
-    int insertPalette(@Param("name") String name, @Param("remark") String remark);
-
-    @Update("UPDATE bead_palette SET name = #{name}, remark = #{remark} WHERE id = #{id}")
-    int updatePalette(@Param("id") Long id, @Param("name") String name, @Param("remark") String remark);
-
-    @Delete("DELETE FROM bead_palette WHERE id = #{id}")
-    int deletePalette(@Param("id") Long id);
-
     @Select("""
         SELECT id,
                code,
@@ -108,15 +90,6 @@ public interface BeadAdminMapper {
     List<Map<String, Object>> listKitsByBrandId(@Param("brandId") Long brandId);
 
     @Select("""
-        SELECT p.id, p.name
-        FROM bead_brand_kit_palette bkp
-        JOIN bead_palette p ON p.id = bkp.palette_id
-        WHERE bkp.kit_id = #{kitId}
-        ORDER BY bkp.sort_order, p.id
-        """)
-    List<Map<String, Object>> listPalettesByKitId(@Param("kitId") Long kitId);
-
-    @Select("""
         SELECT
                c.id,
                c.code,
@@ -155,19 +128,6 @@ public interface BeadAdminMapper {
     List<Map<String, Object>> listColorsByBrandAndCount(@Param("brandId") Long brandId,
                                                         @Param("colorCount") Integer colorCount);
 
-    @Select("SELECT c.id, c.code, c.hex, c.r, c.g, c.b FROM bead_palette_color pc JOIN bead_color c ON c.id = pc.color_id WHERE pc.palette_id = #{paletteId} ORDER BY c.code")
-    List<Map<String, Object>> listColorsByPaletteId(@Param("paletteId") Integer paletteId);
-
-    @Select("""
-        SELECT DISTINCT p.id, p.name
-        FROM bead_brand_kit k
-        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
-        JOIN bead_palette p ON p.id = bkp.palette_id
-        WHERE k.brand_id = #{brandId}
-        ORDER BY p.id
-        """)
-    List<Map<String, Object>> listPalettesByBrandId(@Param("brandId") Long brandId);
-
     @Select({"<script>",
             "SELECT id FROM bead_color WHERE code IN",
             "<foreach collection='codes' item='code' open='(' separator=',' close=')'>",
@@ -175,15 +135,6 @@ public interface BeadAdminMapper {
             "</foreach>",
             "</script>"})
     List<Long> listColorIdsByCodes(@Param("codes") List<String> codes);
-
-    @Insert({"<script>",
-            "INSERT IGNORE INTO bead_palette_color(palette_id, color_id) VALUES",
-            "<foreach collection='colorIds' item='colorId' separator=','>",
-            "(#{paletteId}, #{colorId})",
-            "</foreach>",
-            "</script>"})
-    int insertPaletteColorsBatch(@Param("paletteId") Long paletteId,
-                                 @Param("colorIds") List<Long> colorIds);
 
     @Select("SELECT COUNT(*) FROM bead_brand_kit WHERE id = #{id}")
     int countKitById(@Param("id") Long id);
@@ -270,22 +221,4 @@ public interface BeadAdminMapper {
         """)
     List<Map<String, Object>> auditBadColorValues();
 
-    @Select("""
-        SELECT b.name AS brandName,
-               k.id AS kitId,
-               k.color_count AS colorCount,
-               c.code,
-               COUNT(*) AS legacyHits,
-               GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ',') AS legacyPalettes
-        FROM bead_brand_kit k
-        JOIN bead_brand b ON b.id = k.brand_id
-        JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
-        JOIN bead_palette p ON p.id = bkp.palette_id
-        JOIN bead_palette_color pc ON pc.palette_id = p.id
-        JOIN bead_color c ON c.id = pc.color_id
-        GROUP BY b.name, k.id, k.color_count, c.code
-        HAVING legacyHits > 1
-        ORDER BY b.id, k.color_count, c.code
-        """)
-    List<Map<String, Object>> auditLegacyPaletteDuplicates();
 }

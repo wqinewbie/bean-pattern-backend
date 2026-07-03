@@ -31,19 +31,19 @@ JOIN bead_color c ON c.id = bkc.color_id
 WHERE c.code LIKE 'VT%'
 ORDER BY b.id, k.color_count, c.code;
 
--- 3. Legacy palette duplicates that were collapsed by bead_brand_kit_color.
+-- 3. Color rows whose HEX and RGB values disagree.
 SELECT
-  b.name AS brand_name,
-  k.color_count,
-  c.code,
-  COUNT(*) AS legacy_hits,
-  GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR ',') AS legacy_palettes
-FROM bead_brand_kit k
-JOIN bead_brand b ON b.id = k.brand_id
-JOIN bead_brand_kit_palette bkp ON bkp.kit_id = k.id
-JOIN bead_palette p ON p.id = bkp.palette_id
-JOIN bead_palette_color pc ON pc.palette_id = p.id
-JOIN bead_color c ON c.id = pc.color_id
-GROUP BY b.name, k.color_count, c.code
-HAVING legacy_hits > 1
-ORDER BY b.name, k.color_count, c.code;
+  code,
+  display_name,
+  hex,
+  r,
+  g,
+  b
+FROM bead_color
+WHERE hex IS NULL
+   OR hex NOT REGEXP '^#[0-9A-Fa-f]{6}$'
+   OR UPPER(REPLACE(hex, '#', '')) <> CONCAT(LPAD(HEX(r), 2, '0'), LPAD(HEX(g), 2, '0'), LPAD(HEX(b), 2, '0'))
+   OR r NOT BETWEEN 0 AND 255
+   OR g NOT BETWEEN 0 AND 255
+   OR b NOT BETWEEN 0 AND 255
+ORDER BY code;

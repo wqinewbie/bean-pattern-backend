@@ -9,8 +9,8 @@ import java.util.Map;
 public interface BeadColorMapper {
 
     /**
-     * 查询某品牌某色数套装下的所有色码（含 HEX/RGB）
-     * 优先使用品牌颜色覆盖表，套餐与色盘关系走中间表。
+     * 查询某品牌某色数套装下的所有色码（含 HEX/RGB）。
+     * 优先使用品牌颜色覆盖表，套装与色号使用直接关联表。
      */
     @Select("""
         SELECT

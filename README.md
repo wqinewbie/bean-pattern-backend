@@ -7,7 +7,7 @@
 - 用户管理（注册、登录、信息管理）
 - 图纸管理（上传、审核、下架）
 - Banner 管理（轮播图配置）
-- 拼豆品牌、色盘、色号管理
+- 拼豆品牌、套装颜色、色号管理
 - 订单管理（充值订单）
 - VIP 套餐管理
 - 反馈管理
@@ -74,7 +74,8 @@ Authorization: Bearer {token}
 - `GET /api/admin/patterns` - 图纸列表
 - `GET /api/admin/banners` - Banner 列表
 - `GET /api/admin/bead/brands` - 拼豆品牌列表
-- `GET /api/admin/bead/palettes` - 色盘列表
+- `GET /api/admin/bead/brands/{brandId}/kits` - 品牌套装列表
+- `GET /api/admin/bead/kits/{kitId}/colors` - 套装色号列表
 - `GET /api/admin/bead/colors` - 色号列表
 
 详见 `AdminController` 类

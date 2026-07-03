@@ -3,7 +3,6 @@ package com.beanpattern.controller;
 import com.beanpattern.mapper.BeadAdminMapper;
 import com.beanpattern.model.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,15 +48,5 @@ public class BeadTreeController {
             tree.add(brandNode);
         }
         return ApiResponse.ok(tree);
-    }
-
-    @GetMapping("/palettes/{id}/colors")
-    public ApiResponse<List<Map<String, Object>>> paletteColors(@PathVariable Integer id) {
-        return ApiResponse.ok(beadAdminMapper.listColorsByPaletteId(id));
-    }
-
-    @GetMapping("/brands/{id}/palettes")
-    public ApiResponse<List<Map<String, Object>>> brandPalettes(@PathVariable Long id) {
-        return ApiResponse.ok(beadAdminMapper.listKitsByBrandId(id));
     }
 }
