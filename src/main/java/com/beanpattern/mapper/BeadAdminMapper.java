@@ -262,6 +262,7 @@ public interface BeadAdminMapper {
                b
         FROM bead_color
         WHERE hex NOT REGEXP '^#[0-9A-Fa-f]{6}$'
+           OR UPPER(REPLACE(hex, '#', '')) <> CONCAT(LPAD(HEX(r), 2, '0'), LPAD(HEX(g), 2, '0'), LPAD(HEX(b), 2, '0'))
            OR r < 0 OR r > 255
            OR g < 0 OR g > 255
            OR b < 0 OR b > 255
